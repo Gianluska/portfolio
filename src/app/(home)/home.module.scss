@@ -1,0 +1,25 @@
+@import '@theme';
+
+.title {
+  color: $light-darker;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+}
+
+.teste {
+  color: $light-darker;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  font-family: 'Novo Tupi', sans-serif;
+}
+
+.hero {
+  height: 100vh;
+  background-color: $dark-lighter;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 38px 90px;
+}

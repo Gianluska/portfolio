@@ -1,7 +1,5 @@
-import styles from './page.module.scss'
+import Home from "./(home)/page";
 
-export default function Home() {
-  return (
-    <h1 className={styles.title}>Oi mamãe!</h1>
-  )
+export default function Layout() {
+  return <Home />;
 }
