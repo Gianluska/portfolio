@@ -21,7 +21,7 @@ const Home = () => {
         <DecoderText
           className={styles.title}
           text="Gianlucca Claudino"
-          delay={300}
+          delay={500}
         />
       </motion.div>
     </section>
