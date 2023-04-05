@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import styles from "./visuallyHidden.module.scss";
 
-export const VisuallyHidden: React.FC<any> = forwardRef(
+const VisuallyHidden: React.FC<any> = forwardRef(
   (
     {
       className,
@@ -26,3 +26,6 @@ export const VisuallyHidden: React.FC<any> = forwardRef(
     );
   }
 );
+
+VisuallyHidden.displayName = "VisuallyHidden";
+export default VisuallyHidden;

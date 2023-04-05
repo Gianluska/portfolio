@@ -1,9 +1,13 @@
 "use client";
-import { DecoderText } from "@/components/DecoderText";
+import DecoderText from "@/components/DecoderText";
 import styles from "./home.module.scss";
 import { motion } from "framer-motion";
 
-const transition = { duration: 1.5, ease: [0.43, 0.13, 0.23, 0.96], delay: 0.3 };
+const transition = {
+  duration: 1.5,
+  ease: [0.43, 0.13, 0.23, 0.96],
+  delay: 0.3,
+};
 
 const Home = () => {
   return (

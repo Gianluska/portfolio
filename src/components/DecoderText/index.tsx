@@ -1,6 +1,6 @@
 "use client";
 
-import { VisuallyHidden } from "@/components/VisuallyHidden";
+import VisuallyHidden from "@/components/VisuallyHidden";
 import { useReducedMotion, useSpring } from "framer-motion";
 import { memo, useEffect, useRef } from "react";
 import { delay } from "@/utils/delay";
@@ -42,7 +42,7 @@ const shuffle = (
   });
 };
 
-export const DecoderText: React.FC<T.IDecoderText> = memo(
+const DecoderText: React.FC<T.IDecoderText> = memo(
   ({ text, start = true, delay: startDelay = 0, className, ...rest }) => {
     const output = useRef([{ type: CharType.Glyph, value: "" }]);
     const container = useRef<HTMLSpanElement>(null);
@@ -97,3 +97,6 @@ export const DecoderText: React.FC<T.IDecoderText> = memo(
     );
   }
 );
+
+DecoderText.displayName = "DecoderText";
+export default DecoderText;
