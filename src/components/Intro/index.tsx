@@ -13,10 +13,9 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 const rfs = THREE.MathUtils.randFloatSpread;
 const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
 const baubleMaterial = new THREE.MeshStandardMaterial({
-  color: "cornflowerblue",
-  roughness: 0,
-  envMapIntensity: 0.2,
-  emissive: "#0e0c0e",
+  color: "black",
+  roughness: 100,
+  envMapIntensity: 0,
 });
 
 export const Intro = () => (
