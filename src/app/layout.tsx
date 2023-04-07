@@ -1,6 +1,7 @@
 import "./styles/global.scss";
 
 import { GothamFont } from "./fonts/Gotham";
+import Header from "@/components/Header";
 
 export const metadata = {
   title: "Gianlucca Claudino | ",
@@ -14,7 +15,10 @@ interface IRootLayout {
 const RootLayout: React.FC<IRootLayout> = ({ children }) => {
   return (
     <html lang="pt-br">
-      <body className={GothamFont.className}>{children}</body>
+      <body className={GothamFont.className + " layout"}>
+        <Header />
+        {children}
+      </body>
     </html>
   );
 };

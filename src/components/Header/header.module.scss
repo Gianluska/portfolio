@@ -1,0 +1,57 @@
+@import "@theme";
+
+.header {
+  height: 64px;
+  background-color: rgba($background, $alpha: 0.25);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 0px $spacing-l;
+
+  &::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: saturate(180%) blur(5px);
+    backface-visibility: hidden;
+    perspective: 1000;
+    z-index: -1;
+    top: -1px;
+    transform: translateZ(0);
+  }
+}
+
+.titleWrapper {
+  flex: 1 1 auto;
+  text-align: start;
+}
+
+.title {
+  color: $light-darker;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.25rem;
+}
+
+.link {
+  color: rgba($light-darker, $alpha: 0.5);
+  transition: color ease 0.15s;
+  font-weight: 500;
+  text-decoration: none;
+
+  &:hover {
+    color: rgba($light-darker, $alpha: 1);
+  }
+
+  & + .link {
+    margin-left: $spacing-gg;
+  }
+}
