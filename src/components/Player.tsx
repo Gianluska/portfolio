@@ -49,7 +49,7 @@ const Player = () => {
     camera.position.z += moveZ;
 
     cameraTarget.x = player.scene.position.x;
-    cameraTarget.y = player.scene.position.y + 2;
+    cameraTarget.y = player.scene.position.y;
     cameraTarget.z = player.scene.position.z;
     if (controlsRef.current) {
       controlsRef.current.target = cameraTarget;
@@ -104,13 +104,18 @@ const Player = () => {
 
       player.scene.position.x += moveX;
       player.scene.position.z += moveZ;
-      updateCameraTarget(moveX, moveZ)
+      updateCameraTarget(moveX, moveZ);
     }
   });
 
   return (
     <mesh position-y={-1} scale={0.8}>
-      <OrbitControls ref={controlsRef} />
+      <OrbitControls
+        makeDefault
+        enableZoom={false}
+        enableRotate={false}
+        ref={controlsRef}
+      />
       <primitive object={player.scene} />
     </mesh>
   );
