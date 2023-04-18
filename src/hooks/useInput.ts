@@ -19,14 +19,15 @@ export const useInput = () => {
     Space: "jump",
   };
 
+  // @ts-expect-error
   const findKey = (key: string) => keys[key];
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: any) => {
       setInput((m) => ({ ...m, [findKey(e.code)]: true }));
     };
 
-    const handleKeyUp = (e) => {
+    const handleKeyUp = (e: any) => {
       setInput((m) => ({ ...m, [findKey(e.code)]: false }));
     };
 
