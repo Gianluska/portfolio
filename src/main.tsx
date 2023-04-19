@@ -1,3 +1,4 @@
+import { PerspectiveCamera } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import ReactDOM from "react-dom/client";
 import Experience from "./Experience";
@@ -5,15 +6,7 @@ import Experience from "./Experience";
 import "./globalStyles.scss";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <Canvas
-    shadows
-    camera={{
-      fov: 45,
-      near: 0.1,
-      far: 200,
-      position: [-4, 3, 6],
-    }}
-  >
+  <Canvas shadows camera={{ position: [2, 1, 2] }}>
     <Experience />
   </Canvas>
 );

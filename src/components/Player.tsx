@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { OrbitControls, useGLTF } from "@react-three/drei";
+import { OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import { useInput } from "../hooks/useInput";
@@ -38,9 +38,11 @@ const directionOffset = ({ forward, backward, left, right }) => {
 };
 
 const Player = () => {
+  const { backward, forward, jump, left, right, shift } = useInput();
+
   const player = useGLTF("./character.glb");
 
-  const { backward, forward, jump, left, right, shift } = useInput();
+  const { actions } = useAnimations(player.animations, player.scene);
 
   const currentAction = useRef("");
   const controlsRef = useRef<typeof OrbitControls>();
@@ -59,23 +61,25 @@ const Player = () => {
   };
 
   useEffect(() => {
-    console.log({
-      backward,
-      forward,
-      jump,
-      left,
-      right,
-      shift,
-    });
+    let action = "";
+
     if (forward || backward || left || right) {
-      currentAction.current = "walking";
+      action = "Walk";
     } else {
-      currentAction.current = "";
+      action = "Idle";
+    }
+
+    if (currentAction.current != action) {
+      const nextActionToPlay = actions[action];
+      const current = actions[currentAction.current];
+      current?.fadeOut(0.2);
+      nextActionToPlay?.reset().fadeIn(0.2).play();
+      currentAction.current = action;
     }
   }, [backward, forward, jump, left, right, shift]);
 
   useFrame((state, delta) => {
-    if (currentAction.current === "walking") {
+    if (currentAction.current === "Walk") {
       let angleYCameraDirection = Math.atan2(
         camera.position.x - player.scene.position.x,
         camera.position.y - player.scene.position.y
@@ -92,7 +96,7 @@ const Player = () => {
         rotateAngle,
         angleYCameraDirection + newDirectionOffset
       );
-      player.scene.quaternion.rotateTowards(rotateQuaternion, 0.2);
+      player.scene.quaternion.rotateTowards(rotateQuaternion, 0.09);
 
       camera.getWorldDirection(walkDirection);
       walkDirection.y = 0;
@@ -111,7 +115,7 @@ const Player = () => {
   });
 
   return (
-    <mesh position-y={-1} scale={0.8}>
+    <mesh position-y={-1} scale={0.8} castShadow>
       <OrbitControls
         makeDefault
         enableZoom={false}
