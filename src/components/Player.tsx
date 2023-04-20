@@ -72,8 +72,8 @@ const Player = () => {
     if (currentAction.current != action) {
       const nextActionToPlay = actions[action];
       const current = actions[currentAction.current];
-      current?.fadeOut(0.2);
-      nextActionToPlay?.reset().fadeIn(0.2).play();
+      current?.fadeOut(0.5);
+      nextActionToPlay?.reset().fadeIn(0.5).play();
       currentAction.current = action;
     }
   }, [backward, forward, jump, left, right, shift]);
