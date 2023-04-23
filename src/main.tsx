@@ -6,7 +6,7 @@ import Experience from "./Experience";
 import "./globalStyles.scss";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <Canvas shadows camera={{ position: [2, 1, 2] }}>
+  <Canvas shadows camera={{ zoom: 0.002, position: [-5, 5, 10], fov: 0.1 }}>
     <Experience />
   </Canvas>
 );
