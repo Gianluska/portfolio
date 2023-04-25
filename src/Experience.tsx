@@ -1,33 +1,12 @@
-import { OrbitControls, useHelper } from "@react-three/drei";
-import { useControls } from "leva";
+import { OrbitControls } from "@react-three/drei";
 import { Perf } from "r3f-perf";
-import { useRef } from "react";
-import { RectAreaLight } from "three";
 import Player from "./components/Player";
 import Bedroom from "./levels/Bedroom";
 
-import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper";
-import { useFrame } from "@react-three/fiber";
-
 export default function Experience() {
-  const rectAreaLightRef = useRef<RectAreaLight>(null!);
-  // useHelper(rectAreaLightRef, RectAreaLightHelper, "red");
-
-  const { directLight, rectLight, width, height, intensity } = useControls({
-    directLight: { x: -4.3, y: 8.3, z: 3.0 },
-    rectLight: { x: -1.6, y: 0, z: 3.0 },
-    width: { value: 1.4 },
-    height: { value: 0.7 },
-    intensity: { value: 30 },
-  });
-
-  useFrame((_, delta) => {
-    rectAreaLightRef.current.intensity = Math.sin(delta) * 500
-  })
-
   return (
     <>
-      <Perf position="top-left" />
+      {/* <Perf position="top-left" /> */}
 
       <OrbitControls
         makeDefault
@@ -39,19 +18,15 @@ export default function Experience() {
         maxPolarAngle={Math.PI - Math.PI / 1.8}
       />
 
-      <directionalLight
-        position={[directLight.x, directLight.y, directLight.z]}
-        intensity={0.2}
-      />
+      <directionalLight position={[-4.3, 8.3, 3.0]} intensity={0.2} />
 
       <rectAreaLight
-        ref={rectAreaLightRef}
-        position={[rectLight.x, rectLight.y, rectLight.z]}
+        position={[-1.6, 0, 3.0]}
         rotation={[Math.PI / 2, Math.PI / 2, Math.PI / 2]}
-        width={width}
-        height={height}
+        width={1.4}
+        height={0.7}
         color={"lightblue"}
-        intensity={intensity}
+        intensity={30}
       />
 
       <ambientLight intensity={0.05} />

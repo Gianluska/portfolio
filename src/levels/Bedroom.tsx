@@ -6,20 +6,17 @@ import { useControls } from "leva";
 
 const Bedroom = () => {
   const Bedroom = useGLTF("./bedroom/bedroom.glb");
+
+  console.log(Bedroom);
+
   let video = document.querySelector("#video");
   // @ts-ignore
   video.play();
   // @ts-ignore
   let videoTexture = new THREE.VideoTexture(video);
 
-  const { tvWidth, tvHeight, tvPosition } = useControls({
-    tvPosition: { x: -1.62, y: 0, z: 3 },
-    tvWidth: { value: 1.37 },
-    tvHeight: { value: 0.7 },
-  });
-  0.0;
   useFrame((mesh, delta) => {
-    const fan = Bedroom.nodes.Cylinder_16;
+    const fan = Bedroom.nodes.Fan;
 
     fan.rotateY(-(delta * 10));
   });
@@ -31,10 +28,10 @@ const Bedroom = () => {
       </mesh>
       <mesh
         scale={1}
-        position={[tvPosition.x, tvPosition.y, tvPosition.z]}
+        position={[-1.62, 0, 3]}
         rotation={[-Math.PI / 2, -Math.PI / 2, -Math.PI / 2]}
       >
-        <planeGeometry args={[tvWidth, tvHeight]} />
+        <planeGeometry args={[1.37, 0.7]} />
         <meshBasicMaterial map={videoTexture} side={THREE.FrontSide} />
       </mesh>
     </>
