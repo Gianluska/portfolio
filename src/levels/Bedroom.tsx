@@ -1,13 +1,19 @@
-import { useGLTF } from "@react-three/drei";
+import { useGLTF, useHelper } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { MeshBasicMaterial, MeshToonMaterial } from "three";
+import {
+  MeshBasicMaterial,
+  MeshToonMaterial,
+  PointLightHelper,
+  SpotLight,
+  SpotLightHelper,
+  Vector3,
+} from "three";
 import * as THREE from "three";
 import { useControls } from "leva";
+import { useRef } from "react";
 
 const Bedroom = () => {
   const Bedroom = useGLTF("./bedroom/bedroom.glb");
-
-  console.log(Bedroom);
 
   let video = document.querySelector("#video");
   // @ts-ignore
@@ -24,7 +30,13 @@ const Bedroom = () => {
   return (
     <>
       <mesh position-y={-1} scale={0.8}>
-        <primitive object={Bedroom.scene} />
+        <primitive
+          object={Bedroom.scene}
+          onClick={(event: any) => {
+            console.log(event.object);
+            event.stopPropagation();
+          }}
+        />
       </mesh>
       <mesh
         scale={1}
