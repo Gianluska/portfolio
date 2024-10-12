@@ -1,4 +1,4 @@
-# `VITE-R3F-BOILERPLATE`
+# `PORTFOLIO`
 
 <p align="left">
 	<img src="https://img.shields.io/github/license/Gianluska/vite-r3f-boilerplate?style=flat&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
