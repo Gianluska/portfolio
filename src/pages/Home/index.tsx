@@ -14,7 +14,7 @@ export function Home() {
   return (
     <>
       <OrbitControls />
-      <Box ref={boxRef} args={[1, 1, 1]} rotation={[0.5, 0, 0]}>
+      <Box ref={boxRef} args={[2, 2, 2]} rotation={[0.5, 0, 0]}>
         <meshNormalMaterial />
       </Box>
       <ambientLight />
