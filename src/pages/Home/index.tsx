@@ -7,7 +7,7 @@ export function Home() {
   const boxRef = useRef<Mesh>(null);
   useFrame(() => {
     if (!boxRef.current) return;
-    boxRef.current.rotation.y += 0.005;
+    boxRef.current.rotation.y += 0.002;
   });
 
   
