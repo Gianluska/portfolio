@@ -4,12 +4,11 @@ import gsap from 'gsap';
 interface DecodingTextProps {
   text: string;
   stopShuffle: boolean;
-  speed?: number; // Velocidade de revelação (em milissegundos)
+  speed?: number;
 }
 
 export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, speed = 50 }) => {
   const [displayText, setDisplayText] = useState<string>('');
-  const [shuffling, setShuffling] = useState<boolean>(true);
 
   useEffect(() => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -35,8 +34,7 @@ export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, sp
           setDisplayText((prev) => text.substring(0, prev.length + 1));
         },
         onComplete: () => {
-          setDisplayText(text); // Garante que todo o texto seja revelado ao final
-          setShuffling(false);  // Para o shuffle
+          setDisplayText(text);
         },
       });
     };
