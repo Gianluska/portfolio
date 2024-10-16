@@ -7,7 +7,7 @@ interface DecodingTextProps {
   speed?: number;
 }
 
-export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, speed = 50 }) => {
+export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle = false, speed = 50 }) => {
   const [displayText, setDisplayText] = useState<string>('');
   const textRef = useRef<HTMLParagraphElement | null>(null);
 
@@ -31,7 +31,7 @@ export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, sp
 
     const revealText = () => {
       gsap.to({}, {
-        duration: 0.5,
+        duration: 0.05,
         repeat: charsArray.length - 1,
         onRepeat: () => {
           setDisplayText((prev) => text.substring(0, prev.length + 1));
@@ -51,7 +51,7 @@ export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, sp
     return () => {
       gsap.killTweensOf({});
     };
-  }, [stopShuffle, text, speed, displayText]);
+  }, [stopShuffle, text, speed]);
 
   return <p ref={textRef} className='text-white'>{displayText}</p>;
 };
