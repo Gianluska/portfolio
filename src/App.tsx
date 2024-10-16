@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { Home } from "pages/Home";
+import { LoadingScreen } from "pages/Loading";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
       >
         <Home />
       </Canvas>
+      <LoadingScreen />
     </div>
   );
 }
