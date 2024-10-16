@@ -21,7 +21,7 @@ export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, sp
         duration: speed / 1000,
         repeat: -1,
         onUpdate: () => {
-          setDisplayText((prev) =>
+          setDisplayText(() =>
             charsArray.map((char, i) =>
               i < displayText.length ? char : chars[Math.floor(Math.random() * chars.length)]
             ).join('')
