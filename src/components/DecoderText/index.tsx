@@ -4,7 +4,7 @@ import gsap from 'gsap';
 interface DecodingTextProps {
   text: string;
   stopShuffle: boolean;
-  speed?: number; // Velocidade de revelação (em milissegundos)
+  speed?: number;
 }
 
 export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, speed = 50 }) => {
@@ -15,9 +15,8 @@ export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, sp
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charsArray = text.split('');
     
-    // Função de shuffle com GSAP
     const shuffleText = () => {
-      gsap.to({}, { // Isso cria um ticker para o embaralhamento
+      gsap.to({}, {
         duration: speed / 1000,
         repeat: -1,
         onUpdate: () => {
@@ -30,7 +29,6 @@ export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, sp
       });
     };
 
-    // Revela o texto usando GSAP
     const revealText = () => {
       gsap.to({}, {
         duration: 0.5,
@@ -39,7 +37,7 @@ export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, sp
           setDisplayText((prev) => text.substring(0, prev.length + 1));
         },
         onComplete: () => {
-          setDisplayText(text); // Garante que o texto esteja completamente revelado ao final
+          setDisplayText(text);
         },
       });
     };
@@ -51,9 +49,9 @@ export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, sp
     }
 
     return () => {
-      gsap.killTweensOf({}); // Limpa qualquer animação quando o componente desmontar
+      gsap.killTweensOf({});
     };
-  }, [stopShuffle, text, speed]);
+  }, [stopShuffle, text, speed, displayText]);
 
   return <p ref={textRef} className='text-white'>{displayText}</p>;
 };
