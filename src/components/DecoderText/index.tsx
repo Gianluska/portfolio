@@ -1,56 +1,92 @@
-import React, { useEffect, useState } from 'react';
-import gsap from 'gsap';
+import { useEffect, useRef } from "react";
 
-interface DecodingTextProps {
-  text: string;
-  stopShuffle: boolean;
-  speed?: number;
-}
+import gsap from "gsap";
 
-export const DecoderText: React.FC<DecodingTextProps> = ({ text, stopShuffle, speed = 50 }) => {
-  const [displayText, setDisplayText] = useState<string>('');
+import * as T from "./types"
+
+export function DecoderText({
+  text,
+  speed = 2000,
+  className = "",
+  stopShuffle = false,
+}: T.DecoderTextProps) {
+  const textRef = useRef<HTMLDivElement>(null);
+  const shuffleIntervalRef = useRef<number | null>(null);
+  const chars =
+    "abcdefghijklmnopqrstuvwxyz";
 
   useEffect(() => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let intervalId: NodeJS.Timeout | null = null;
+    if (!textRef.current) return;
+    const element = textRef.current;
 
-    const shuffleText = () => {
-      intervalId = setInterval(() => {
-        setDisplayText(
-          text.split('').map((char, i) =>
-            i < displayText.length
-              ? char
-              : chars[Math.floor(Math.random() * chars.length)]
-          ).join('')
-        );
-      }, speed);
-    };
+    element.innerHTML = text
+      .split("")
+      .map(() => `<span class="w-9 font-tupi text-5xl mb-4">${getRandomChar()}</span>`)
+      .join("");
 
-    const revealText = () => {
-      gsap.to({}, {
-        duration: speed / 1000,
-        repeat: text.length - 1,
-        onRepeat: () => {
-          setDisplayText((prev) => text.substring(0, prev.length + 1));
-        },
-        onComplete: () => {
-          setDisplayText(text);
-        },
-      });
-    };
+    const spans = Array.from(element.querySelectorAll("span"));
 
-    if (!stopShuffle) {
-      shuffleText();
-    } else {
-      if (intervalId) clearInterval(intervalId); // Para o shuffle quando começar a revelação
-      revealText();
-    }
+    startShuffling(spans);
 
     return () => {
-      if (intervalId) clearInterval(intervalId); // Limpa o shuffle quando o componente desmonta
-      gsap.killTweensOf({}); // Limpa qualquer animação quando o componente desmontar
+      stopShuffling();
     };
-  }, [stopShuffle, text, speed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
 
-  return <p className='text-white'>{displayText}</p>;
-};
+  useEffect(() => {
+    if (stopShuffle && textRef.current) {
+      const spans = Array.from(textRef.current.querySelectorAll("span"));
+      startRevealing(spans);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stopShuffle]);
+
+  const getRandomChar = () => chars[Math.floor(Math.random() * chars.length)];
+
+  const startShuffling = (spans: HTMLSpanElement[]) => {
+    stopShuffling();
+    shuffleIntervalRef.current = window.setInterval(() => {
+      spans.forEach((span) => {
+        if (span.getAttribute("data-revealed") !== "true") {
+          span.textContent = getRandomChar();
+        }
+      });
+    }, 50);
+  };
+
+  const stopShuffling = () => {
+    if (shuffleIntervalRef.current) {
+      clearInterval(shuffleIntervalRef.current);
+      shuffleIntervalRef.current = null;
+    }
+  };
+
+  const startRevealing = (spans: HTMLSpanElement[]) => {
+    const totalDuration = speed / 1000;
+    const singleDuration = totalDuration / spans.length;
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        stopShuffling();
+      },
+    });
+
+    spans.forEach((span, index) => {
+      tl.to(
+        {},
+        {
+          duration: singleDuration,
+          onStart: () => {
+            span.setAttribute("data-revealed", "true");
+            span.textContent = text[index];
+            span.classList.remove("font-tupi");
+          },
+        },
+        index * singleDuration
+      );
+    });
+  };
+
+  return <div ref={textRef} className={`decoder-text ${className}`}></div>;
+}
