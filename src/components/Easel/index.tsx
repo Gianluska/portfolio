@@ -32,7 +32,7 @@ export function Easel() {
 
   return (
     <group>
-      <primitive object={scene} />
+      {/* <primitive object={scene} /> */}
     </group>
   );
 }

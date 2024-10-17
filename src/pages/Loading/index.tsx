@@ -41,18 +41,18 @@ export function LoadingScreen() {
         });
       }
 
-      // if (loadingScreenRef.current) {
-      //   gsap.to(loadingScreenRef.current, {
-      //     duration: 1,
-      //     opacity: 0,
-      //     delay: 4,
-      //     onComplete: () => {
-      //       if (loadingScreenRef.current) {
-      //         loadingScreenRef.current.style.display = "none";
-      //       }
-      //     },
-      //   });
-      // }
+      if (loadingScreenRef.current) {
+        gsap.to(loadingScreenRef.current, {
+          duration: 1,
+          opacity: 0,
+          delay: 6,
+          onComplete: () => {
+            if (loadingScreenRef.current) {
+              loadingScreenRef.current.style.display = "none";
+            }
+          },
+        });
+      }
     }
   }, [totalPercentage]);
 
