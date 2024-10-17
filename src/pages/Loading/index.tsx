@@ -20,7 +20,7 @@ export function LoadingScreen() {
     if (totalPercentage >= 100) {
       setTimeout(() => {
         setStopShuffle(true);
-      }, 2500)
+      }, 1500)
 
       if (progressBarRef.current) {
         gsap.to(progressBarRef.current, {
@@ -43,9 +43,9 @@ export function LoadingScreen() {
 
       if (loadingScreenRef.current) {
         gsap.to(loadingScreenRef.current, {
-          duration: 1,
+          duration: 0.3,
           opacity: 0,
-          delay: 6,
+          delay: 5,
           onComplete: () => {
             if (loadingScreenRef.current) {
               loadingScreenRef.current.style.display = "none";
