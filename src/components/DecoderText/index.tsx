@@ -21,7 +21,7 @@ export function DecoderText({
 
     element.innerHTML = text
       .split("")
-      .map(() => `<span class="w-9 font-tupi text-5xl mb-4">${getRandomChar()}</span>`)
+      .map(() => `<span class="w-7 font-tupi font-semibold text-4xl mb-4">${getRandomChar()}</span>`)
       .join("");
 
     const spans = Array.from(element.querySelectorAll("span"));
@@ -81,6 +81,9 @@ export function DecoderText({
             span.setAttribute("data-revealed", "true");
             span.textContent = text[index];
             span.classList.remove("font-tupi");
+            span.classList.remove("text-4xl");
+            span.classList.add("text-5xl")
+            span.classList.add("")
           },
         },
         index * singleDuration
