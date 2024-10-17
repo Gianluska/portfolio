@@ -6,6 +6,10 @@ export default {
   ],
   theme: {
     extend: {},
+    fontFamily: {
+      'tupi': ['NovoTupi', 'sans-serif'],
+      'opensans': ['Open Sans', 'sans-serif'],
+    }
   },
   plugins: [],
 }
