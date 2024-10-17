@@ -1,8 +1,8 @@
 import { useGLTF } from "@react-three/drei";
 
 export function Easel() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { scene } = useGLTF('/models/easel.glb');
+   
+  useGLTF('/models/easel.glb');
 
   // @ts-expect-error - this is a hack to get around the fact that the useGLTF hook doesn't support loading from URLs
   const seila1 = useGLTF('https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/anvil/model.gltf');
