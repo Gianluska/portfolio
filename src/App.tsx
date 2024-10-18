@@ -1,35 +1,25 @@
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Home } from "pages/Home";
 import { LoadingScreen } from "pages/Loading";
-import { Leva, useControls } from "leva";
-import { Suspense, useCallback, useEffect, useRef } from "react";
-import { MathUtils } from "three";
-import { DustParticles } from "@components/DustParticles";
+import { Leva } from "leva";
+import { Suspense, useRef } from "react";
+import { Vector3 } from "three";
 import { Stats } from "@react-three/drei";
 
 function CameraController() {
-  const { camera } = useThree();
+  const { camera, pointer } = useThree();
 
-  const { x, y, z, rotationX, rotationY, rotationZ } = useControls(
-    "Camera Controls",
-    {
-      x: { value: -6.3, min: -20, max: 20, step: 0.1 },
-      y: { value: 2.8, min: -20, max: 20, step: 0.1 },
-      z: { value: 11.7, min: -20, max: 20, step: 0.1 },
-      rotationX: { value: 0, min: -180, max: 180, step: 1 },
-      rotationY: { value: -26, min: -180, max: 180, step: 1 },
-      rotationZ: { value: 0, min: -180, max: 180, step: 1 },
-    }
-  );
+  const initialPosition = useRef(new Vector3(-6, 6.5, 12));
+  const movementFactor = 0.5;
 
-  useEffect(() => {
-    camera.position.set(x, y, z);
-    camera.rotation.set(
-      MathUtils.degToRad(rotationX),
-      MathUtils.degToRad(rotationY),
-      MathUtils.degToRad(rotationZ)
-    );
-  }, [x, y, z, rotationX, rotationY, rotationZ, camera]);
+  useFrame(() => {
+    const x = initialPosition.current.x + pointer.x * movementFactor;
+    const y = initialPosition.current.y + pointer.y * movementFactor;
+
+    camera.position.set(x, y, initialPosition.current.z);
+
+    camera.lookAt(0, 1.5, 0);
+  });
 
   return null;
 }
@@ -48,7 +38,7 @@ function App() {
           <Home />
         </Suspense>
       </Canvas>
-      {/* <LoadingScreen /> */}
+      <LoadingScreen />
       <Leva hidden />
       <Stats />
     </div>
