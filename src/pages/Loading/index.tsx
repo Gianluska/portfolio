@@ -4,6 +4,7 @@ import gsap from "gsap";
 import { useProgress } from "@react-three/drei";
 
 import { DecoderText } from "@components/DecoderText";
+import { useGSAP } from "@gsap/react";
 
 export function LoadingScreen() {
   const { total } = useProgress();
@@ -17,7 +18,7 @@ export function LoadingScreen() {
   const loadingScreenRef = useRef<HTMLDivElement>(null);
   const decoderTextRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useGSAP(() => {
     if (totalPercentage >= 100) {
       setTimeout(() => {
         setStopShuffle(true);
@@ -55,7 +56,7 @@ export function LoadingScreen() {
         });
       }
     }
-  }, [totalPercentage]);
+  }, [totalPercentage])
 
   return (
     <div

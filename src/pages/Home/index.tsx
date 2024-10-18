@@ -8,6 +8,7 @@ import { Easel } from "@components/Easel";
 
 import gsap from "gsap";
 import { Floor } from "@components/Floor";
+import { useGSAP } from "@gsap/react";
 
 export function Home() {
   const spotLightRef = useRef<SpotLight>(null);
@@ -17,19 +18,9 @@ export function Home() {
   const { total } = useProgress();
   const isFinished = total === 11;
 
-  useEffect(() => {
+  useGSAP(() => {
     if (isFinished) {
       const INTRO_DURATION = 2.3;
-
-
-      // setTimeout(() => {
-      //   gsap.to(ambientLightRef.current, {
-      //     duration: 1,
-      //     ease: "power2.inOut",
-      //     delay: 0,
-      //     intensity: 0.05,
-      //   });
-      // }, (INTRO_DURATION) * 1000);
 
       setTimeout(() => {
         if (spotLightRef.current && ambientLightRef.current) {
@@ -78,7 +69,7 @@ export function Home() {
       }, INTRO_DURATION * 1000);
 
     }
-  }, [isFinished]);
+  }, [isFinished])
 
   const {
     positionX,
