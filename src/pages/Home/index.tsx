@@ -23,67 +23,67 @@ export function Home() {
       setTimeout(() => {
         if (spotLightRef.current && ambientLightRef.current) {
           gsap.to(spotLightRef.current, {
-            duration: 0.150,
+            duration: 0.1,
             ease: "power2.inOut",
             delay: 3,
             intensity: 3.1,
           });
           gsap.to(ambientLightRef.current, {
-            duration: 0.150,
+            duration: 0.1,
             ease: "power2.inOut",
             delay: 3,
             intensity: 0.1,
           });
 
           gsap.to(spotLightRef.current, {
-            duration: 0.150,
+            duration: 0.1,
             ease: "power2.inOut",
-            delay: 3.15,
+            delay: 3.1,
             intensity: 0,
           });
           gsap.to(ambientLightRef.current, {
-            duration: 0.150,
+            duration: 0.1,
             ease: "power2.inOut",
-            delay: 3.15,
+            delay: 3.1,
             intensity: 0,
           });
 
           gsap.to(spotLightRef.current, {
-            duration: 0.150,
+            duration: 0.1,
             ease: "power2.inOut",
-            delay: 3.3,
+            delay: 3.2,
             intensity: 3.1,
           });
           gsap.to(ambientLightRef.current, {
-            duration: 0.150,
+            duration: 0.1,
             ease: "power2.inOut",
-            delay: 3.3,
+            delay: 3.2,
             intensity: 0.1,
           });
 
           gsap.to(spotLightRef.current, {
-            duration: 0.150,
+            duration: 0.1,
             ease: "power2.inOut",
-            delay: 3.45,
+            delay: 3.3,
             intensity: 0,
           });
           gsap.to(ambientLightRef.current, {
-            duration: 0.150,
+            duration: 0.1,
             ease: "power2.inOut",
-            delay: 3.45,
+            delay: 3.3,
             intensity: 0,
           });
 
           gsap.to(spotLightRef.current, {
-            duration: 1,
+            duration: 2,
             ease: "power2.inOut",
-            delay: 3.75,
-            intensity: 3.1,
+            delay: 3.65,
+            intensity: 3.1, 
           });
           gsap.to(ambientLightRef.current, {
-            duration: 1,
+            duration: 2,
             ease: "power2.inOut",
-            delay: 3.75,
+            delay: 3.65,
             intensity: 0.1,
           });
         }
