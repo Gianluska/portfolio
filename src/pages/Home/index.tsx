@@ -149,6 +149,7 @@ export function Home() {
           <planeGeometry args={[50, 50]} />
           <primitive attach="material" object={floorMaterial} />
         </mesh>
+        <fog attach="fog" args={['black', 10, 30]} />
       </Suspense>
       <ambientLight ref={ambientLightRef} intensity={0} />
       <spotLight
