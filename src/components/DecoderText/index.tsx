@@ -83,7 +83,6 @@ export function DecoderText({
             span.classList.remove("font-tupi");
             span.classList.remove("text-4xl");
             span.classList.add("text-5xl")
-            span.classList.add("")
           },
         },
         index * singleDuration
