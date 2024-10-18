@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useProgress } from "@react-three/drei";
 import {type AmbientLight, type Group, type SpotLight } from "three";
