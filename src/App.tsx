@@ -4,6 +4,7 @@ import { LoadingScreen } from "pages/Loading";
 import { Leva, useControls } from "leva";
 import { Suspense, useEffect } from "react";
 import { MathUtils } from "three";
+import { Analytics } from "@vercel/analytics/react";
 
 function CameraController() {
   const { camera } = useThree();
@@ -52,6 +53,7 @@ function App() {
       </Canvas>
       <LoadingScreen />
       <Leva hidden />
+      <Analytics />
     </div>
   );
 }
