@@ -1,7 +1,7 @@
 import { Canvas, useThree } from "@react-three/fiber";
 import { Home } from "pages/Home";
 import { LoadingScreen } from "pages/Loading";
-import { useControls } from "leva";
+import { Leva, useControls } from "leva";
 import { Suspense, useEffect } from "react";
 import { MathUtils } from "three";
 
@@ -51,6 +51,7 @@ function App() {
         </Suspense>
       </Canvas>
       <LoadingScreen />
+      <Leva hidden />
     </div>
   );
 }
