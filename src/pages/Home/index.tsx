@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useProgress } from "@react-three/drei";
-import { MeshStandardMaterial, type AmbientLight, type Group, type SpotLight } from "three";
+import {type AmbientLight, type Group, type SpotLight } from "three";
 import { useControls, folder } from "leva";
 import { Suspense } from "react";
 import { Easel } from "@components/Easel";
 
 import gsap from "gsap";
+import { Floor } from "@components/Floor";
 
 export function Home() {
   const spotLightRef = useRef<SpotLight>(null);
@@ -14,7 +15,7 @@ export function Home() {
   const targetRef = useRef<Group>(null);
 
   const { total } = useProgress();
-  const isFinished = total === 8;
+  const isFinished = total === 11;
 
   useEffect(() => {
     if (isFinished) {
@@ -31,7 +32,7 @@ export function Home() {
             duration: 0.150,
             ease: "power2.inOut",
             delay: 3,
-            intensity: 0.2,
+            intensity: 0.1,
           });
 
           gsap.to(spotLightRef.current, {
@@ -57,7 +58,7 @@ export function Home() {
             duration: 0.150,
             ease: "power2.inOut",
             delay: 3.3,
-            intensity: 0.2,
+            intensity: 0.1,
           });
 
           gsap.to(spotLightRef.current, {
@@ -83,7 +84,7 @@ export function Home() {
             duration: 1,
             ease: "power2.inOut",
             delay: 3.75,
-            intensity: 0.2,
+            intensity: 0.1,
           });
         }
       }, INTRO_DURATION * 1000);
@@ -132,23 +133,11 @@ export function Home() {
   // Opcional: Visualizar o holofote
   // useHelper(spotLightRef, SpotLightHelper, "cyan");
 
-  const floorMaterial = useMemo(
-    () => new MeshStandardMaterial({ color: '#808080' }),
-    []
-  );
-
   return (
     <>
       <Suspense fallback={null}>
         <Easel ref={targetRef} />
-        <mesh
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, -0.9, 0]}
-          receiveShadow
-        >
-          <planeGeometry args={[50, 50]} />
-          <primitive attach="material" object={floorMaterial} />
-        </mesh>
+        <Floor />
         <fog attach="fog" args={['black', 10, 30]} />
       </Suspense>
       <ambientLight ref={ambientLightRef} intensity={0} />
