@@ -20,6 +20,17 @@ export function Home() {
   useEffect(() => {
     if (isFinished) {
       const INTRO_DURATION = 2.3;
+
+
+      // setTimeout(() => {
+      //   gsap.to(ambientLightRef.current, {
+      //     duration: 1,
+      //     ease: "power2.inOut",
+      //     delay: 0,
+      //     intensity: 0.05,
+      //   });
+      // }, (INTRO_DURATION) * 1000);
+
       setTimeout(() => {
         if (spotLightRef.current && ambientLightRef.current) {
           gsap.to(spotLightRef.current, {
@@ -28,20 +39,8 @@ export function Home() {
             delay: 3,
             intensity: 3.1,
           });
-          gsap.to(ambientLightRef.current, {
-            duration: 0.1,
-            ease: "power2.inOut",
-            delay: 3,
-            intensity: 0.1,
-          });
 
           gsap.to(spotLightRef.current, {
-            duration: 0.1,
-            ease: "power2.inOut",
-            delay: 3.1,
-            intensity: 0,
-          });
-          gsap.to(ambientLightRef.current, {
             duration: 0.1,
             ease: "power2.inOut",
             delay: 3.1,
@@ -54,20 +53,9 @@ export function Home() {
             delay: 3.2,
             intensity: 3.1,
           });
-          gsap.to(ambientLightRef.current, {
-            duration: 0.1,
-            ease: "power2.inOut",
-            delay: 3.2,
-            intensity: 0.1,
-          });
+
 
           gsap.to(spotLightRef.current, {
-            duration: 0.1,
-            ease: "power2.inOut",
-            delay: 3.3,
-            intensity: 0,
-          });
-          gsap.to(ambientLightRef.current, {
             duration: 0.1,
             ease: "power2.inOut",
             delay: 3.3,
