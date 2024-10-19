@@ -61,7 +61,7 @@ export function Floor() {
   );
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.9, 0]} receiveShadow>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.9, 0]} receiveShadow>
       <planeGeometry args={[50, 50]} />
       <primitive attach="material" object={floorMaterial} />
     </mesh>

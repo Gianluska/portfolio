@@ -11,7 +11,7 @@ export const Easel = forwardRef<Group, JSX.IntrinsicElements['group']>((props, r
   useEffect(() => {
     scene.traverse((child) => {
       if ((child as Mesh).isMesh) {
-        child.castShadow = false;
+        child.castShadow = true;
         child.receiveShadow = true;
       }
     });

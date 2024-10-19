@@ -20,7 +20,7 @@ export function Home() {
 
   useGSAP(() => {
     if (isFinished) {
-      const INTRO_DURATION = 2.5;
+      const INTRO_DURATION = 2.3;
 
       setTimeout(() => {
         if (spotLightRef.current && ambientLightRef.current) {
