@@ -8,6 +8,7 @@ import { Easel } from "@components/Easel";
 
 import { Floor } from "@components/Floor";
 import { useSpotlightAnimation } from "./useSpotlightAnimation";
+import { Dust } from "@components/Dust";
 
 export function Home() {
   const spotLightRef = useRef<SpotLight>(null);
@@ -66,6 +67,7 @@ export function Home() {
         <Easel ref={targetRef} />
         <Floor />
         <fog attach="fog" args={['black', 10, 30]} />
+        <Dust count={1500} />
       </Suspense>
       <ambientLight ref={ambientLightRef} intensity={0} />
       <spotLight
