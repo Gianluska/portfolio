@@ -6,9 +6,8 @@ import { useControls, folder } from "leva";
 import { Suspense } from "react";
 import { Easel } from "@components/Easel";
 
-import gsap from "gsap";
 import { Floor } from "@components/Floor";
-import { useGSAP } from "@gsap/react";
+import { useSpotlightAnimation } from "./useSpotlightAnimation";
 
 export function Home() {
   const spotLightRef = useRef<SpotLight>(null);
@@ -18,58 +17,7 @@ export function Home() {
   const { total } = useProgress();
   const isFinished = total === 11;
 
-  useGSAP(() => {
-    if (isFinished) {
-      const INTRO_DURATION = 2.3;
-
-      setTimeout(() => {
-        if (spotLightRef.current && ambientLightRef.current) {
-          gsap.to(spotLightRef.current, {
-            duration: 0.1,
-            ease: "power2.inOut",
-            delay: 3,
-            intensity: 3.1,
-          });
-
-          gsap.to(spotLightRef.current, {
-            duration: 0.1,
-            ease: "power2.inOut",
-            delay: 3.1,
-            intensity: 0,
-          });
-
-          gsap.to(spotLightRef.current, {
-            duration: 0.1,
-            ease: "power2.inOut",
-            delay: 3.2,
-            intensity: 3.1,
-          });
-
-
-          gsap.to(spotLightRef.current, {
-            duration: 0.1,
-            ease: "power2.inOut",
-            delay: 3.3,
-            intensity: 0,
-          });
-
-          gsap.to(spotLightRef.current, {
-            duration: 2,
-            ease: "power2.inOut",
-            delay: 3.65,
-            intensity: 3.1, 
-          });
-          gsap.to(ambientLightRef.current, {
-            duration: 2,
-            ease: "power2.inOut",
-            delay: 3.65,
-            intensity: 0.1,
-          });
-        }
-      }, INTRO_DURATION * 1000);
-
-    }
-  }, [isFinished])
+  useSpotlightAnimation(spotLightRef, ambientLightRef, isFinished);
 
   const {
     positionX,
