@@ -1,9 +1,9 @@
 import React, { useRef, useMemo } from 'react';
 
+import { AdditiveBlending, type BufferAttribute, type Points, type ShaderMaterial } from 'three';
 
 import { extend, useFrame } from '@react-three/fiber';
 import { shaderMaterial } from '@react-three/drei';
-import { AdditiveBlending, type BufferAttribute, type Points, type ShaderMaterial } from 'three';
 
 const DustMaterial = shaderMaterial(
   { time: 0 },
@@ -46,9 +46,9 @@ export const Dust: React.FC<DustProps> = ({ count = 1000 }) => {
     const sizes = new Float32Array(count);
 
     for (let i = 0; i < count; i++) {
-      positions[i * 3 + 0] = (Math.random() - 0.5) * 50; // X
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 30; // Y
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 50; // Z
+      positions[i * 3 + 0] = (Math.random() - 0.5) * 50;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 30;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
       sizes[i] = Math.random() * 2.0 + 1.0;
     }
 
