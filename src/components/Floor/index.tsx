@@ -28,12 +28,18 @@ export function Floor() {
   }, [diffuseMap, normalMap, roughnessMap]);
 
   const floorMaterial = useMemo(
-    () =>
-      new MeshStandardMaterial({
-        map: diffuseMap, 
+    () => {
+      const material = new MeshStandardMaterial({
+        // map: diffuseMap, 
         normalMap: normalMap, 
         roughnessMap: roughnessMap,
-      }),
+        color: 0x636363,
+      });
+
+      material.normalScale.set(2, 2);
+
+      return material;
+    },
     [diffuseMap, normalMap, roughnessMap]
   );
 
