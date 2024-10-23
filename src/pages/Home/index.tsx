@@ -9,6 +9,7 @@ import { Easel } from "@components/Easel";
 import { Floor } from "@components/Floor";
 import { useSpotlightAnimation } from "./useSpotlightAnimation";
 import { Dust } from "@components/Dust";
+import { InteractiveCanvas } from "@components/InteractiveCanvas";
 
 export function Home() {
   const spotLightRef = useRef<SpotLight>(null);
@@ -16,7 +17,7 @@ export function Home() {
   const targetRef = useRef<Group>(null);
 
   const { total } = useProgress();
-  const isFinished = total === 11;
+  const isFinished = total === 14;
 
   useSpotlightAnimation(spotLightRef, ambientLightRef, isFinished);
 
@@ -68,6 +69,7 @@ export function Home() {
         <Floor />
         <fog attach="fog" args={['black', 10, 30]} />
         <Dust count={1500} />
+        <InteractiveCanvas />
       </Suspense>
       <ambientLight ref={ambientLightRef} intensity={0} />
       <spotLight

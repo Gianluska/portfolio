@@ -4,7 +4,7 @@ import { LoadingScreen } from "pages/Loading";
 import { Leva } from "leva";
 import { Suspense, useRef } from "react";
 import { Vector3 } from "three";
-import { Stats } from "@react-three/drei";
+import { OrbitControls, Stats } from "@react-three/drei";
 
 function CameraController() {
   const { camera, pointer } = useThree();
@@ -33,8 +33,9 @@ function App() {
         shadows
         camera={{ position: [0, 5, 15], fov: 60 }}
       >
+        <OrbitControls /> 
         <Suspense fallback={null}>
-          <CameraController />
+          {/* <CameraController /> */}
           <Home />
         </Suspense>
       </Canvas>
