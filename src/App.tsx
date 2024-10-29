@@ -33,9 +33,9 @@ function App() {
         shadows
         camera={{ position: [0, 5, 15], fov: 60 }}
       >
-        <OrbitControls /> 
+        {/* <OrbitControls />  */}
         <Suspense fallback={null}>
-          {/* <CameraController /> */}
+          <CameraController />
           <Home />
         </Suspense>
       </Canvas>
