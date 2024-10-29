@@ -3,38 +3,37 @@ import { useLoader } from "@react-three/fiber";
 import { TextureLoader, MeshStandardMaterial, RepeatWrapping } from "three";
 
 export function Floor() {
-  const [diffuseMap, normalMap, roughnessMap] = useLoader(TextureLoader, [
-    "/textures/WoodParquet/Parquet_Albedo.jpg",
+  const [ normalMap, roughnessMap] = useLoader(TextureLoader, [
     "/textures/WoodParquet/Parquet_Normal.jpg", 
     "/textures/WoodParquet/Parquet_Roughness.jpg" 
   ]);
 
   useMemo(() => {
-    diffuseMap.wrapS = RepeatWrapping;
-    diffuseMap.wrapT = RepeatWrapping;
     normalMap.wrapS = RepeatWrapping;
     normalMap.wrapT = RepeatWrapping;
     roughnessMap.wrapS = RepeatWrapping;
     roughnessMap.wrapT = RepeatWrapping;
 
     const repeatFactor = 10;
-    diffuseMap.repeat.set(repeatFactor, repeatFactor);
     normalMap.repeat.set(repeatFactor, repeatFactor);
     roughnessMap.repeat.set(repeatFactor, repeatFactor);
     
-    diffuseMap.needsUpdate = true;
     normalMap.needsUpdate = true;
     roughnessMap.needsUpdate = true;
-  }, [diffuseMap, normalMap, roughnessMap]);
+  }, [normalMap, roughnessMap]);
 
   const floorMaterial = useMemo(
-    () =>
-      new MeshStandardMaterial({
-        map: diffuseMap, 
+    () => {
+      const material = new MeshStandardMaterial({
+        color: 0x636363,
         normalMap: normalMap, 
         roughnessMap: roughnessMap,
-      }),
-    [diffuseMap, normalMap, roughnessMap]
+      });
+
+      material.normalScale.set(2, 2);
+      return material;
+    },
+    [normalMap, roughnessMap]
   );
 
   return (
