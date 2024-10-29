@@ -69,7 +69,6 @@ export function Home() {
         <Floor />
         <fog attach="fog" args={['black', 10, 30]} />
         <Dust count={1500} />
-        {/* <InteractiveCanvas /> */}
       </Suspense>
       <ambientLight ref={ambientLightRef} intensity={0} />
       <spotLight
