@@ -10,7 +10,7 @@ export function LoadingScreen() {
   const { total } = useProgress();
   console.log(total)
 
-  const totalPercentage = (total / 13) * 100;
+  const totalPercentage = (total / 11) * 100;
 
   const [stopShuffle, setStopShuffle] = useState(false);
 
