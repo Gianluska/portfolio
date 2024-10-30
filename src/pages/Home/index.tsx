@@ -59,8 +59,8 @@ export function Home() {
     }
   });
 
-  // Opcional: Visualizar o holofote
-  // useHelper(spotLightRef, SpotLightHelper, "cyan");
+  Opcional: Visualizar o holofote
+  useHelper(spotLightRef, SpotLightHelper, "cyan");
 
   return (
     <>
