@@ -9,10 +9,10 @@ export function Floor() {
   ]);
 
   useMemo(() => {
-    normalMap.wrapS = RepeatWrapping;
-    normalMap.wrapT = RepeatWrapping;
-    roughnessMap.wrapS = RepeatWrapping;
-    roughnessMap.wrapT = RepeatWrapping;
+    // normalMap.wrapS = RepeatWrapping;
+    // normalMap.wrapT = RepeatWrapping;
+    // roughnessMap.wrapS = RepeatWrapping;
+    // roughnessMap.wrapT = RepeatWrapping;
 
     const repeatFactor = 10;
     normalMap.repeat.set(repeatFactor, repeatFactor);
