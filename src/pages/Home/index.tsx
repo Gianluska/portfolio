@@ -9,7 +9,6 @@ import { Easel } from "@components/Easel";
 import { Floor } from "@components/Floor";
 import { useSpotlightAnimation } from "./useSpotlightAnimation";
 import { Dust } from "@components/Dust";
-import { InteractiveCanvas } from "@components/InteractiveCanvas";
 
 export function Home() {
   const spotLightRef = useRef<SpotLight>(null);
@@ -17,7 +16,7 @@ export function Home() {
   const targetRef = useRef<Group>(null);
 
   const { total } = useProgress();
-  const isFinished = total <= 20;
+  const isFinished = total <= 12;
 
   useSpotlightAnimation(spotLightRef, ambientLightRef, isFinished);
 
