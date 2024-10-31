@@ -4,7 +4,7 @@ import { LoadingScreen } from "pages/Loading";
 import { Leva } from "leva";
 import { Suspense, useRef } from "react";
 import { Vector3 } from "three";
-import { OrbitControls, Stats } from "@react-three/drei";
+import { Stats } from "@react-three/drei";
 
 function CameraController() {
   const { camera, pointer } = useThree();
