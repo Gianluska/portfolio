@@ -10,6 +10,7 @@ import { Easel } from "@components/Easel";
 import { useSpotlightAnimation } from "./useSpotlightAnimation";
 import { Dust } from "@components/Dust";
 import { Floor } from "@components/NewFloor";
+import { InteractiveCanvas } from "@components/InteractiveCanvas";
 
 export function Home() {
   const spotLightRef = useRef<SpotLight>(null);
@@ -66,6 +67,7 @@ export function Home() {
     <>
       <Suspense fallback={null}>
         <Easel ref={targetRef} />
+        <InteractiveCanvas />
         <Floor />
         <fog attach="fog" args={['black', 10, 30]} />
         <Dust count={1500} />
