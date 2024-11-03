@@ -6,9 +6,10 @@ import { useControls, folder } from "leva";
 import { Suspense } from "react";
 import { Easel } from "@components/Easel";
 
-import { Floor } from "@components/Floor";
+// import { Floor } from "@components/Floor";
 import { useSpotlightAnimation } from "./useSpotlightAnimation";
 import { Dust } from "@components/Dust";
+import { Floor } from "@components/NewFloor";
 
 export function Home() {
   const spotLightRef = useRef<SpotLight>(null);
@@ -16,7 +17,7 @@ export function Home() {
   const targetRef = useRef<Group>(null);
 
   const { total } = useProgress();
-  const isFinished = total <= 12;
+  const isFinished = total <= 13;
 
   useSpotlightAnimation(spotLightRef, ambientLightRef, isFinished);
 
