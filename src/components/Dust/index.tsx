@@ -27,7 +27,7 @@ const DustMaterial = shaderMaterial(
 
       vec3 color = vec3(1.0, 1.0, 1.0);
 
-      gl_FragColor = vec4(color * intensity, 0.1);
+      gl_FragColor = vec4(color * intensity, 0.05);
     }
   `
 );
@@ -49,7 +49,7 @@ export const Dust: React.FC<DustProps> = ({ count = 1000 }) => {
       positions[i * 3 + 0] = (Math.random() - 0.5) * 50;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 30;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
-      sizes[i] = Math.random() * 2.0 + 1.0;
+      sizes[i] = Math.random() * 2.0 + 0.1;
     }
 
     return {
@@ -63,7 +63,7 @@ export const Dust: React.FC<DustProps> = ({ count = 1000 }) => {
     if (mesh.current) {
       (mesh.current.material as ShaderMaterial).uniforms.time.value = time;
 
-      mesh.current.rotation.y = time * 0.05;
+      mesh.current.rotation.y = time * 0.005;
 
       const positionAttribute = mesh.current.geometry.getAttribute('position') as BufferAttribute;
       if (positionAttribute) {
