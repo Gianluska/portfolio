@@ -9,7 +9,7 @@ import { Stats } from "@react-three/drei";
 function CameraController() {
   const { camera, pointer } = useThree();
 
-  const initialPosition = useRef(new Vector3(-6, 6.5, 12));
+  const initialPosition = useRef(new Vector3(-6, 6.5, 2));
   const movementFactor = 0.5;
 
   useFrame(() => {
