@@ -1,4 +1,5 @@
 import { Reflector, useTexture } from "@react-three/drei";
+import { Vector2 } from "three";
 
 export function Floor() {
   const [floor, normal] = useTexture([
@@ -23,7 +24,7 @@ export function Floor() {
           metalness={0.5}
           roughnessMap={floor}
           normalMap={normal}
-          normalScale={[2, 2]}
+          normalScale={new Vector2(2, 2)}
           {...props}
         />
       )}
