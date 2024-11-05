@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useProgress } from "@react-three/drei";
-import {type AmbientLight, type Group, type SpotLight } from "three";
+import { type AmbientLight, type Group, type SpotLight, Vector2 } from "three";
 import { useControls, folder } from "leva";
 import { Suspense } from "react";
 import { Easel } from "@components/Easel";
@@ -11,6 +11,7 @@ import { useSpotlightAnimation } from "./useSpotlightAnimation";
 import { Dust } from "@components/Dust";
 import { Floor } from "@components/NewFloor";
 import { InteractiveCanvas } from "@components/InteractiveCanvas";
+import { Bloom, ChromaticAberration, EffectComposer } from "@react-three/postprocessing";
 
 export function Home() {
   const spotLightRef = useRef<SpotLight>(null);
@@ -67,9 +68,13 @@ export function Home() {
     <>
       <Suspense fallback={null}>
         <Easel ref={targetRef} />
+        {/* <BlackHole /> */}
+
+        {/* <WormholeSphere /> */}
+        {/* <MysticFogSphere /> */}
         <InteractiveCanvas />
         <Floor />
-        <fog attach="fog" args={['black', 10, 30]} />
+        <fog attach="fog" args={["black", 10, 30]} />
         <Dust count={1500} />
       </Suspense>
       <ambientLight ref={ambientLightRef} intensity={0} />
@@ -86,6 +91,10 @@ export function Home() {
         shadow-mapSize-height={1024}
         shadow-bias={-0.00005}
       />
+      <EffectComposer>
+        <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} height={300} />
+        <ChromaticAberration offset={new Vector2(0.001, 0.001)} radialModulation={false} modulationOffset={0} />
+      </EffectComposer>
     </>
   );
 }
