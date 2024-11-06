@@ -19,7 +19,7 @@ export function Home() {
   const targetRef = useRef<Group>(null);
 
   const { total } = useProgress();
-  const isFinished = total <= 11;
+  const isFinished = total <= 12;
 
   useSpotlightAnimation(spotLightRef, ambientLightRef, isFinished);
 
