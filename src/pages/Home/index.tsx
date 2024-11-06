@@ -68,10 +68,6 @@ export function Home() {
     <>
       <Suspense fallback={null}>
         <Easel ref={targetRef} />
-        {/* <BlackHole /> */}
-
-        {/* <WormholeSphere /> */}
-        {/* <MysticFogSphere /> */}
         <InteractiveCanvas />
         <Floor />
         <fog attach="fog" args={["black", 10, 30]} />

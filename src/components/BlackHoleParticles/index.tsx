@@ -1,8 +1,8 @@
-import React, { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Points } from 'three';
+import { useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import { Points } from "three";
 
-const PortalParticles: React.FC = () => {
+export function BlackHoleParticles() {
   const particlesRef = useRef<Points>(null);
 
   const particles = useMemo(() => {
@@ -24,14 +24,17 @@ const PortalParticles: React.FC = () => {
 
   useFrame(() => {
     if (particlesRef.current) {
-      const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
+      const positions = particlesRef.current.geometry.attributes.position
+        .array as Float32Array;
       const speeds = particlesRef.current.userData.speeds as Float32Array;
 
       for (let i = 0; i < positions.length / 3; i++) {
         const ix = i * 3;
         const iz = i * 3 + 2;
 
-        const radius = Math.sqrt(positions[ix] * positions[ix] + positions[iz] * positions[iz]);
+        const radius = Math.sqrt(
+          positions[ix] * positions[ix] + positions[iz] * positions[iz]
+        );
         const angle = Math.atan2(positions[iz], positions[ix]) + speeds[i];
 
         positions[ix] = radius * Math.cos(angle);
@@ -54,6 +57,4 @@ const PortalParticles: React.FC = () => {
       <pointsMaterial size={0.03} color="#cfcfcf" />
     </points>
   );
-};
-
-export default PortalParticles;
+}
