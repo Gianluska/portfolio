@@ -1,3 +1,361 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Tailwind v4 CSS-first configuration */
+@theme {
+  /* Color palette */
+  --color-void: #000000;
+  --color-abyss: #0a0a0a;
+  --color-smoke: #1a1a1a;
+  --color-ash: #2a2a2a;
+  --color-fog: #444444;
+  --color-mist: #888888;
+  --color-light: #cccccc;
+  --color-pure: #ffffff;
+
+  /* Font families */
+  --font-mono: "Courier New", monospace;
+
+  /* Custom animations */
+  --animate-glitch-flash: glitchFlash 8s infinite;
+  --animate-boot-type: bootType 0.5s steps(20) forwards;
+  --animate-boot-fade: bootFade 4s ease forwards 3.5s;
+  --animate-pulse: pulse 2s infinite;
+  --animate-blink: blink 1s step-end infinite;
+  --animate-scan-move: scanMove 4s ease-in-out infinite;
+  --animate-orbit-spin: orbitSpin 20s linear infinite;
+  --animate-fragment-float: fragmentFloat 2s infinite ease-in-out;
+  --animate-fragment-appear: fragmentAppear 1s ease forwards;
+  --animate-terminal-fade: terminalFade 0.5s ease forwards;
+  --animate-dash-move: dashMove 20s linear infinite;
+}
+
+/* Base styles */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 14px;
+  }
+
+  body {
+    background: var(--color-void);
+    color: var(--color-pure);
+    font-family: var(--font-mono);
+    overflow-x: hidden;
+    cursor: none;
+  }
+}
+
+/* Keyframe animations */
+@keyframes glitchFlash {
+  0%, 99%, 100% {
+    opacity: 0;
+  }
+  99.5% {
+    opacity: 0.03;
+  }
+}
+
+@keyframes bootType {
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes bootFade {
+  to {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes scanMove {
+  0%, 100% {
+    top: -10%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  50% {
+    top: 110%;
+  }
+}
+
+@keyframes orbitSpin {
+  from {
+    transform: rotateZ(0deg);
+  }
+  to {
+    transform: rotateZ(360deg);
+  }
+}
+
+@keyframes fragmentFloat {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(10px, -10px) rotate(10deg);
+    opacity: 1;
+  }
+}
+
+@keyframes fragmentAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes terminalFade {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dashMove {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  .font-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .writing-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  .mix-blend-difference {
+    mix-blend-mode: difference;
+  }
+
+  /* Scanlines effect */
+  .scanlines {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.1) 2px,
+      rgba(0, 0, 0, 0.1) 4px
+    );
+  }
+
+  /* Noise texture */
+  .noise-texture {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+
+  /* Text stroke for ghost letters */
+  .text-stroke-ash {
+    -webkit-text-stroke: 1px var(--color-ash);
+    color: transparent;
+  }
+
+  .text-stroke-fog {
+    -webkit-text-stroke: 1px var(--color-fog);
+    color: transparent;
+  }
+
+  /* Backdrop blur */
+  .backdrop-blur-sm {
+    backdrop-filter: blur(5px);
+  }
+
+  /* Custom scrollbar - hide it */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Clamp utilities for responsive text */
+  .text-clamp-hero {
+    font-size: clamp(8rem, 25vw, 20rem);
+  }
+
+  .text-clamp-hero-mobile {
+    font-size: clamp(5rem, 20vw, 10rem);
+  }
+
+  .text-clamp-contact {
+    font-size: clamp(1.5rem, 5vw, 4rem);
+  }
+}
+
+/* Component styles */
+@layer components {
+  /* Custom cursor */
+  .cursor-custom {
+    @apply fixed w-5 h-5 border border-pure pointer-events-none z-[99999] mix-blend-difference;
+    transition: transform 0.1s ease;
+  }
+
+  .cursor-custom::before {
+    content: "";
+    @apply absolute top-1/2 left-1/2 w-1 h-1 bg-pure;
+    transform: translate(-50%, -50%);
+  }
+
+  .cursor-custom.expand {
+    transform: scale(3);
+    border-radius: 50%;
+  }
+
+  /* Terminal styles */
+  .terminal {
+    @apply bg-abyss border border-ash text-xs;
+  }
+
+  .terminal-header {
+    @apply px-4 py-3 border-b border-ash flex justify-between items-center;
+  }
+
+  .terminal-dot {
+    @apply w-2 h-2 border border-fog;
+  }
+
+  /* Project node */
+  .project-node {
+    @apply flex items-center mb-12 cursor-pointer;
+    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .project-index {
+    @apply text-8xl font-thin text-ash leading-none;
+    transition: color 0.3s ease;
+  }
+
+  .project-node:hover .project-index {
+    @apply text-pure;
+  }
+
+  .project-info {
+    @apply pl-8 opacity-0 whitespace-nowrap;
+    transition: all 0.3s ease;
+  }
+
+  .project-node:hover .project-info {
+    @apply opacity-100 pl-12;
+  }
+
+  /* About grid cell */
+  .about-cell {
+    @apply bg-abyss border border-ash p-4 flex items-center justify-center text-center overflow-hidden cursor-default;
+    transition: all 0.3s ease;
+  }
+
+  .about-cell:hover {
+    @apply bg-smoke border-fog z-10;
+  }
+
+  .about-cell.highlight {
+    @apply bg-pure text-void border-pure;
+  }
+
+  .about-cell.highlight:hover {
+    @apply bg-void text-pure;
+  }
+
+  /* Stream item */
+  .stream-item {
+    @apply grid gap-8 py-6 border-b border-ash cursor-pointer relative;
+    grid-template-columns: 100px 1fr 50px;
+    transition: all 0.3s ease;
+  }
+
+  .stream-item::before {
+    content: "";
+    @apply absolute -left-[100vw] -right-[100vw] top-0 bottom-0 bg-abyss opacity-0 -z-10;
+    transition: opacity 0.3s ease;
+  }
+
+  .stream-item:hover::before {
+    @apply opacity-100;
+  }
+
+  .stream-item:hover {
+    @apply pl-4;
+  }
+
+  /* Fragment card */
+  .fragment-card {
+    @apply absolute p-4 border border-ash opacity-0;
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(5px);
+    transition: all 0.5s ease;
+  }
+
+  .fragment-card:hover {
+    @apply border-mist;
+    background: rgba(20, 20, 20, 0.95);
+  }
+
+  /* Nav dot */
+  .nav-dot {
+    @apply w-2 h-2 border border-fog cursor-pointer relative;
+    transition: all 0.3s ease;
+  }
+
+  .nav-dot::after {
+    content: attr(data-label);
+    @apply absolute left-5 top-1/2 -translate-y-1/2 text-xs tracking-widest text-fog whitespace-nowrap opacity-0;
+    transition: opacity 0.3s ease;
+  }
+
+  .nav-dot:hover::after,
+  .nav-dot.active::after {
+    @apply opacity-100;
+  }
+
+  .nav-dot.active,
+  .nav-dot:hover {
+    @apply bg-pure border-pure;
+  }
+
+  /* Status bar */
+  .status-bar {
+    @apply fixed bottom-0 left-0 w-full py-3 px-8 bg-abyss border-t border-ash flex justify-between text-xs tracking-widest text-fog z-[200];
+  }
+
+  /* Section label */
+  .section-label {
+    @apply absolute top-12 left-1/2 -translate-x-1/2 text-xl tracking-widest text-mist;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+  }
+}
