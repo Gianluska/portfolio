@@ -1,21 +1,86 @@
-import { Canvas } from '@react-three/fiber'
+import { Component, Suspense, lazy, useCallback, useState } from 'react'
+import useReducedMotion from './hooks/useReducedMotion.js'
+import Contact from './components/Contact.jsx'
+import WorkIndex from './components/WorkIndex.jsx'
+import { ASCII_LOGO } from './data/identity.js'
+
+const ExperienceCanvas = lazy(() => import('./scene/ExperienceCanvas.jsx'))
+
+class ArtworkBoundary extends Component {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch() {
+    this.props.onError()
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
+}
 
 export default function App() {
+  const reducedMotion = useReducedMotion()
+  const [sceneReady, setSceneReady] = useState(false)
+  const [sceneFailed, setSceneFailed] = useState(false)
+  const [contactActive, setContactActive] = useState(false)
+  const handleReady = useCallback(() => setSceneReady(true), [])
+  const handleError = useCallback(() => {
+    setSceneFailed(true)
+    setSceneReady(false)
+  }, [])
+
   return (
-    <Canvas
-      camera={{ position: [0, 0, 5], fov: 45 }}
-      frameloop="demand"
-      dpr={[1, 2]}
-      role="img"
-      aria-label="Um cubo no centro da tela"
-    >
-      <color attach="background" args={['#181818']} />
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[3, 4, 5]} intensity={2} />
-      <mesh rotation={[Math.PI / 6, Math.PI / 4, 0]}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-    </Canvas>
+    <>
+      <a className="skip-link" href="#work">Skip to work</a>
+
+      <div className={`artwork ${sceneReady ? 'artwork--ready' : ''}`} aria-hidden="true">
+        <div className="scene-poster" />
+        {!sceneFailed && (
+          <div className="experience-layer">
+            <ArtworkBoundary onError={handleError}>
+              <Suspense fallback={null}>
+                <ExperienceCanvas
+                  reducedMotion={reducedMotion}
+                  contactActive={contactActive}
+                  onReady={handleReady}
+                  onError={handleError}
+                />
+              </Suspense>
+            </ArtworkBoundary>
+          </div>
+        )}
+      </div>
+
+      <header className="site-header">
+        <a className="brand" href="#hero" aria-label="lvsk. home">
+          <pre aria-hidden="true">{ASCII_LOGO}</pre>
+        </a>
+        <nav aria-label="Main navigation">
+          <a className="text-link" href="#work">Work</a>
+          <a className="text-link" href="#contact">Contact</a>
+        </nav>
+      </header>
+
+      <main className={sceneReady ? undefined : 'static-artwork'}>
+        <section className="hero" id="hero" aria-labelledby="hero-heading">
+          <div className="hero-copy">
+            <h1 id="hero-heading">Creative<br />technologist.</h1>
+            <p>I build immersive web experiences.</p>
+          </div>
+          <span className="hero-signature" aria-hidden="true">lvsk.</span>
+          <span className="sr-only">
+            An anamorphic sculpture of the lvsk. ASCII signature. Its layered metal
+            characters reveal depth as the perspective shifts.
+          </span>
+        </section>
+
+        <WorkIndex reducedMotion={reducedMotion} />
+        <Contact onActiveChange={setContactActive} />
+      </main>
+    </>
   )
 }

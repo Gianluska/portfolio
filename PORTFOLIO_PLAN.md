@@ -8,9 +8,9 @@
 - Idioma do site: inglês.
 - Estrutura: hero 3D, trabalhos com navegação própria e contato com uma experiência diferente.
 - Identidade: minimalista, séria, detalhista e inspirada no Omarchy pessoal do autor.
-- Este documento propõe a experiência. Não altera a aplicação nem representa aprovação da direção pelo autor.
+- Direção aprovada pelo autor e implementada na versão `0.2.0`. O histórico abaixo registra as decisões de experiência.
 
-## Direção proposta: ASCII / MATTER
+## Direção aprovada: ASCII / MATTER
 
 **Uma identidade feita de caracteres que ganha presença física.** A interface mantém a disciplina de um terminal; a obra demonstra o domínio de luz, composição, movimento e programação gráfica.
 
@@ -156,10 +156,10 @@ Geometria e recursos reutilizados, sem alocações recorrentes no loop de render
 - Monocromia preserva contraste e hierarquia, sem texto importante em cinza ilegível.
 - Metas a medir, não resultados já obtidos: LCP até 2,5 s, INP abaixo de 200 ms, CLS até 0,1 e animação próxima de 60 fps no desktop de referência. Verificar custo e fluidez separadamente em mobile real.
 
-## Conteúdo ainda necessário para publicar
+## Conteúdo integrado
 
-- Projetos selecionados, mídia em boa resolução, descrição curta e sua contribuição em cada um.
-- E-mail público e links profissionais.
-- Créditos e autorização de exibição das mídias, quando aplicável.
+- Seleção inicial de projetos públicos autorais: Grass experiment, lvsk-calendar e BTConverter, com mídia real e créditos de co-desenvolvimento quando aplicáveis.
+- E-mail e links profissionais extraídos do README público do perfil GitHub do autor.
+- Origens e licenças das mídias registradas em `public/work/provenance.json`.
 
-Esses dados não serão inventados. Não impedem validar a direção visual, mas são necessários para concluir e publicar o portfolio.
+Não foram inventados projetos, clientes, métricas, atribuições de autoria ou endereços de contato.
