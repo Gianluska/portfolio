@@ -73,8 +73,8 @@ export default function App() {
           </div>
           <span className="hero-signature" aria-hidden="true">lvsk.</span>
           <span className="sr-only">
-            An anamorphic sculpture of the lvsk. ASCII signature. Its layered metal
-            characters reveal depth as the perspective shifts.
+            A kinetic architectural aperture. Continuous metal frames bend into a
+            deep, twisting passage that responds to the pointer.
           </span>
         </section>
 

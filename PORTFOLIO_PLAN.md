@@ -8,11 +8,11 @@
 - Idioma do site: inglês.
 - Estrutura: hero 3D, trabalhos com navegação própria e contato com uma experiência diferente.
 - Identidade: minimalista, séria, detalhista e inspirada no Omarchy pessoal do autor.
-- Direção aprovada pelo autor e implementada na versão `0.2.0`. O histórico abaixo registra as decisões de experiência.
+- Hero revisado na versão `0.3.0`, após rejeição da primeira implementação. A identidade e a estrutura do portfolio permanecem.
 
-## Direção aprovada: ASCII / MATTER
+## Direção atual: Optical aperture
 
-**Uma identidade feita de caracteres que ganha presença física.** A interface mantém a disciplina de um terminal; a obra demonstra o domínio de luz, composição, movimento e programação gráfica.
+**Uma interface silenciosa diante de uma construção espacial autoral.** A logo ASCII permanece plana; a experiência 3D demonstra composição, material, luz e interação sem transformar os caracteres em peças desconectadas.
 
 A proposta não é reproduzir um desktop ou montar um terminal fictício. É levar a precisão do ambiente pessoal para uma experiência espacial autoral.
 
@@ -36,31 +36,38 @@ Logo de referência:
 _|   \_/  ____/ _|\_\
 ```
 
-## 1. Hero: a assinatura como escultura
+## Referências pesquisadas
+
+- [Lusion](https://lusion.co/): separação entre interface legível e uma cena com materiais, oclusão e volumes marcantes.
+- [Unseen Studio](https://unseen.co/): profundidade arquitetônica, aberturas e luz coerente.
+- [Dennis Snellenberg](https://dennissnellenberg.com/): um elemento visual dominante, hierarquia e navegação direta.
+- [Bruno Simon, case study escrito pelo autor](https://www.awwwards.com/brunos-portfolio-case-study.html): uma premissa interativa consistente, em vez de efeitos independentes.
+
+Lusion e Unseen são referências de estúdios; Dennis e Bruno são portfolios individuais. Lusion, Unseen e Dennis foram inspecionados ao vivo pelo Playwright MCP. Nenhum modelo, imagem ou identidade dessas referências foi incorporado ao portfolio.
+
+## 1. Hero: uma abertura arquitetônica cinética
 
 ### Composição
 
-Uma cena de altura próxima ao viewport, com bastante espaço negativo. A escultura domina o campo central; a identificação permanece em HTML, discreta e legível. Logo pequena no canto superior esquerdo; links `Work` e `Contact` no direito, sem barra flutuante ou menu fullscreen.
+Uma escultura de grande escala ocupa a região central-direita no desktop. A apresentação fica no canto inferior esquerdo, com mais presença tipográfica e sem sobrepor a abertura principal. No mobile, a escultura ganha enquadramento próprio acima do texto.
 
-Texto proposto:
+A logo ASCII original fica no topo, separada da obra. `Work` e `Contact` continuam sendo links HTML diretos.
 
 > Creative technologist.
 > I build immersive web experiences.
 
 ### Experiência principal
 
-Os caracteres da logo tornam-se peças tridimensionais distribuídas em profundidade. Uma projeção frontal alinha essas peças para reconstruir o desenho ASCII. Fora desse alinhamento, aparecem suas extrusões, camadas e espaços internos.
+Uma sequência de 56 molduras metálicas contínuas forma um volume curvo e torcido, atravessado por uma abertura profunda. A forma é paramétrica e instanciada: uma geometria compartilhada, não uma coleção de caracteres extrudados.
 
-O acabamento é de metal grafite acetinado com arestas claras. A luz rasante e a oclusão entre peças revelam o volume; o resultado não depende de partículas, bloom forte ou uma esfera cromada genérica.
+- As superfícies acetinadas e os chanfros recebem reflexos de softboxes gerados localmente.
+- A sobreposição das lâminas e as faces internas estabelecem profundidade mesmo em uma imagem estática.
+- O ponteiro altera suavemente a curvatura, a torção e o ponto de vista, em vez de apenas arrastar o objeto inteiro.
+- Uma entrada curta acomoda a construção. A cena deixa de renderizar quando o movimento termina e pausa quando a aba fica oculta.
+- O scroll é nativo. A obra se afasta ao entrar em Work, sem prender a navegação à câmera.
+- Movimento reduzido remove introdução, parallax e deslocamento contínuo entre seções.
 
-1. A página abre com uma composição já legível e visualmente resolvida. Nenhuma introdução bloqueia a navegação.
-2. Um movimento curto apresenta a profundidade e acomoda a escultura na posição de assinatura.
-3. O ponteiro desloca suavemente o ponto de vista dentro de um limite pequeno, com inércia e sem prejudicar a leitura.
-4. Ao rolar, a câmera abandona o alinhamento frontal. As peças revelam seu perfil e deixam espaço para o primeiro trabalho.
-
-A anamorfose é a assinatura: uma pequena mudança de perspectiva transforma uma marca plana em arquitetura. Mesmo sem interação, o enquadramento, a luz e o material precisam sustentar o impacto.
-
-A logo em HTML não se deforma. Sua interpretação espacial é uma obra derivada, não uma substituição da marca.
+Não há esfera, torus padrão, nuvem de partículas, áudio automático ou reprodução de um desktop.
 
 ## 2. Work: índice de projetos, não uma grade de cards
 
@@ -95,13 +102,13 @@ Sem páginas extensas de case nesta proposta. O objetivo é permitir que uma ag�
 
 ## 3. Contact: abrir uma conexão
 
-A escultura retorna em escala mais próxima e suas camadas se alinham como duas superfícies separadas por uma fenda de luz. O contato nasce dessa abertura, encerrando a mesma linguagem espacial do hero.
+A abertura arquitetônica se divide em dois conjuntos de lâminas e enquadra a região de contato, preservando uma área central livre para o texto. É a mesma construção do hero, não uma terceira demonstração desconectada.
 
 Título proposto:
 
 > Have something in mind?
 
-O endereço de e-mail real fica visível em HTML, acompanhado de `Email me` e `Copy email`. Ao aproximar o ponteiro da região, as superfícies se afastam sutilmente e a luz abre o enquadramento do endereço. A experiência convida à aproximação, mas não esconde a informação.
+O endereço real fica visível em HTML, acompanhado de `Email me` e `Copy email`. Ao aproximar o ponteiro ou focar a região, as lâminas se afastam sutilmente. O contato nunca depende de hover, WebGL ou de descobrir uma interação escondida.
 
 - `Email me` abre o aplicativo de e-mail via `mailto:`.
 - `Copy email` copia o endereço e confirma `Copied` apenas após sucesso.
@@ -138,8 +145,8 @@ Manter **Vite + React + React Three Fiber + Three.js**, já presentes na base. N
 
 Um `ExperienceCanvas` persistente concentra a cena. `Hero`, `WorkIndex` e `Contact` compõem o conteúdo HTML. Dados dos projetos ficam separados da apresentação. A navegação funciona mesmo quando o canvas não inicializa.
 
-1. **Identidade e enquadramento:** validar logo, tipografia, composição desktop/mobile e storyboard da anamorfose.
-2. **Escultura:** construir a geometria derivada dos caracteres e resolver primeiro projeção, luz e material. Só então adicionar movimento de ponteiro e câmera.
+1. **Identidade e enquadramento:** preservar logo e tipografia, com composição própria para desktop e mobile.
+2. **Escultura:** resolver geometria paramétrica, instanciamento, softboxes, material e luz antes do movimento.
 3. **Trabalhos:** integrar mídia real, seleção acessível e transição entre projetos.
 4. **Contato:** integrar endereço e links reais, abertura espacial e estados de cópia.
 5. **Validação integrada:** testar a jornada inteira em desktop e mobile, teclado, movimento reduzido, carregamento lento e ausência de WebGL.
@@ -149,7 +156,7 @@ Geometria e recursos reutilizados, sem alocações recorrentes no loop de render
 ## Critérios de aprovação
 
 - A primeira tela comunica quem é lvsk. e já apresenta uma obra marcante, sem depender de hover ou de uma introdução longa.
-- A logo ASCII é reconhecível no alinhamento principal; o deslocamento revela profundidade real.
+- A logo ASCII permanece legível no cabeçalho; a obra 3D tem identidade própria e profundidade visível sem interação.
 - Cada projeto tem apresentação visual forte e contribuição autoral explícita.
 - Navegação e contato permanecem óbvios, rápidos e disponíveis fora do canvas.
 - Transições podem ser interrompidas sem estados quebrados ou bloqueio de entrada.
