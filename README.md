@@ -18,12 +18,12 @@ npm run preview
 
 ## Experience
 
-- **Hero:** an original architectural aperture built from 56 continuous, beveled metal frames. Pointer input changes the bend, twist and viewpoint of the volume. The ASCII identity stays flat and readable in the header.
-- **Work:** three real projects, accessible keyboard-operated tabs, immediate project details and interruptible image-slice transitions.
+- **Hero:** the approved 56-frame metal aperture now has a continuous traveling wave and a localized pointer response. `Unfold sculpture` progressively fans the lamellae into depth; `Reassemble` reverses the sequence. The original ASCII identity is unchanged.
+- **Work:** three real projects, accessible keyboard-operated tabs, and eight independently hinged image shutters. Selection immediately retargets the content beneath the current 280ms reveal, without restarting or queueing transitions.
 - **Contact:** the same sculpture opens around a public email address. `Email me` opens the mail client; `Copy email` confirms successful copying and handles unavailable clipboard access.
-- **Accessibility:** HTML content remains independent of WebGL. Dynamic reduced-motion preferences remove spatial movement and image transitions. Lost context or initialization errors switch to a real rendered poster without disabling work or contact.
+- **Accessibility:** `Pause motion` freezes the kinetic loop and an interrupted unfolding pose; `Resume motion` continues from that state. Explicit pose changes remain available as static commands when paused or reduced motion is enabled. Manual pause also disables decorative project transitions. HTML content and contact remain independent of WebGL.
 
-The 3D module is lazy-loaded. Font, environment, geometry, project media and posters are self-hosted; runtime rendering does not depend on GitHub, font CDNs or external HDR assets. The canvas uses demand rendering and pauses while the document is hidden.
+The 3D module is lazy-loaded. Font, environment, geometry, project media and posters are self-hosted; runtime rendering does not depend on GitHub, font CDNs or external HDR assets. The canvas keeps demand rendering active only while the visible sculpture is moving, and stops while paused, hidden behind Work, or in a hidden document. Phase does not advance through elapsed wall time during suspension.
 
 ## Files
 
@@ -53,17 +53,18 @@ Lusion informed separation between interface and spatial craft; Unseen informed 
 
 ## Verification
 
-Version 0.3.0 was exercised through the official **Playwright MCP** server in isolated Chromium sessions, not just through source assertions:
+Version 0.4.0 was exercised through the official **Playwright MCP** server in isolated Chromium sessions, not just through source assertions:
 
-- Native navigation links and project-tab pointer/arrow/Home/End interactions.
-- Rapid project changes during active image transitions, with the final media and project details checked.
+- Native navigation, sculpture controls activated with Enter/Space, and project-tab keyboard navigation.
+- Rapid project retargeting without restarting the active shutter, keyboard interruption, and cancellation when reduced motion changes during a transition.
 - Native clipboard success and a deliberately denied clipboard operation, including recovery messaging.
-- Dynamic reduced-motion emulation, non-moving project transitions, and an observed idle interval without GPU draws.
+- Browser-only GPU probes confirmed independent movement in all 56 instances. Pausing during an intermediate opening froze its uploaded matrices and stopped further draws; resuming completed the opening, and reassembly restored compact depth.
+- Paused pointer input, reduced-motion static poses, and hiding the sculpture behind Work each produced an observed interval without GPU draws. No test instrumentation is shipped in the application.
 - A browser started with WebGL disabled before application initialization; the actual rendered poster, work navigation and mail link remained functional.
 - Actual context loss through `WEBGL_lose_context`, with the canvas removed and HTML content preserved.
 - Real desktop and portrait screenshots. Both committed posters were captured directly through Playwright MCP with the interface temporarily hidden.
-- Production layout at 320×740, 390×844, 768×1024, 1280×800 and 1440×900, with no horizontal overflow or header overlap.
-- The production work anchor, visible laptop project action, and native opening of the real project in a new tab.
+- Production layout at 320×740, 390×844, 768×1024, 1280×800 and 1440×900, with no horizontal overflow or overlap between hero text and controls.
+- A real project opened in a new tab after context loss.
 - All production resource requests returned HTTP 200; the normal production page had no console errors. The deliberately disabled-WebGL session emitted expected renderer errors and still passed the fallback checks.
 
 Production builds still emit Vite's large-chunk advisory for the lazy 3D bundle. Performance targets in the plan are targets, not measured Core Web Vitals results; physical-device and GPU-specific profiling remain separate from these browser checks.

@@ -2,12 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PROJECTS } from '../data/projects.js'
 import './work.css'
 
-const SLICES = [0, 1, 2, 3, 4]
+const SLICES = Array.from({ length: 8 }, (_, index) => index)
 const MOBILE_QUERY = '(max-width: 760px)'
 
-
 export default function WorkIndex({ reducedMotion = false }) {
-  const [selection, setSelection] = useState({ index: 0, outgoing: null, revision: 0, animate: false })
+  const [selection, setSelection] = useState({
+    index: 0, outgoing: null, revision: 0, animate: false, direction: 1,
+  })
   const [horizontal, setHorizontal] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches
   ))
@@ -29,32 +30,56 @@ export default function WorkIndex({ reducedMotion = false }) {
     }
     if (!selection.animate || !slices.current) return
 
-    // Only the outgoing image moves; the selected project and its text are ready immediately.
-    // A new selection cancels these animations rather than waiting for an exit queue.
-    const animations = Array.from(slices.current.children, (slice, index) => slice.animate([
-      { transform: 'translate3d(0, 0, 0)', opacity: 1 },
-      { transform: `translate3d(0, ${index % 2 === 0 ? '-18px' : '18px'}, 0)`, opacity: 0 },
-    ], {
-      duration: 220,
-      delay: index * 15,
-      easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
-      fill: 'both',
-    }))
+    const easing = getComputedStyle(slices.current).getPropertyValue('--ease-out').trim()
+      || 'cubic-bezier(0.23, 1, 0.32, 1)'
+    const animations = []
+    const shutters = Array.from(slices.current.children)
 
-    animations[animations.length - 1].onfinish = () => {
+    // The cover stays mounted while the actual selected image changes underneath.
+    // Rapid selections retarget the exposed image, never restart or queue a cover.
+    shutters.forEach((shutter, index) => {
+      const delay = (selection.direction > 0 ? index : SLICES.length - 1 - index) * 12
+      const timing = { duration: 196, delay, easing, fill: 'both' }
+      animations.push(shutter.animate([
+        { transform: 'translateZ(0) rotateY(0deg)', opacity: 1 },
+        { opacity: 1, offset: 0.55 },
+        { transform: `translateZ(-48px) rotateY(${selection.direction * 88}deg)`, opacity: 0 },
+      ], timing))
+      animations.push(shutter.firstElementChild.animate([
+        { opacity: 0 },
+        { opacity: 0.55, offset: 0.65 },
+        { opacity: 0.8 },
+      ], timing))
+    })
+
+    const lastShutter = selection.direction > 0 ? shutters.length - 1 : 0
+    animations[lastShutter * 2].onfinish = () => {
       setSelection((current) => current.revision === selection.revision
         ? { ...current, outgoing: null, animate: false }
         : current)
     }
-    return () => animations.forEach((animation) => animation.cancel())
-  }, [selection.revision, selection.animate, reducedMotion])
+    return () => animations.forEach((animation) => {
+      animation.onfinish = null
+      animation.cancel()
+    })
+  }, [selection.revision, selection.animate, selection.direction, reducedMotion])
 
   function select(index, animate = false) {
-    setSelection((current) => current.index === index ? current : {
-      index,
-      outgoing: current.index,
-      revision: current.revision + 1,
-      animate: animate && !reducedMotion,
+    setSelection((current) => {
+      const shouldAnimate = animate && !reducedMotion
+      if (current.index === index) {
+        return !shouldAnimate && current.animate
+          ? { ...current, outgoing: null, animate: false, revision: current.revision + 1 }
+          : current
+      }
+      const continueShutter = shouldAnimate && current.animate
+      return {
+        index,
+        outgoing: shouldAnimate ? (continueShutter ? current.outgoing : current.index) : null,
+        revision: continueShutter ? current.revision : current.revision + 1,
+        animate: shouldAnimate,
+        direction: continueShutter ? current.direction : Math.sign(index - current.index),
+      }
     })
   }
 
@@ -74,7 +99,7 @@ export default function WorkIndex({ reducedMotion = false }) {
   }
 
   return (
-    <section id="work" className="work" aria-labelledby="work-heading">
+    <section id="work" className="work" aria-labelledby="work-heading" data-reduced-motion={reducedMotion || undefined}>
       <h2 id="work-heading" className="work-heading">Selected work</h2>
       <div className="work-layout">
         <div
@@ -124,19 +149,6 @@ export default function WorkIndex({ reducedMotion = false }) {
                     decoding="async"
                     fetchPriority="low"
                   />
-                  {selection.index === index && selection.animate && !reducedMotion && (
-                    <div className="work-slices" ref={slices} aria-hidden="true">
-                      {SLICES.map((slice) => (
-                        <img
-                          key={slice}
-                          src={PROJECTS[selection.outgoing].image}
-                          className="work-slice"
-                          alt=""
-                          style={{ clipPath: `inset(0 ${100 - (slice + 1) * 20}% 0 ${slice * 20}%)` }}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
               </figure>
               <div className="work-details">
@@ -160,6 +172,34 @@ export default function WorkIndex({ reducedMotion = false }) {
               </div>
             </div>
           ))}
+          {selection.animate && !reducedMotion && (
+            <div className="work-slices" ref={slices} data-direction={selection.direction} aria-hidden="true">
+              {SLICES.map((slice) => (
+                <div
+                  key={slice}
+                  className="work-slice"
+                  style={{
+                    left: `${slice * 100 / SLICES.length}%`,
+                    width: `${100 / SLICES.length}%`,
+                    transformOrigin: `${selection.direction > 0 ? 0 : 100}% 50%`,
+                  }}
+                >
+                  <span className="work-slice-light" />
+                  <img
+                    src={PROJECTS[selection.outgoing].image}
+                    className="work-slice-image"
+                    width={PROJECTS[selection.outgoing].imageWidth}
+                    height={PROJECTS[selection.outgoing].imageHeight}
+                    alt=""
+                    style={{
+                      width: `${SLICES.length * 100}%`,
+                      left: `${-slice * 100}%`,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>

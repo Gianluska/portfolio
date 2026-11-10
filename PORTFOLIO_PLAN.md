@@ -8,7 +8,7 @@
 - Idioma do site: inglês.
 - Estrutura: hero 3D, trabalhos com navegação própria e contato com uma experiência diferente.
 - Identidade: minimalista, séria, detalhista e inspirada no Omarchy pessoal do autor.
-- Hero revisado na versão `0.3.0`, após rejeição da primeira implementação. A identidade e a estrutura do portfolio permanecem.
+- A logo e a forma 3D foram aprovadas pelo autor. A versão `0.4.0` preserva ambas e acrescenta coreografia, abertura interativa e transições coordenadas.
 
 ## Direção atual: Optical aperture
 
@@ -62,10 +62,12 @@ Uma sequência de 56 molduras metálicas contínuas forma um volume curvo e torc
 
 - As superfícies acetinadas e os chanfros recebem reflexos de softboxes gerados localmente.
 - A sobreposição das lâminas e as faces internas estabelecem profundidade mesmo em uma imagem estática.
-- O ponteiro altera suavemente a curvatura, a torção e o ponto de vista, em vez de apenas arrastar o objeto inteiro.
-- Uma entrada curta acomoda a construção. A cena deixa de renderizar quando o movimento termina e pausa quando a aba fica oculta.
+- Uma onda contínua percorre individualmente as 56 lâminas, alterando curvatura, espaçamento e reflexos sem girar incessantemente o objeto inteiro.
+- O ponteiro intensifica uma região dessa onda. A estrutura reage localmente, não como um bloco preso ao cursor.
+- `Unfold sculpture` abre a profundidade em uma sequência de lâminas; `Reassemble` refaz o caminho.
+- `Pause motion` congela inclusive uma abertura interrompida. A retomada continua desse estado, sem incorporar o tempo em que a cena ficou suspensa.
 - O scroll é nativo. A obra se afasta ao entrar em Work, sem prender a navegação à câmera.
-- Movimento reduzido remove introdução, parallax e deslocamento contínuo entre seções.
+- Movimento reduzido remove o loop e as interpolações; os comandos de abertura continuam disponíveis como poses estáticas. No mobile, os controles ficam abaixo da apresentação e não dependem de hover.
 
 Não há esfera, torus padrão, nuvem de partículas, áudio automático ou reprodução de um desktop.
 
@@ -86,7 +88,7 @@ Um índice compacto de projetos à esquerda e uma grande superfície de apresent
 
 A imagem ou vídeo do trabalho ocupa a maior parte da seção, sem moldura de navegador, mockup de laptop ou ornamento sobre a mídia. O conteúdo real precisa ter protagonismo.
 
-A troca usa um recorte em lâminas inspirado nas camadas da escultura: a mídia anterior se divide brevemente, revela profundidade e recompõe a próxima. Texto e controles respondem imediatamente; a transição visual não bloqueia seleções rápidas.
+A troca usa oito persianas de imagem com dobradiças independentes, perspectiva e sombreamento. O recorte anterior revela a mídia seguinte em uma linha do tempo de até 280ms. Texto e links respondem imediatamente; seleções rápidas redirecionam o conteúdo sem reiniciar ou enfileirar a abertura. Teclado, pausa manual e movimento reduzido interrompem a decoração sem bloquear a seleção.
 
 Começar com uma seleção editorial de três a cinco trabalhos, caso exista esse material. A quantidade final depende dos projetos reais, sem preencher espaços com trabalhos inventados.
 
@@ -151,7 +153,7 @@ Um `ExperienceCanvas` persistente concentra a cena. `Hero`, `WorkIndex` e `Conta
 4. **Contato:** integrar endereço e links reais, abertura espacial e estados de cópia.
 5. **Validação integrada:** testar a jornada inteira em desktop e mobile, teclado, movimento reduzido, carregamento lento e ausência de WebGL.
 
-Geometria e recursos reutilizados, sem alocações recorrentes no loop de renderização. Limitar resolução e custo de efeitos em telas pequenas. Pausar renderizações quando a aba estiver oculta e invalidar frames apenas quando houver movimento ou mudança de estado.
+Geometria e recursos reutilizados, sem alocações recorrentes no loop de renderização. A onda avança apenas enquanto a escultura está visível e o movimento está permitido. Pausa, aba oculta e Work suspendem o ciclo; a retomada preserva a fase. O movimento usa deltas limitados para evitar saltos e manter o ritmo independente da taxa de quadros.
 
 ## Critérios de aprovação
 

@@ -221,13 +221,49 @@ main {
   line-height: 1.7;
 }
 
-.hero-signature {
+.hero-controls {
   position: absolute;
   right: var(--gutter);
-  bottom: 70px;
-  color: var(--muted);
-  font-size: 12px;
+  bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
 }
+
+.hero-controls button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: nowrap;
+  transition: color 160ms var(--ease-out), transform 100ms var(--ease-out);
+}
+
+.sculpture-action {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 7px;
+}
+
+.sculpture-action[aria-pressed='true'] {
+  text-decoration-color: currentColor;
+}
+
+.sculpture-pause {
+  color: var(--muted);
+}
+
+.sculpture-pause:disabled {
+  cursor: default;
+}
+
 
 .contact {
   position: relative;
@@ -344,6 +380,12 @@ main {
   .contact-address:hover {
     text-decoration: underline;
   }
+
+  .sculpture-action:hover,
+  .sculpture-pause:not(:disabled):hover {
+    color: var(--fg);
+    text-decoration-color: currentColor;
+  }
 }
 
 @media (max-width: 700px) {
@@ -365,7 +407,7 @@ main {
 
   .hero-copy {
     right: var(--gutter);
-    bottom: 74px;
+    bottom: 148px;
   }
 
   .hero p {
@@ -373,8 +415,14 @@ main {
     font-size: 12px;
   }
 
-  .hero-signature {
-    bottom: 32px;
+  .hero-controls {
+    right: var(--gutter);
+    bottom: 28px;
+    left: var(--gutter);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
 
   .contact {

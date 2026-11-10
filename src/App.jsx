@@ -27,6 +27,8 @@ export default function App() {
   const [sceneReady, setSceneReady] = useState(false)
   const [sceneFailed, setSceneFailed] = useState(false)
   const [contactActive, setContactActive] = useState(false)
+  const [unfolded, setUnfolded] = useState(false)
+  const [motionPaused, setMotionPaused] = useState(false)
   const handleReady = useCallback(() => setSceneReady(true), [])
   const handleError = useCallback(() => {
     setSceneFailed(true)
@@ -46,6 +48,8 @@ export default function App() {
                 <ExperienceCanvas
                   reducedMotion={reducedMotion}
                   contactActive={contactActive}
+                  unfolded={unfolded}
+                  motionPaused={motionPaused}
                   onReady={handleReady}
                   onError={handleError}
                 />
@@ -71,14 +75,33 @@ export default function App() {
             <h1 id="hero-heading">Creative<br />technologist.</h1>
             <p>I build immersive web experiences.</p>
           </div>
-          <span className="hero-signature" aria-hidden="true">lvsk.</span>
+          {sceneReady && !sceneFailed && (
+            <div className="hero-controls" role="group" aria-label="Sculpture controls">
+              <button
+                className="sculpture-action"
+                type="button"
+                aria-pressed={unfolded}
+                onClick={() => setUnfolded((current) => !current)}
+              >
+                {unfolded ? 'Reassemble' : 'Unfold sculpture'}
+              </button>
+              <button
+                className="sculpture-pause"
+                type="button"
+                aria-pressed={motionPaused || reducedMotion}
+                disabled={reducedMotion}
+                onClick={() => setMotionPaused((current) => !current)}
+              >
+                {reducedMotion ? 'Motion reduced' : motionPaused ? 'Resume motion' : 'Pause motion'}
+              </button>
+            </div>
+          )}
           <span className="sr-only">
-            A kinetic architectural aperture. Continuous metal frames bend into a
-            deep, twisting passage that responds to the pointer.
+            An architectural aperture built from 56 individually layered metal frames.
           </span>
         </section>
 
-        <WorkIndex reducedMotion={reducedMotion} />
+        <WorkIndex reducedMotion={reducedMotion || motionPaused} />
         <Contact onActiveChange={setContactActive} />
       </main>
     </>

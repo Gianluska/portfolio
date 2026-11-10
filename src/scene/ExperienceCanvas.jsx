@@ -22,16 +22,23 @@ const FRAME_COUNT = 56
 const INPUT_KEYS = ['hero', 'contact', 'pointerX', 'pointerY', 'active']
 const clamp = (value) => Math.max(0, Math.min(1, value))
 const smooth = (value) => value * value * (3 - 2 * value)
+const sculptureVisible = (inputs) => {
+  const hero = smooth(inputs.hero)
+  return (1 - hero) + inputs.contact * hero > 0.005
+}
 
-function useSceneInputs(reducedMotion, contactActive) {
+function useSceneInputs(reducedMotion, motionPaused, contactActive) {
   const invalidate = useThree((state) => state.invalidate)
   const setFrameloop = useThree((state) => state.setFrameloop)
-  const inputs = useRef({ hero: 0, contact: 0, pointerX: 0, pointerY: 0, active: 0 })
+  const inputs = useRef({
+    hero: 0, contact: 0, pointerX: 0, pointerY: 0, active: 0, clockReset: true,
+  })
 
   useEffect(() => {
-    inputs.current.active = contactActive && !reducedMotion ? 1 : 0
-    invalidate()
-  }, [contactActive, reducedMotion, invalidate])
+    inputs.current.active = contactActive ? 1 : 0
+    inputs.current.clockReset = true
+    if (!document.hidden && sculptureVisible(inputs.current)) invalidate()
+  }, [contactActive, reducedMotion, motionPaused, invalidate])
 
   useEffect(() => {
     let heroTop = 0
@@ -42,10 +49,13 @@ function useSceneInputs(reducedMotion, contactActive) {
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
 
     const update = (y) => {
+      const wasVisible = sculptureVisible(inputs.current)
       lastY = y
       inputs.current.hero = clamp((y - heroTop) / (heroHeight * 0.82))
       inputs.current.contact = smooth(clamp((y + viewportHeight - contactTop) / (viewportHeight * 0.9)))
-      if (!document.hidden) invalidate()
+      const visible = sculptureVisible(inputs.current)
+      if (visible !== wasVisible) inputs.current.clockReset = true
+      if (!document.hidden && (wasVisible || visible)) invalidate()
     }
     const measure = () => {
       const hero = document.getElementById('hero')
@@ -57,21 +67,23 @@ function useSceneInputs(reducedMotion, contactActive) {
       update(window.scrollY)
     }
     const pointerMove = (event) => {
-      if (reducedMotion || !finePointer.matches || event.pointerType === 'touch') return
+      if (reducedMotion || motionPaused || !finePointer.matches || event.pointerType === 'touch') return
       inputs.current.pointerX = event.clientX / window.innerWidth * 2 - 1
       inputs.current.pointerY = event.clientY / window.innerHeight * 2 - 1
-      if (!document.hidden) invalidate()
+      if (!document.hidden && sculptureVisible(inputs.current)) invalidate()
     }
     const resetPointer = () => {
+      if (reducedMotion || motionPaused) return
       inputs.current.pointerX = 0
       inputs.current.pointerY = 0
-      if (!document.hidden) invalidate()
+      if (!document.hidden && sculptureVisible(inputs.current)) invalidate()
     }
     const visibilityChange = () => {
+      inputs.current.clockReset = true
       setFrameloop(document.hidden ? 'never' : 'demand')
       if (!document.hidden) {
         update(lastY)
-        invalidate()
+        if (sculptureVisible(inputs.current)) invalidate()
       }
     }
     measure()
@@ -95,7 +107,7 @@ function useSceneInputs(reducedMotion, contactActive) {
       finePointer.removeEventListener('change', resetPointer)
       document.removeEventListener('visibilitychange', visibilityChange)
     }
-  }, [reducedMotion, invalidate, setFrameloop])
+  }, [reducedMotion, motionPaused, invalidate, setFrameloop])
 
   return inputs
 }
@@ -186,7 +198,7 @@ function RenderReady({ onReady }) {
   return null
 }
 
-function Sculpture({ reducedMotion, contactActive, onReady }) {
+function Sculpture({ reducedMotion, contactActive, unfolded, motionPaused, onReady }) {
   const geometry = useMemo(createApertureGeometry, [])
   const material = useMemo(() => new MeshPhysicalMaterial({
     color: '#9b9d98',
@@ -199,16 +211,32 @@ function Sculpture({ reducedMotion, contactActive, onReady }) {
     envMapIntensity: 1.15,
   }), [])
   const transform = useMemo(() => new Object3D(), [])
+  const profiles = useMemo(() => {
+    const values = new Float32Array(FRAME_COUNT * 5)
+    for (let index = 0; index < FRAME_COUNT; index += 1) {
+      const t = index / (FRAME_COUNT - 1)
+      const offset = index * 5
+      values[offset] = t
+      values[offset + 1] = t - 0.5
+      values[offset + 2] = Math.sin(t * Math.PI)
+      values[offset + 3] = Math.sin(t * Math.PI * 2)
+      values[offset + 4] = t * Math.PI * 2.3
+    }
+    return values
+  }, [])
   const root = useRef()
   const frames = useRef()
-  const inputs = useSceneInputs(reducedMotion, contactActive)
+  const inputs = useSceneInputs(reducedMotion, motionPaused, contactActive)
   const invalidate = useThree((state) => state.invalidate)
   const width = useThree((state) => state.size.width)
   const height = useThree((state) => state.size.height)
   const portrait = width / height < 0.85
   const viewWidth = VIEW_HEIGHT * width / height
   const heroScale = Math.min(1.22, viewWidth * (portrait ? 0.86 : 0.74) / 9)
-  const current = useRef({ hero: 0, contact: 0, pointerX: 0, pointerY: 0, active: 0, intro: 1 })
+  const current = useRef({
+    hero: 0, contact: 0, pointerX: 0, pointerY: 0, active: 0,
+    unfold: Number(unfolded), unfoldCommand: unfolded, phase: 0.9, running: false,
+  })
   const initialized = useRef(false)
 
   useEffect(() => {
@@ -217,8 +245,8 @@ function Sculpture({ reducedMotion, contactActive, onReady }) {
   }, [invalidate])
 
   useEffect(() => {
-    invalidate()
-  }, [width, height, reducedMotion, invalidate])
+    if (!document.hidden && sculptureVisible(inputs.current)) invalidate()
+  }, [width, height, reducedMotion, motionPaused, unfolded, inputs, invalidate])
 
   useEffect(() => () => {
     geometry.dispose()
@@ -228,35 +256,60 @@ function Sculpture({ reducedMotion, contactActive, onReady }) {
   useFrame((_, rawDelta) => {
     if (document.hidden || !root.current || !frames.current) return
     const state = current.current
-    const delta = Math.min(rawDelta, 0.05)
-    const damping = 1 - Math.exp(-delta * 6)
+    const target = inputs.current
+    const staticMotion = reducedMotion || motionPaused
+    const targetVisible = sculptureVisible(target)
+    // The first frame after demand sleep contributes no elapsed wall time.
+    // Phase belongs to this sculpture, not R3F's continuously elapsed clock.
+    const delta = state.running && !target.clockReset ? Math.min(rawDelta, 0.25) : 0
+    const settlingDelta = Math.min(rawDelta, 0.25)
+    const damping = 1 - Math.exp(-settlingDelta * 6)
     let moving = false
 
     for (const key of INPUT_KEYS) {
-      const target = reducedMotion && (key === 'pointerX' || key === 'pointerY' || key === 'active')
-        ? 0
-        : inputs.current[key]
-      const difference = target - state[key]
-      if (reducedMotion || !initialized.current || Math.abs(difference) < 0.0002) state[key] = target
-      else {
+      if (motionPaused && (key === 'pointerX' || key === 'pointerY')) continue
+      const next = reducedMotion && (key === 'pointerX' || key === 'pointerY') ? 0 : target[key]
+      const difference = next - state[key]
+      if (staticMotion || !initialized.current || !targetVisible || Math.abs(difference) < 0.0002) {
+        state[key] = next
+      } else {
         state[key] += difference * damping
         moving = true
       }
     }
-    if (reducedMotion || state.intro < 0.0002) state.intro = 0
-    else {
-      state.intro *= Math.exp(-delta * 2.8)
+
+    const unfoldTarget = Number(unfolded)
+    const unfoldDifference = unfoldTarget - state.unfold
+    const unfoldCommandChanged = unfolded !== state.unfoldCommand
+    state.unfoldCommand = unfolded
+    if (reducedMotion || !initialized.current || !targetVisible || (motionPaused && unfoldCommandChanged) || Math.abs(unfoldDifference) < 0.0002) {
+      state.unfold = unfoldTarget
+    } else if (!motionPaused) {
+      state.unfold += Math.sign(unfoldDifference) * Math.min(Math.abs(unfoldDifference), settlingDelta / 1.65)
       moving = true
     }
     initialized.current = true
+    target.clockReset = false
 
-    const hero = reducedMotion ? Number(state.hero >= 0.5) : smooth(state.hero)
-    const contact = reducedMotion ? Number(state.contact >= 0.5) : state.contact
+    const hero = staticMotion ? Number(state.hero >= 0.5) : smooth(state.hero)
+    const contact = staticMotion ? Number(state.contact >= 0.5) : state.contact
     const visible = (1 - hero) + contact * hero
-    const scale = heroScale * (1 - hero * (1 - contact) * 0.45)
-    const pointer = reducedMotion ? 0 : 1 - hero
+    root.current.visible = visible > 0.005
+    const continuous = !staticMotion && targetVisible && root.current.visible
+    if (continuous) state.phase = (state.phase + delta * 0.62) % (Math.PI * 2)
+    state.running = continuous
 
-    root.current.visible = visible > 0.005 && (!reducedMotion || contact < 0.1)
+    if (!root.current.visible) {
+      if (moving && targetVisible) invalidate()
+      return
+    }
+
+    const expansion = smooth(state.unfold)
+    const scale = heroScale * (1 - expansion * 0.23 * (1 - contact)) * (1 - hero * (1 - contact) * 0.45)
+    const pointer = reducedMotion ? 0 : 1 - hero
+    const phase = reducedMotion ? 0.9 : state.phase
+    const waveStrength = (1 - contact * 0.94) * (1 - expansion * 0.35)
+
     root.current.scale.setScalar(scale)
     root.current.position.set(
       (portrait ? 0 : viewWidth * 0.1) * (1 - contact) + hero * (1 - contact) * viewWidth * 0.55,
@@ -264,37 +317,45 @@ function Sculpture({ reducedMotion, contactActive, onReady }) {
       -hero * (1 - contact) * 4,
     )
     root.current.rotation.set(
-      -0.22 + state.pointerY * 0.13 * pointer + contact * 0.22,
-      -0.56 + state.pointerX * 0.2 * pointer - state.intro * 0.18 + contact * 0.56,
+      -0.22 + state.pointerY * 0.025 * pointer + contact * 0.22,
+      -0.56 + state.pointerX * 0.035 * pointer + contact * 0.56,
       -0.28 + contact * 0.28,
     )
 
     for (let index = 0; index < FRAME_COUNT; index += 1) {
-      const t = index / (FRAME_COUNT - 1)
-      const centered = t - 0.5
+      const offset = index * 5
+      const t = profiles[offset]
+      const centered = profiles[offset + 1]
+      const arch = profiles[offset + 2]
       const side = index < FRAME_COUNT / 2 ? -1 : 1
-      const pulse = Math.sin(t * Math.PI * 2 + (1 - state.intro) * 2) * state.intro * 0.12
-      const bend = Math.sin(t * Math.PI) * (0.8 + state.pointerX * 0.18 * pointer)
+      // A traveling front reveals the depth sequentially, then retraces its
+      // path on reassembly. The plate geometry itself is never replaced.
+      const fan = smooth(clamp((state.unfold - t * 0.36) / 0.64)) * (1 - contact)
+      const localPointer = smooth(clamp(1 - Math.abs(t - (state.pointerX * 0.5 + 0.5)) / 0.32)) * pointer
+      const wavePhase = profiles[offset + 4] - phase + localPointer * state.pointerY * 0.8
+      const wave = Math.sin(wavePhase) * waveStrength
+      const crest = Math.cos(wavePhase) * waveStrength
+      const amplitude = 1 + localPointer * Math.abs(state.pointerY) * 0.8
       const opening = contact * (VIEW_HEIGHT * 0.49 / scale + state.active * 0.3)
 
       transform.position.set(
-        bend - 0.4,
-        Math.sin(t * Math.PI * 2) * 0.23 * (1 - contact) + side * opening,
-        centered * 6.5,
+        arch * 0.8 - 0.4 + wave * 0.16 * amplitude + centered * fan * 0.7,
+        profiles[offset + 3] * 0.23 * (1 - contact) + crest * 0.09 * amplitude + centered * fan * 1.15 + side * opening,
+        centered * (6.5 + fan * 5.2) + wave * 0.18,
       )
       transform.rotation.set(
-        Math.sin(t * Math.PI) * 0.18 * (1 - contact),
-        centered * 0.18 * (1 - contact),
-        centered * (1.55 + state.pointerX * 0.3 * pointer) * (1 - contact * 0.6) + pulse,
+        arch * 0.18 * (1 - contact) + crest * 0.095 * amplitude + centered * fan * 0.32,
+        centered * 0.18 * (1 - contact) + wave * 0.11 * amplitude + centered * fan * 0.95,
+        centered * 1.55 * (1 - contact * 0.6) + wave * 0.15 * amplitude + centered * fan * 0.8,
       )
-      transform.scale.setScalar(0.88 + Math.sin(t * Math.PI) * 0.17)
+      transform.scale.setScalar(0.88 + arch * 0.17)
       transform.updateMatrix()
       frames.current.setMatrixAt(index, transform.matrix)
     }
     frames.current.instanceMatrix.needsUpdate = true
     const luminance = 1 - contact * 0.72
     material.color.setRGB(0.32 * luminance, 0.33 * luminance, 0.31 * luminance)
-    if (moving) invalidate()
+    if (continuous || moving) invalidate()
   })
 
   return (
@@ -311,7 +372,14 @@ function Sculpture({ reducedMotion, contactActive, onReady }) {
   )
 }
 
-export default function ExperienceCanvas({ reducedMotion = false, contactActive = false, onReady, onError }) {
+export default function ExperienceCanvas({
+  reducedMotion = false,
+  contactActive = false,
+  unfolded = false,
+  motionPaused = false,
+  onReady,
+  onError,
+}) {
   return (
     <Canvas
       camera={CAMERA}
@@ -329,7 +397,13 @@ export default function ExperienceCanvas({ reducedMotion = false, contactActive 
     >
       <ContextLifecycle onError={onError} />
       <Suspense fallback={null}>
-        <Sculpture reducedMotion={reducedMotion} contactActive={contactActive} onReady={onReady} />
+        <Sculpture
+          reducedMotion={reducedMotion}
+          contactActive={contactActive}
+          unfolded={unfolded}
+          motionPaused={motionPaused}
+          onReady={onReady}
+        />
       </Suspense>
     </Canvas>
   )
