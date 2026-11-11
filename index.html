@@ -1,13 +1,61 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#000000" />
-    <title>Portfolio</title>
+    <meta name="description" content="Gianlucca “lvsk” Claudino — Creative Technologist, Frontend Specialist, Product Engineer." />
+    <title>Gianlucca “lvsk” Claudino</title>
+    <link rel="preload" href="/fonts/geist-mono.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      /* Crítico: preto e grão desde o primeiro quadro, antes de qualquer JS. */
+      @font-face {
+        font-family: 'Geist Mono';
+        src: url('/fonts/geist-mono.woff2') format('woff2');
+        font-weight: 100 900;
+        font-display: block;
+      }
+      @font-face {
+        font-family: 'Geist';
+        src: url('/fonts/geist.woff2') format('woff2');
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+        color: #fff;
+        overflow: hidden;
+      }
+      body::after {
+        content: '';
+        position: fixed;
+        inset: -50%;
+        z-index: 10;
+        pointer-events: none;
+        opacity: 0.075;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.6 0 0 0 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        animation: grain 0.9s steps(6) infinite;
+      }
+      @keyframes grain {
+        0% { transform: translate(0, 0); }
+        17% { transform: translate(-7%, 4%); }
+        33% { transform: translate(5%, -6%); }
+        50% { transform: translate(-3%, -9%); }
+        67% { transform: translate(8%, 6%); }
+        83% { transform: translate(-9%, -2%); }
+        100% { transform: translate(3%, 8%); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        body::after { animation: none; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
