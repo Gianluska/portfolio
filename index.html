@@ -7,7 +7,6 @@
     <meta name="description" content="Gianlucca “lvsk” Claudino — Creative Technologist, Frontend Specialist, Product Engineer." />
     <title>Gianlucca “lvsk” Claudino</title>
     <link rel="preload" href="/fonts/geist-mono.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossorigin />
     <style>
       /* Crítico: preto e grão desde o primeiro quadro, antes de qualquer JS. */
       @font-face {
@@ -15,12 +14,6 @@
         src: url('/fonts/geist-mono.woff2') format('woff2');
         font-weight: 100 900;
         font-display: block;
-      }
-      @font-face {
-        font-family: 'Geist';
-        src: url('/fonts/geist.woff2') format('woff2');
-        font-weight: 100 900;
-        font-display: swap;
       }
       html,
       body {
@@ -30,7 +23,7 @@
         color: #fff;
         overflow: hidden;
       }
-      body::after {
+      .loader::after {
         content: '';
         position: fixed;
         inset: -50%;
@@ -50,7 +43,7 @@
         100% { transform: translate(3%, 8%); }
       }
       @media (prefers-reduced-motion: reduce) {
-        body::after { animation: none; }
+        .loader::after { animation: none; }
       }
     </style>
   </head>
