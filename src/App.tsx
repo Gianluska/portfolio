@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { Director } from './director'
+import { glyphs } from './data/glyphs'
 const LINKS = [
   { href: '#projects', label: 'Projects' },
   { href: '#contact', label: 'Contact' },
@@ -17,6 +18,7 @@ export default function App() {
       {
         loader: $('.loader'),
         loaderLogo: $('.loader__logo'),
+        river: el.querySelector<HTMLCanvasElement>('.river')!,
         ui: $('.ui'),
         header: $('.header'),
         headerLink: $('.header__home'),
@@ -33,8 +35,10 @@ export default function App() {
     <div ref={root} className="app">
 
       <div className="loader" aria-hidden="true">
-        <div className="loader__logo" />
+        <pre className="loader__logo">{glyphs.official.join('\n')}</pre>
       </div>
+
+      <canvas className="river" data-state="waiting" aria-hidden="true" />
 
 
       <div className="ui">

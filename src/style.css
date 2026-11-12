@@ -59,9 +59,6 @@ a {
   overflow: visible;
 }
 
-.ascii.is-cycling {
-  color: rgb(255 255 255 / 0.9);
-}
 
 .ascii__cell.is-chroma {
   text-shadow:
@@ -110,23 +107,44 @@ a {
 }
 
 .loader__logo {
+  margin: 0;
+  visibility: hidden;
+  color: var(--fg);
+  font-family: var(--mono);
   font-size: clamp(9px, 1.5vw, 24px);
-  opacity: 0;
-  filter: blur(6px);
-  transform-origin: 50% 50%;
-  will-change: transform, opacity, filter;
+  font-weight: 400;
+  line-height: 1.1;
+  font-variant-ligatures: none;
+  font-kerning: none;
+  white-space: pre;
+  user-select: none;
 }
 
 .loader.is-on .loader__logo {
-  animation: logo-in 1.1s var(--out) forwards;
+  visibility: visible;
 }
 
-@keyframes logo-in {
-  to {
-    opacity: 1;
-    filter: blur(0);
-  }
+/* Alguns efeitos têm cores próprias; a abertura permanece monocromática. */
+.loader canvas {
+  filter: grayscale(1);
 }
+
+/* ---------- rio ASCII ---------- */
+
+.river {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.river[data-state='waiting'] {
+  visibility: hidden;
+}
+
 
 /* ---------- interface ---------- */
 
@@ -195,6 +213,8 @@ a {
 
 .header__logo {
   font-size: clamp(7px, 0.6vw, 10px);
+  transform: translateY(-4px) scale(0.9);
+  transform-origin: top left;
   transition: filter 0.5s var(--out);
 }
 
@@ -305,8 +325,7 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ascii__cell.is-locked,
-  .loader.is-on .loader__logo {
+  .ascii__cell.is-locked {
     animation-duration: 0.01s;
   }
 

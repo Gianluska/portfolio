@@ -1,15 +1,16 @@
 import { gsap } from './lib/ease'
+import { createTextEffect, effectNames, type TextEffect } from 'tte.js'
 import { env, wait } from './lib/env'
 import { AsciiLogo } from './components/AsciiLogo'
+import { AsciiRiver } from './components/AsciiRiver'
 import { NavLink } from './components/NavLink'
 
-const MIN_LOADER = 2000 // ciclo livre + resolução l→k + pausa = aproximadamente 3 s
-
-type Phase = 'boot' | 'cycling' | 'resolving' | 'reveal' | 'idle'
+type Phase = 'boot' | 'animating' | 'reveal' | 'idle'
 
 interface DirectorRefs {
   loader: HTMLElement
   loaderLogo: HTMLElement
+  river: HTMLCanvasElement
   ui: HTMLElement
   header: HTMLElement
   headerLink: HTMLElement
@@ -18,20 +19,21 @@ interface DirectorRefs {
   navItems: HTMLElement[]
 }
 
-/** Apenas a abertura ASCII e a entrada do cabeçalho, sem cena ou conteúdo de hero. */
+/** Abertura ASCII, entrada do cabeçalho e impacto que revela o rio. */
 export class Director {
   private phase: Phase = 'boot'
   private refs: DirectorRefs
   private destroyed = false
   private transition: gsap.core.Timeline | null = null
-  private loaderLogo: AsciiLogo
+  private intro: TextEffect | null = null
   private headerLogo: AsciiLogo
+  private river: AsciiRiver
   private links: NavLink[]
 
   constructor(refs: DirectorRefs) {
     this.refs = refs
-    this.loaderLogo = new AsciiLogo(refs.loaderLogo)
     this.headerLogo = new AsciiLogo(refs.headerLogo)
+    this.river = new AsciiRiver(refs.river)
     this.links = refs.links.map((el) => new NavLink(el))
     refs.headerLink.addEventListener('pointerenter', this.onLogoEnter)
     refs.headerLink.addEventListener('focus', this.onLogoEnter)
@@ -51,16 +53,24 @@ export class Director {
     if (this.destroyed) return
     if (env.skipIntro) return this.showHeader()
 
-    this.refs.loader.classList.add('is-on')
     if (env.reducedMotion) {
+      this.refs.loader.classList.add('is-on')
       await wait(1400)
     } else {
-      this.setPhase('cycling')
-      this.loaderLogo.startCycling()
-      await wait(MIN_LOADER)
-      if (this.destroyed) return
-      this.setPhase('resolving')
-      await this.loaderLogo.resolve()
+      const effects = effectNames()
+      this.intro = createTextEffect(this.refs.loaderLogo, {
+        effect: effects[Math.floor(Math.random() * effects.length)],
+        duration: 1000 + Math.floor(Math.random() * 4001),
+        colors: ['#a3a3a3', '#ffffff'],
+        fontScale: 1 / 1.1,
+        fps: 60,
+        loop: false,
+        autoplay: false,
+        respectReducedMotion: true,
+      })
+      this.setPhase('animating')
+      this.refs.loader.classList.add('is-on')
+      await this.intro.play()
       if (this.destroyed) return
       await wait(250)
     }
@@ -72,6 +82,7 @@ export class Director {
     this.refs.loader.hidden = true
     this.refs.ui.style.visibility = 'visible'
     this.refs.header.classList.add('is-veiled')
+    this.river.start(true)
     this.setPhase('idle')
   }
 
@@ -83,7 +94,12 @@ export class Director {
     gsap.set(refs.headerLogo, { clipPath: 'inset(0% 0% 100% 0%)' })
     this.transition = gsap.timeline({ onComplete: () => this.setPhase('idle') })
       .to(refs.loader, { opacity: 0, duration: 0.32, ease: 'bloom' })
-      .add(() => { refs.loader.hidden = true })
+      .add(() => {
+        refs.loader.hidden = true
+        this.intro?.destroy()
+        this.intro = null
+        this.river.start()
+      })
       .add(() => {
         refs.ui.style.visibility = 'visible'
         refs.header.classList.add('is-veiled')
@@ -98,7 +114,8 @@ export class Director {
     this.transition?.kill()
     this.refs.headerLink.removeEventListener('pointerenter', this.onLogoEnter)
     this.refs.headerLink.removeEventListener('focus', this.onLogoEnter)
-    this.loaderLogo.destroy()
+    this.intro?.destroy()
+    this.river.destroy()
     this.headerLogo.destroy()
     this.links.forEach((link) => link.destroy())
   }
