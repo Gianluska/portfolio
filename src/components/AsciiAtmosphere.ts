@@ -27,11 +27,14 @@ export class AsciiAtmosphere {
     )
   }
 
-  draw(ctx: CanvasRenderingContext2D): void {
+  drawSurface(ctx: CanvasRenderingContext2D): void {
     this.air.drawMist(ctx)
     this.wind.draw(ctx)
-    // The boat sits on the water; birds fly over it.
+    // Surface actors can be occluded by the island; airborne actors pass above it.
     this.boat.draw(ctx)
+  }
+
+  drawAir(ctx: CanvasRenderingContext2D): void {
     this.air.drawMotes(ctx)
     this.birds.draw(ctx)
   }

@@ -2,7 +2,7 @@
 
 ## Escopo vigente
 
-Preservar a abertura da logo `lvsk`, o cabeçalho e a gota aprovada. Depois do impacto, a água mais clara ocupa a tela inteira em vista vertical de cima, sem perspectiva oblíqua. Listras de brisa ASCII longas e translúcidas, com opacidades diferentes, e pequenos bandos dão vida à superfície. Sem canal, margens, céu, sol ou novo conteúdo de apresentação.
+Preservar a abertura da logo `lvsk`, o cabeçalho e a gota aprovada. Depois do impacto, a água mais clara ocupa a tela inteira em vista vertical de cima, sem perspectiva oblíqua. Listras de brisa ASCII longas e translúcidas, com opacidades diferentes, e pequenos bandos dão vida à superfície. Uma ilha no canto superior direito segue a referência desenhada pelo usuário, com píer, árvores, grama e clareira com fogueira. Tudo é ASCII monocromático, exceto as chamas vermelhas. Sem canal, margens continentais, céu, sol ou novo conteúdo de apresentação.
 
 ## Elementos preservados
 
@@ -27,6 +27,14 @@ Preservar a abertura da logo `lvsk`, o cabeçalho e a gota aprovada. Depois do i
 O vento usa uma única listra ASCII por passagem, sem variantes de estilo, espirais, camadas ou caudas divididas. Uma nova passagem começa a cada 1,25 s e dura 12 s, com até dez simultâneas. Cada uma mantém sua opacidade entre 0,14 e 0,34 e sua posição e direção durante redimensionamentos. O comprimento fica em torno de 560 px, limitado a 80% da largura da tela. Apenas glifos `-`, sem falhas aleatórias ou sombra duplicada; pontas suaves, entrada de 1,1 s e saída de 1,5 s. Uma ondulação rasa com fase de 0,65 rad/s deforma lentamente cada listra enquanto ela atravessa a superfície em velocidade constante.
 
 Dois swells longos (5 e 3,6 unidades) e seis ondas de vento (2 a 0,74), com direções espalhadas até ±0,35 rad, compõem a superfície contínua. As amplitudes curtas são baixas, o que mantém a inclinação suave, e a velocidade de fase foi reduzida. As cristas formam faixas amplas e tranquilas. O vento de base varia a ondulação em apenas ±10%; cada brisa modula somente as ondas de vento, e seus campos de pressão e derivadas entram na altura e nas normais. Sem máscaras Perlin ou recortes de visibilidade por noise.
+
+### Ilha e clareira
+
+`AsciiIsland` reproduz o contorno da referência: enseada estreita no norte, bosque agrupado a oeste, uma árvore isolada a nordeste e outra no lobo sul. Copas são vistas de cima, com contornos e ramificações em caracteres; grama usa pequenos tufos `,|` e `,'`. A clareira central fica sem grama, com uma borda pontilhada e passagem para o píer. O pequeno porto sai da costa para sudeste, com tábuas transversais, duas bordas e quatro postes `o`, todos monocromáticos.
+
+A ilha ocupa uma grade de 67 × 45 células, com fonte de 10 px, avanço de 6 px e entrelinha de 8 px. O desenho estático é armazenado em um atlas 2× e dimensionado para até 420 px no desktop e 304 px no mobile, respeitando o cabeçalho e a altura disponível. O fundo preto do terreno e do píer oculta a água e os atores de superfície; os atores aéreos são desenhados por cima.
+
+Pedras e lenha permanecem brancas/cinzas. Só as chamas usam vermelho `#e34b4b`, em três poses ASCII a 6 fps no mesmo relógio do rio, sem glow ou reflexos coloridos. A ilha é recortada pelo raio de revelação da shock wave, aparecendo progressivamente com a água. Em movimento reduzido, ilha e fogueira continuam visíveis e estáticas. Não há novos elementos DOM, listeners ou loops.
 
 ### Navio e esteira
 
@@ -58,7 +66,7 @@ A névoa forma até três bancos baixos no desktop e dois no mobile. Passa a 7�
 
 ## Movimento reduzido
 
-A logo inicial permanece na fonte oficial. O cabeçalho e a água estática aparecem sem coreografia de entrada, queda ou onda. Brisas, pássaros, insetos, poeira e névoa são omitidos. A preferência também é respeitada quando muda durante a sessão; os controles mantêm foco visível.
+A logo inicial permanece na fonte oficial. O cabeçalho, a água, a ilha e a fogueira estáticas aparecem sem coreografia de entrada, queda ou onda. Brisas, pássaros, insetos, poeira e névoa são omitidos. A preferência também é respeitada quando muda durante a sessão; os controles mantêm foco visível.
 
 ## Implementação
 
