@@ -1,6 +1,6 @@
-// A top-down old sailing ship enters after the reveal and steers toward the pointer.
-const BOAT_ENTER = 0.6
-const FADE_IN = 1.2
+// A top-down old sailing ship enters when the reveal wave reaches the bottom and steers toward the pointer.
+const BOAT_ENTER = 0
+const FADE_IN = 0.8
 const MAX_SPEED = 230
 const THRUST = 380
 const BRAKE = 240
@@ -49,9 +49,10 @@ const SAILS = [
 // Idle life. The prevailing wind blows toward screen east, a little south; the
 // pennant streams with it at rest and swings aft as the ship gathers way.
 const WIND = 0.15
-const BILLOW = 2.2
-const PENNANT = 5
-const PENNANT_STEP = 4.5
+const BILLOW = 5
+const PENNANT = 9
+const PENNANT_STEP = 6.5
+const PENNANT_RESPONSE = 4
 // Wavelets lap at the hull while the ship lies still.
 const LAP_PERIOD = 2.6
 
@@ -68,6 +69,7 @@ export class AsciiBoat {
   private vx = 0
   private vy = 0
   private turn = 0
+  private pennantAngle = WIND
   private alpha = 0
   private time = 0
   private born = 0
@@ -90,7 +92,7 @@ export class AsciiBoat {
     return this.active ? clamp(this.speed / MAX_SPEED) : 0
   }
 
-  /** Seconds since full reveal, plus the pointer in canvas pixels (NaN when absent). */
+  /** Seconds since the reveal wave reached the bottom; pointer is NaN when absent. */
   update(
     time: number, width: number, height: number, enabled: boolean,
     pointerX = Number.NaN, pointerY = Number.NaN,
@@ -154,6 +156,13 @@ export class AsciiBoat {
     this.y += this.vy * dt
     this.speed = Math.hypot(this.vx, this.vy)
 
+    // Blend angles, not opposing vectors: wind and aft must not cancel into a flip.
+    const under = clamp(this.speed / MAX_SPEED) * 0.75
+    const target = WIND + wrapAngle(this.heading + Math.PI - WIND) * under
+    this.pennantAngle = wrapAngle(
+      this.pennantAngle + wrapAngle(target - this.pennantAngle) * -Math.expm1(-PENNANT_RESPONSE * dt),
+    )
+
     // It enters from below the viewport; once inside, the edges hold it.
     if (!this.inside && this.y < height - EDGE * 1.5) this.inside = true
     if (this.inside) {
@@ -183,9 +192,10 @@ export class AsciiBoat {
     this.steered = false
     this.born = time
     this.x = width / 2
-    this.y = height + 80
+    this.y = height + 40
     this.heading = -Math.PI / 2
     this.turn = 0
+    this.pennantAngle = WIND
     this.vx = 0
     this.vy = -MAX_SPEED * 0.6
     this.speed = MAX_SPEED * 0.6
@@ -245,50 +255,63 @@ export class AsciiBoat {
       ctx.rect(-sail.half * CHAR, (sail.row - MIDDLE - 0.5) * LINE, sail.half * 2 * CHAR, LINE * 2 + BILLOW)
     }
     ctx.fill()
-    // Pale canvas: a faint fill lets the sails read as cloth over the dark deck.
-    ctx.fillStyle = '#ffffff'
-    ctx.globalAlpha = 0.07 * this.alpha
-    ctx.beginPath()
-    // Sails breathe with the gusts: each belly sags a little deeper, out of step with the others.
+    // The yards stay rigid; cloth and hem bow together between their fixed ends.
     const gust = 0.55 + 0.25 * Math.sin(this.time * 0.9) + 0.2 * Math.sin(this.time * 2.3 + 1.1)
-    for (let sail = 0; sail < SAILS.length; sail++) {
-      this.billow[sail] = BILLOW * gust * (0.6 + 0.4 * Math.sin(this.time * 1.6 + sail * 0.9))
-    }
+    ctx.fillStyle = '#ffffff'
     for (let sail = 0; sail < SAILS.length; sail++) {
       const { row, half } = SAILS[sail]
-      ctx.rect(-half * CHAR + 2, (row - MIDDLE - 0.3) * LINE, half * 2 * CHAR - 4, LINE * 1.6 + this.billow[sail])
+      const belly = BILLOW * gust * (0.6 + 0.4 * Math.sin(this.time * 1.6 + sail * 0.9))
+      this.billow[sail] = belly
+      const left = -half * CHAR + 2, right = half * CHAR - 2
+      const yardY = (row - MIDDLE) * LINE + 2
+      const hemY = (row + 1 - MIDDLE) * LINE + 2
+      ctx.globalAlpha = (0.09 + belly * 0.006) * this.alpha
+      ctx.beginPath()
+      ctx.moveTo(left, yardY)
+      ctx.lineTo(right, yardY)
+      ctx.lineTo(right - CHAR, hemY)
+      ctx.quadraticCurveTo(0, hemY + belly * 2, left + CHAR, hemY)
+      ctx.closePath()
+      ctx.fill()
     }
-    ctx.fill()
     ctx.font = '400 10px "Geist Mono", monospace'
     ctx.globalAlpha = 0.88 * this.alpha
     let sail = 0
     for (let row = 0; row < HULL.length; row++) {
-      let y = (row - MIDDLE) * LINE
-      // The bellied row under each yard follows its sail's breath.
-      if (sail < SAILS.length && row === SAILS[sail].row + 1) y += this.billow[sail++]
-      ctx.fillText(HULL[row], 0, y)
+      const y = (row - MIDDLE) * LINE
+      if (sail < SAILS.length && row === SAILS[sail].row + 1) {
+        // Warp the hem glyph by glyph, rather than sliding a straight row.
+        for (let col = 0; col < HULL[row].length; col++) {
+          const glyph = HULL[row][col]
+          if (glyph === ' ') continue
+          const x = (col - 7) * CHAR
+          const across = x / (SAILS[sail].half * CHAR)
+          const bow = Math.max(0, 1 - across * across)
+          ctx.fillText(glyph, x, y + this.billow[sail] * bow)
+        }
+        sail++
+      } else {
+        ctx.fillText(HULL[row], 0, y)
+      }
     }
 
-    // Pennant from the mainmast: wind direction in the ship's frame, blended toward aft by speed.
-    const angle = this.heading + Math.PI / 2 + rock
-    const under = clamp(this.speed / MAX_SPEED) * 0.75
-    let flowX = Math.cos(WIND - angle) * (1 - under)
-    let flowY = Math.sin(WIND - angle) * (1 - under) + under
-    const flow = Math.hypot(flowX, flowY) || 1
-    flowX /= flow
-    flowY /= flow
+    // World-space easing keeps the ribbon continuous through turns and braking.
+    const flowAngle = this.pennantAngle - (this.heading + Math.PI / 2 + rock)
+    const flowX = Math.cos(flowAngle), flowY = Math.sin(flowAngle)
     const mastY = (SAILS[1].row - MIDDLE) * LINE
-    ctx.font = '400 9px "Geist Mono", monospace'
+    ctx.font = '600 11px "Geist Mono", monospace'
     for (let k = 1; k <= PENNANT; k++) {
-      // The free end whips more than the hoist.
+      // A brighter, longer ribbon tapers to one fluttering tip.
       const wave = Math.sin(this.time * 8 - k * 1.3) * k * 0.7
       const px = flowX * k * PENNANT_STEP - flowY * wave
       const py = mastY + flowY * k * PENNANT_STEP + flowX * wave
+      const halfWidth = 5 * (1 - k / PENNANT)
       ctx.save()
       ctx.translate(px, py)
-      ctx.rotate(Math.atan2(flowY, flowX))
-      ctx.globalAlpha = (1 - k * 0.12) * this.alpha
-      ctx.fillText('~', 0, 0)
+      ctx.rotate(flowAngle)
+      ctx.globalAlpha = (0.98 - k * 0.035) * this.alpha
+      ctx.fillText('~', 0, -halfWidth)
+      if (k < PENNANT) ctx.fillText('~', 0, halfWidth)
       ctx.restore()
     }
 

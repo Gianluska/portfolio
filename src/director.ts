@@ -60,7 +60,8 @@ export class Director {
       const effects = effectNames()
       this.intro = createTextEffect(this.refs.loaderLogo, {
         effect: effects[Math.floor(Math.random() * effects.length)],
-        duration: 1000 + Math.floor(Math.random() * 4001),
+        // Keep the animation plus the final 250 ms hold within a 3 s cycle.
+        duration: 1000 + Math.floor(Math.random() * 1751),
         colors: ['#a3a3a3', '#ffffff'],
         fontScale: 1 / 1.1,
         fps: 60,

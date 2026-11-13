@@ -81,6 +81,8 @@ export class AsciiRiver {
   private last = 0
   private painted = 0
   private elapsed = 0
+  // Latch first bottom contact so resizing cannot restart an already-entering ship.
+  private boatEntry = Number.NaN
   private width = 0
   private height = 0
   private dpr = 1
@@ -506,8 +508,10 @@ export class AsciiRiver {
       this.setState(this.motion.matches ? 'still' : age < REVEAL_TIME ? 'ripple' : 'flowing')
       // Constant-speed propagation carries the crest beyond the viewport corners.
       const radius = this.reach * Math.min(age / REVEAL_TIME, 1.25)
+      if (Number.isNaN(this.boatEntry) && radius >= this.height / 2) this.boatEntry = age
       this.atmosphere.update(
-        age - REVEAL_TIME, this.width, this.height, !this.motion.matches, this.pointerX, this.pointerY,
+        age - REVEAL_TIME, Number.isNaN(this.boatEntry) ? -1 : age - this.boatEntry,
+        this.width, this.height, !this.motion.matches, this.pointerX, this.pointerY,
       )
       this.pushHull()
       this.drawWater(age, radius)
