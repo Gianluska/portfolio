@@ -4,28 +4,41 @@ const TAU = Math.PI * 2
 const DROP_TIME = 0.95
 const REVEAL_TIME = 2.8
 const FRAME_TIME = 1000 / 30
-const GLYPHS = ' .,:~=-/\\|+*%#@'
-const SHADE_GLYPHS = [1, 3, 6, 4, 5, 10, 11, 12, 13, 14]
+// Sea palette: troughs fade out, slopes read as dashes, crests as tildes, sun glints sparkle.
+const GLYPHS = ' .-~+*'
+const DOT = 1, DASH = 2, TILDE = 3, PLUS = 4, STAR = 5
+// Two long swells shade the sea broadly; a gentle, narrow-angle wind sea draws wide, soft crests.
+const SWELLS = 2
+const SWELL_LIFT = 0.35
+// Visual wave height: scales slope-driven light and crest/trough contrast, not the pattern.
+const WAVE_HEIGHT = 0.35
 const WAVES = [
-  { wavelength: 7.4, amplitude: 0.13, angle: -0.26, phase: 0.4 },
-  { wavelength: 4.8, amplitude: 0.075, angle: 0.33, phase: 2.7 },
-  { wavelength: 2.7, amplitude: 0.035, angle: -0.52, phase: 4.1 },
-  { wavelength: 1.05, amplitude: 0.014, angle: 0.13, phase: 1.2 },
-  { wavelength: 0.72, amplitude: 0.007, angle: -0.23, phase: 3.5 },
-  { wavelength: 0.48, amplitude: 0.0035, angle: 0.31, phase: 5.2 },
+  { wavelength: 5, amplitude: 0.06, angle: 0.06, phase: 0.4 },
+  { wavelength: 3.6, amplitude: 0.045, angle: -0.16, phase: 2.7 },
+  { wavelength: 2, amplitude: 0.03, angle: 0.2, phase: 4.1 },
+  { wavelength: 1.6, amplitude: 0.024, angle: -0.12, phase: 1.2 },
+  { wavelength: 1.3, amplitude: 0.017, angle: 0.32, phase: 3.5 },
+  { wavelength: 1.05, amplitude: 0.012, angle: -0.26, phase: 5.2 },
+  { wavelength: 0.88, amplitude: 0.008, angle: 0.08, phase: 0.9 },
+  { wavelength: 0.74, amplitude: 0.005, angle: -0.35, phase: 2.2 },
 ].map((wave) => {
   const k = TAU / wave.wavelength
   const kx = Math.sin(wave.angle) * k, kz = Math.cos(wave.angle) * k
   return {
     kx, kz, amplitude: wave.amplitude, phase: wave.phase,
     dx: wave.amplitude * kx, dz: wave.amplitude * kz,
-    speed: Math.sqrt(1.25 * k) * 0.55,
+    speed: Math.sqrt(1.25 * k) * 0.32,
   }
 })
-// Overhead camera V=(0,1,0), with one elevated off-screen light.
-const HALF_HEIGHT = Math.hypot(0.2, 0.95, 0.24) + 0.95
-const REFLECTION_X = 0.2 / HALF_HEIGHT
-const REFLECTION_Z = 0.24 / HALF_HEIGHT
+// Overhead camera V=(0,1,0); the sun sits up and toward the lower right.
+const SUN_X = 0.2, SUN_Z = 0.24
+const HALF_HEIGHT = Math.hypot(SUN_X, 0.95, SUN_Z) + 0.95
+const REFLECTION_X = SUN_X / HALF_HEIGHT
+const REFLECTION_Z = SUN_Z / HALF_HEIGHT
+const smoothstep = (edge0: number, edge1: number, value: number): number => {
+  const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)))
+  return t * t * (3 - 2 * t)
+}
 const clamp = (value: number, min = 0, max = 1): number => Math.max(min, Math.min(max, value))
 
 function noise(x: number, y: number): number {
@@ -74,7 +87,7 @@ export class AsciiRiver {
   private gustCosine!: Float32Array
   private readonly timeSine = new Float32Array(WAVES.length)
   private readonly timeCosine = new Float32Array(WAVES.length)
-  private shades: number[] = []
+  private heightNorm = 1
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -137,6 +150,14 @@ export class AsciiRiver {
       const footprint = Math.abs(wave.kx * this.cellWidth * this.worldScale) + Math.abs(wave.kz * this.cellHeight * this.worldScale)
       this.sampleWeight[w] = clamp((Math.PI - footprint) / (Math.PI * 0.5))
     }
+    // Normalise crest height to about ±1 at two standard deviations. Swell only
+    // lifts the pattern slightly, so wind sea decides where short crests appear.
+    let variance = 0
+    for (let w = 0; w < WAVES.length; w++) {
+      const amplitude = WAVES[w].amplitude * this.sampleWeight[w] * (w < SWELLS ? SWELL_LIFT : 1)
+      variance += amplitude * amplitude * 0.5
+    }
+    this.heightNorm = 1 / (2 * Math.sqrt(variance))
     for (let row = 0; row < rows; row++) {
       const y = (row + 0.5) * this.cellHeight
       const worldZ = (y - this.height / 2) * this.worldScale
@@ -173,17 +194,6 @@ export class AsciiRiver {
     for (let i = 1; i < GLYPHS.length; i++) {
       ctx.fillText(GLYPHS[i], (i + 0.5) * this.tileWidth, this.tileHeight * 0.5)
     }
-    // Match tone to actual ink coverage in the loaded font, not glyph names.
-    const pixels = ctx.getImageData(0, 0, this.atlas.width, this.atlas.height).data
-    const ink = new Float32Array(GLYPHS.length)
-    for (const glyph of SHADE_GLYPHS) {
-      for (let y = 0; y < this.tileHeight; y++) {
-        for (let x = 0; x < this.tileWidth; x++) {
-          ink[glyph] += pixels[(y * this.atlas.width + glyph * this.tileWidth + x) * 4 + 3]
-        }
-      }
-    }
-    this.shades = SHADE_GLYPHS.slice().sort((a, b) => ink[a] - ink[b])
   }
 
   private glyph(index: number, x: number, y: number, alpha: number): void {
@@ -197,7 +207,7 @@ export class AsciiRiver {
 
   private drawWater(age: number, radius: number): void {
     // Sum-of-sines surface + analytic normals, following GPU Gems chapter 1.
-    // Spatial trigonometry is cached; only these six phases advance per frame.
+    // Spatial trigonometry is cached; only the per-wave phases advance per frame.
     for (let w = 0; w < WAVES.length; w++) {
       this.timeSine[w] = Math.sin(WAVES[w].speed * age)
       this.timeCosine[w] = Math.cos(WAVES[w].speed * age)
@@ -214,15 +224,14 @@ export class AsciiRiver {
       const edge = clamp((radius - this.distance[i]) / 24)
       const reveal = edge * edge * (3 - 2 * edge)
       if (!reveal) continue
-      // A travelling elevation crest and its trailing trough belong to the surface.
-      // Differentiate the same height profile for the water's reflection normals.
+      // The impact's travelling crest and trailing trough are part of the height field.
       const front = (this.distance[i] - radius + 32) / 36
       const wakeFront = front + 1.8
       const crest = impactStrength > 0 && Math.abs(front) < 3 ? Math.exp(-front * front) : 0
       const trough = impactStrength > 0 && Math.abs(wakeFront) < 3
         ? Math.exp(-wakeFront * wakeFront) * 0.35 : 0
-      const height = (crest - trough) * 0.18 * impactStrength
-      const derivative = (-2 * front * crest + 2 * wakeFront * trough)
+      const impactHeight = (crest - trough) * 0.18 * impactStrength
+      const impactSlope = (-2 * front * crest + 2 * wakeFront * trough)
         * 0.18 * impactStrength * inverseWorldScale / 36
       const inverseDistance = this.distance[i] > 0 ? 1 / this.distance[i] : 0
       const radialX = (this.x[i] - this.width / 2) * inverseDistance
@@ -241,48 +250,56 @@ export class AsciiRiver {
         pressureX -= 2 * dx * breeze.inverseX * inverseWorldScale * force
         pressureZ -= 2 * dy * breeze.inverseY * inverseWorldScale * force
       }
-      const gust = 0.75 + 0.25 * windSine + pressure * 0.45
+      // Wind roughens only the short wind-sea components; swell stays untouched.
+      const gust = 0.9 + 0.1 * windSine + pressure * 0.45
       const windX = 0.07 * windCosine + pressureX * 0.45
       const windZ = 0.045 * windCosine + pressureZ * 0.45
-      let slopeX = derivative * radialX, slopeZ = derivative * radialZ
+      let height = 0, swellX = 0, swellZ = 0
+      let slopeX = impactSlope * radialX, slopeZ = impactSlope * radialZ
       for (let w = 0; w < WAVES.length; w++) {
         const wave = WAVES[w], slot = i * WAVES.length + w
         const sine = this.spatialSine[slot] * this.timeCosine[w] - this.spatialCosine[slot] * this.timeSine[w]
         const cosine = this.spatialCosine[slot] * this.timeCosine[w] + this.spatialSine[slot] * this.timeSine[w]
-        const shape = sine + 0.28 * sine * cosine
-        const derivative = cosine + 0.28 * (2 * cosine * cosine - 1)
-        const envelope = w < 3 ? 1 : gust
         const weight = this.sampleWeight[w]
-        slopeX += wave.dx * derivative * envelope * weight
-        slopeZ += wave.dz * derivative * envelope * weight
-        if (w >= 3) {
-          // Include envelope derivatives so wind and reflected light agree.
-          slopeX += wave.amplitude * shape * windX * weight
-          slopeZ += wave.amplitude * shape * windZ * weight
+        if (w < SWELLS) {
+          height += wave.amplitude * sine * weight * SWELL_LIFT
+          swellX += wave.dx * cosine * weight
+          swellZ += wave.dz * cosine * weight
+          continue
         }
+        height += wave.amplitude * sine * gust * weight
+        // Include envelope derivatives so wind and reflected light agree.
+        slopeX += (wave.dx * cosine * gust + wave.amplitude * sine * windX) * weight
+        slopeZ += (wave.dz * cosine * gust + wave.amplitude * sine * windZ) * weight
       }
-      const ny = 1 / Math.sqrt(1 + slopeX * slopeX + slopeZ * slopeZ)
-      const grazing = 1 - ny, grazing2 = grazing * grazing
-      const fresnel = 0.02 + 0.98 * grazing2 * grazing2 * grazing
-      const reflectedY = 2 * ny * ny - 1
-      const skyAngle = (reflectedY - 0.86) / 0.23
-      const environment = 0.045 + 0.14 * Math.exp(-skyAngle * skyAngle)
-      const reflectionX = (slopeX + REFLECTION_X) / 0.24
-      const reflectionZ = (slopeZ + REFLECTION_Z) / 0.09
+      slopeX = (slopeX - impactSlope * radialX + swellX) * WAVE_HEIGHT + impactSlope * radialX
+      slopeZ = (slopeZ - impactSlope * radialZ + swellZ) * WAVE_HEIGHT + impactSlope * radialZ
+      const level = (height + impactHeight) * this.heightNorm
+      // Swell faces toward the sun brighten broad areas; wind-sea facets add local relief.
+      const facing = clamp(0.5 - (slopeX * SUN_X + slopeZ * SUN_Z) * 3
+        - (swellX * SUN_X + swellZ * SUN_Z) * 4 * WAVE_HEIGHT)
+      const reflectionX = (slopeX + REFLECTION_X) / 0.11
+      const reflectionZ = (slopeZ + REFLECTION_Z) / 0.07
       const glint = Math.exp(-reflectionX * reflectionX - reflectionZ * reflectionZ)
-      const radiance = (1 - fresnel) * 0.026 + fresnel * environment + (0.095 + fresnel * 0.5) * glint * 1.8
-      const target = clamp(1 - Math.exp(-radiance * 2.8) + crest * impactStrength * 0.3)
+      const target = clamp(facing * 0.85 + crest * impactStrength * 0.3)
       const luminance = this.luminance[i] + (target - this.luminance[i]) * blend
       this.luminance[i] = luminance
-      const visibility = clamp((luminance - 0.055) / 0.12)
-      const tone = Math.min(this.shades.length - 1, Math.floor(luminance * this.shades.length))
-      const glyph = this.shades[tone]
-      const displacement = height * inverseWorldScale * 0.35
+      // Low relief: troughs stay readable and crests only slightly brighter.
+      const body = smoothstep(-0.6, 0.6, level * WAVE_HEIGHT + impactHeight * this.heightNorm * 0.5)
+      let glyph = level > 0.55 ? TILDE : level > 0.1 ? DASH : DOT
+      let alpha = (0.17 + body * 0.42) * (0.65 + luminance * 0.4)
+      // Sun glitter brightens the crest itself; only the hottest facets sparkle.
+      if (glint > 0.4 && level > 0) {
+        if (glint > 0.85 && level > 0.3) glyph = STAR
+        else if (glyph === DOT) glyph = DASH
+        alpha = Math.max(alpha, 0.3 + glint * 0.5)
+      }
+      const displacement = impactHeight * inverseWorldScale * 0.35
       this.glyph(
         glyph,
         this.x[i] + radialX * displacement,
         this.y[i] + radialZ * displacement,
-        (0.14 + luminance * 0.8) * visibility * reveal,
+        alpha * reveal,
       )
     }
   }
@@ -296,7 +313,7 @@ export class AsciiRiver {
       const speed = 55 + noise(i, 7) * 95
       const x = this.width / 2 + Math.cos(angle) * speed * age
       const y = this.height / 2 + Math.sin(angle) * speed * age * 0.45 - 95 * age + 170 * age * age
-      this.glyph(age < 0.18 ? 10 : 1, x, y, fade * (0.4 + noise(i, 3) * 0.5))
+      this.glyph(age < 0.18 ? PLUS : DOT, x, y, fade * (0.4 + noise(i, 3) * 0.5))
     }
   }
 

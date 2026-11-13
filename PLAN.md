@@ -11,7 +11,7 @@ Escopo: abertura ASCII, cabeçalho e gota que revela água mais clara, vista de 
 5. Uma gota ASCII cai no centro durante 0,95 s, com o cabeçalho preservado.
 6. O impacto gera uma onda radial na própria água: crista e depressão alteram normais, reflexos e posições dos glifos. A propagação em velocidade constante revela o mar atrás da onda em 2,8 s, até ultrapassar os cantos da tela, sem anéis sobrepostos.
 7. Manter a água em tela cheia com câmera vertical ortográfica e escala uniforme, sem canal, margens ou compressão de perspectiva.
-8. Seis ondas e suas normais controlam os reflexos; listras de brisa longas atravessam a água em 12 s e a agitam, com uma nova a cada 1,25 s e até dez simultâneas. Cada passagem tem opacidade entre 0,14 e 0,34. Pássaros com cabeça, corpo, cauda e asas ASCII voam sozinhos, em pares ou em setas triangulares de cinco, com grupos novos a cada 5,5 s e sobreposição de até três grupos.
+8. Dois swells e seis ondas de vento suaves formam um mar calmo: a altura escolhe `~`, `-` ou `.`, e a luz voltada ao sol define a opacidade, com brilhos raros. Listras de brisa longas atravessam a água em 12 s e a agitam, com uma nova a cada 1,25 s e até dez simultâneas. Cada passagem tem opacidade entre 0,14 e 0,34. Pássaros ASCII compactos voam sozinhos, em pares ou em setas triangulares de cinco, com grupos novos a cada 5,5 s e sobreposição de até três grupos.
 
 ## Arquivos
 

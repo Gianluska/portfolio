@@ -14,7 +14,7 @@ Preservar a abertura da logo `lvsk`, o cabeçalho e a gota aprovada. Depois do i
 
 ## Fundo
 
-#000000, com um único Canvas 2D decorativo atrás do cabeçalho, cobrindo toda a viewport. O grão pertence apenas ao loader. A água usa reflexos mais claros e conserva vales escuros; a escala permanece igual no alto e embaixo da tela. Brisas e pássaros são desenhados com caracteres no mesmo Canvas, sem imagens ou WebGL.
+#000000, com um único Canvas 2D decorativo atrás do cabeçalho, cobrindo toda a viewport. O grão pertence apenas ao loader. A água é um mar calmo: cristas claras e largas, vales escuros com pontilhado tênue e a mesma escala no alto e embaixo da tela. Brisas e pássaros são desenhados com caracteres no mesmo Canvas, sem imagens ou WebGL.
 
 ### Sequência do rio
 
@@ -26,11 +26,11 @@ Preservar a abertura da logo `lvsk`, o cabeçalho e a gota aprovada. Depois do i
 
 O vento usa uma única listra ASCII por passagem, sem variantes de estilo, espirais, camadas ou caudas divididas. Uma nova passagem começa a cada 1,25 s e dura 12 s, com até dez simultâneas. Cada uma mantém sua opacidade entre 0,14 e 0,34 e sua posição e direção durante redimensionamentos. O comprimento fica em torno de 560 px, limitado a 80% da largura da tela. Apenas glifos `-`, sem falhas aleatórias ou sombra duplicada; pontas suaves, entrada de 1,1 s e saída de 1,5 s. Uma ondulação rasa com fase de 0,65 rad/s deforma lentamente cada listra enquanto ela atravessa a superfície em velocidade constante.
 
-Seis ondas direcionais compõem a superfície contínua; suas normais controlam os reflexos. O vento de base modula as ondas menores. Cada brisa fornece um campo de pressão centrado em sua geometria visível. A água soma todos os campos ativos e suas derivadas para agitar a superfície e manter a reflexão coerente, sem máscaras Perlin ou recortes de visibilidade por noise.
+Dois swells longos (5 e 3,6 unidades) e seis ondas de vento (2 a 0,74), com direções espalhadas até ±0,35 rad, compõem a superfície contínua. As amplitudes curtas são baixas, o que mantém a inclinação suave, e a velocidade de fase foi reduzida. As cristas formam faixas amplas e tranquilas. O vento de base varia a ondulação em apenas ±10%; cada brisa modula somente as ondas de vento, e seus campos de pressão e derivadas entram na altura e nas normais. Sem máscaras Perlin ou recortes de visibilidade por noise.
 
 ### Leitura de superfície
 
-A câmera é vertical, ortográfica, com direção de visão fixa e escala uniforme. Não há compressão de detalhes distantes nem deslocamento de glifos por altura. A luminosidade de base, os reflexos e a exposição foram elevados sem trocar o fundo preto. As três ondas menores têm amplitudes reduzidas e comprimentos maiores; frequências que não cabem nas células são atenuadas. Antes de escolher o glifo, um filtro temporal de 125 ms suaviza a luminosidade. Uma transição contínua de opacidade substitui o recorte aleatório das células escuras; a cobertura real de tinta no atlas define a ordem dos caracteres.
+A câmera é vertical, ortográfica, com direção de visão fixa e escala uniforme. A altura normalizada escolhe o caractere: `~` só nas cristas mais altas, `-` nas encostas e `.` nos vales. O swell só levanta levemente o padrão, com peso de 0,35; quem define onde as cristas aparecem é o mar de vento. As ondas são baixas: a altura visual de 0,35 reduz as inclinações usadas na luz e o contraste entre cristas e vales a cerca de um terço. Os vales continuam legíveis e as cristas ficam só um pouco mais claras. A luz vem da face voltada ao sol, e um filtro temporal de 125 ms a suaviza. O brilho especular estreito clareia a crista; apenas as facetas mais quentes viram `*`, raras. Frequências que não cabem nas células são atenuadas. A opacidade é contínua, sem recorte aleatório.
 
 ### Pássaros
 
@@ -44,7 +44,7 @@ A logo inicial permanece na fonte oficial. O cabeçalho e a água estática apar
 
 ## Implementação
 
-React, TypeScript, Vite e GSAP. Geist Mono local. O catálogo de tte.js fornece os efeitos da abertura em um Canvas temporário, destruído ao terminar ou desmontar o componente. `AsciiRiver` controla o Canvas 2D: grade ortográfica uniforme, fases espaciais pré-calculadas, atlas de glifos, soma dos campos de vento e desenho limitado a 30 fps.
+React, TypeScript, Vite e GSAP. Geist Mono local. O catálogo de tte.js fornece os efeitos da abertura em um Canvas temporário, destruído ao terminar ou desmontar o componente. `AsciiRiver` controla o Canvas 2D: grade ortográfica uniforme, fases espaciais pré-calculadas, atlas com os cinco caracteres do mar, soma dos campos de vento e desenho limitado a 30 fps.
 
 `AsciiAtmosphere` compartilha o tempo desde a revelação com `AsciiBirdFlocks` e `AsciiBreezes`. Os pássaros reutilizam três slots de coortes; as brisas reutilizam buffers de posição e opacidade com capacidade para dez listras e expõem dez campos de pressão. Não há alocações de arrays por frame, timers, listeners ou loops adicionais. A aba oculta pausa o relógio; movimento reduzido limpa os atores e mantém só a água estática. Desmontar cancela o frame e remove os listeners do controlador. As variantes FIGlet permanecem no cabeçalho. Sem Three.js / React Three Fiber e sem novas seções ou informações pessoais.
 
