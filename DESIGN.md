@@ -48,15 +48,25 @@ Os pássaros se assustam com o barco, não com o cursor. Quando o centro do navi
 
 
 
+### Insetos, poeira e névoa
+
+Após a revelação completa, insetos pequenos de quatro asas e corpo `:` pairam em trajetórias irregulares e contínuas. São até oito no desktop e três em 390 × 844 px, com fonte de 7 px, pequenas correções de rumo e batida de asas independente do deslocamento. Cada voo dura entre 20 e 31,9 s, com entrada e saída suaves, sem trocar de posição enquanto visível.
+
+A poeira usa pontos e apóstrofos isolados, sem grão sobre a tela: até 32 partículas no desktop e 12 em 390 × 844 px, fonte de 9 px e opacidade entre 0,14 e 0,32 antes dos fades. Deriva para a direita e sobe lentamente em ciclos de 18–30 s; desaparece antes de reiniciar o percurso.
+
+A névoa forma até três bancos baixos no desktop e dois no mobile. Passa a 7–10 px/s, com bordas suaves, pequenas ondulações e textura ASCII `.:-`. Um pequeno atlas de dispersão luminosa é gerado uma única vez e reutilizado sob os caracteres, com opacidade máxima do véu de 0,067. A névoa é desenhada atrás do navio e dos pássaros; insetos e poeira ficam à frente do navio. As três camadas entram suavemente em 2 s, preservam a paleta monocromática e não alteram as ondas.
+
 ## Movimento reduzido
 
-A logo inicial permanece na fonte oficial. O cabeçalho e a água estática aparecem sem coreografia de entrada, queda ou onda. Brisas e pássaros são omitidos. A preferência também é respeitada quando muda durante a sessão; os controles mantêm foco visível.
+A logo inicial permanece na fonte oficial. O cabeçalho e a água estática aparecem sem coreografia de entrada, queda ou onda. Brisas, pássaros, insetos, poeira e névoa são omitidos. A preferência também é respeitada quando muda durante a sessão; os controles mantêm foco visível.
 
 ## Implementação
 
 React, TypeScript, Vite e GSAP. Geist Mono local. O catálogo de tte.js fornece os efeitos da abertura em um Canvas temporário, destruído ao terminar ou desmontar o componente. `AsciiRiver` controla o Canvas 2D: grade ortográfica uniforme, fases espaciais pré-calculadas, atlas com os cinco caracteres do mar, soma dos campos de vento e desenho limitado a 30 fps.
 
 `AsciiAtmosphere` compartilha o tempo desde a revelação com `AsciiBirdFlocks`, `AsciiBreezes` e `AsciiBoat`. Os pássaros reutilizam três slots de coortes; as brisas reutilizam buffers de posição e opacidade com capacidade para dez listras e expõem dez campos de pressão; o barco reutiliza um anel de 48 pontos de espuma e expõe posição, rumo e velocidade para que `AsciiRiver` aplique a esteira. O barco é desenhado entre as brisas e os pássaros. Não há alocações de arrays por frame, timers, listeners ou loops adicionais. A aba oculta pausa o relógio; movimento reduzido limpa os atores e mantém só a água estática. Desmontar cancela o frame e remove os listeners do controlador. As variantes FIGlet permanecem no cabeçalho. Sem Three.js / React Three Fiber e sem novas seções ou informações pessoais.
+
+`AsciiRiverAir` reutiliza buffers fixos para insetos, poeira e caracteres de névoa e um atlas fora do DOM para o véu. Compartilha o relógio e a pausa do controlador existente, sem novos listeners, timers, loops ou dependências. A densidade acompanha a área da viewport; a névoa é desenhada antes das brisas, e as partículas antes dos pássaros.
 
 ## Referências
 
