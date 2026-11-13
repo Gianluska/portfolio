@@ -12,6 +12,22 @@ const SWELLS = 2
 const SWELL_LIFT = 0.35
 // Visual wave height: scales slope-driven light and crest/trough contrast, not the pattern.
 const WAVE_HEIGHT = 0.35
+// Pointer wake: a damped 2D wave equation on the glyph grid, stepped at 60 Hz.
+// The pointer presses the surface; rings and a V-shaped wake spread from its path.
+const RIPPLE_STEP = 1 / 60
+const RIPPLE_SPEED = 170
+const RIPPLE_DAMPING = 0.994
+const RIPPLE_RADIUS = 2.2
+const RIPPLE_PUSH = 0.0424
+// The hull is broader than a fingertip; it pushes a little harder than the old pointer wake.
+const BOAT_PUSH = 1.15
+const RIPPLE_LEVEL = 0.7
+const RIPPLE_SLOPE = 2
+const RIPPLE_SHIFT = 15
+const RIPPLE_SHIFT_MAX = 0.5
+// Absorbing border: waves fade over this band instead of bouncing off the viewport edge.
+const SPONGE_WIDTH = 90
+const SPONGE_LOSS = 0.3
 const WAVES = [
   { wavelength: 5, amplitude: 0.06, angle: 0.06, phase: 0.4 },
   { wavelength: 3.6, amplitude: 0.045, angle: -0.16, phase: 2.7 },
@@ -87,6 +103,17 @@ export class AsciiRiver {
   private gustCosine!: Float32Array
   private readonly timeSine = new Float32Array(WAVES.length)
   private readonly timeCosine = new Float32Array(WAVES.length)
+  private cols = 0
+  private rows = 0
+  private ripple = new Float32Array(0)
+  private ripplePrev = new Float32Array(0)
+  private rippleSponge = new Float32Array(0)
+  private rippleActive = false
+  private rippleClock = 0
+  private pointerX = Number.NaN
+  private pointerY = 0
+  private hullX = Number.NaN
+  private hullY = 0
   private heightNorm = 1
 
   constructor(canvas: HTMLCanvasElement) {
@@ -97,6 +124,10 @@ export class AsciiRiver {
     this.observer = new ResizeObserver(this.resize)
     document.addEventListener('visibilitychange', this.visibility)
     this.motion.addEventListener('change', this.motionChange)
+    window.addEventListener('pointermove', this.pointer, { passive: true })
+    window.addEventListener('pointerout', this.pointerGone, { passive: true })
+    window.addEventListener('pointerup', this.pointerGone, { passive: true })
+    window.addEventListener('pointercancel', this.pointerGone, { passive: true })
     document.fonts.ready.then(() => {
       if (this.started && !this.destroyed) {
         this.buildAtlas()
@@ -134,6 +165,25 @@ export class AsciiRiver {
     const cols = Math.ceil(this.width / this.cellWidth)
     const rows = Math.ceil(this.height / this.cellHeight)
     this.count = cols * rows
+    this.cols = cols
+    this.rows = rows
+    this.ripple = new Float32Array(this.count)
+    this.ripplePrev = new Float32Array(this.count)
+    this.rippleActive = false
+    this.hullX = Number.NaN
+    this.rippleClock = 0
+    // Quadratic ramp from interior (no loss) to the edge, so the band itself doesn't reflect.
+    this.rippleSponge = new Float32Array(this.count)
+    for (let row = 0; row < rows; row++) {
+      const y = (row + 0.5) * this.cellHeight
+      const edgeY = Math.min(y, this.height - y)
+      for (let col = 0; col < cols; col++) {
+        const x = (col + 0.5) * this.cellWidth
+        const edge = Math.min(edgeY, Math.min(x, this.width - x))
+        const depth = Math.max(0, 1 - edge / SPONGE_WIDTH)
+        this.rippleSponge[row * cols + col] = 1 - SPONGE_LOSS * depth * depth
+      }
+    }
     this.waterAge = -1
     this.luminance = new Float32Array(this.count)
     this.x = new Float32Array(this.count)
@@ -205,6 +255,97 @@ export class AsciiRiver {
     )
   }
 
+  private pointerGone = (event: PointerEvent): void => {
+    // Leaving the window, or lifting a finger, removes the target the boat steers toward.
+    const gone = event.type === 'pointerout' ? event.relatedTarget === null : event.pointerType !== 'mouse'
+    if (gone) this.pointerX = Number.NaN
+  }
+
+  private pointer = (event: PointerEvent): void => {
+    if (this.state !== 'ripple' && this.state !== 'flowing') {
+      this.pointerX = Number.NaN
+      return
+    }
+    // The pointer only steers the boat; the hull makes the wake and startles the birds.
+    const box = this.canvas.getBoundingClientRect()
+    this.pointerX = event.clientX - box.left
+    this.pointerY = event.clientY - box.top
+  }
+
+  private pushHull(): void {
+    const boat = this.atmosphere.boat
+    const wake = boat.wake
+    if (wake < 0.05) {
+      this.hullX = Number.NaN
+      return
+    }
+    // Press just aft of amidships; splats stay a cell apart so the path is continuous.
+    const x = boat.x - Math.cos(boat.heading) * 4
+    const y = boat.y - Math.sin(boat.heading) * 4
+    const previousX = this.hullX, previousY = this.hullY
+    this.hullX = x
+    this.hullY = y
+    if (!Number.isFinite(previousX)) return
+    const dx = x - previousX, dy = y - previousY
+    const length = Math.hypot(dx, dy)
+    if (length < 0.5 || length > 200) return
+    const strength = RIPPLE_PUSH * BOAT_PUSH * (0.25 + wake * 0.75)
+    const steps = Math.ceil(length / this.cellWidth)
+    for (let s = 1; s <= steps; s++) {
+      const t = s / steps
+      this.press(previousX + dx * t, previousY + dy * t, strength)
+    }
+    this.rippleActive = true
+  }
+
+  private press(x: number, y: number, strength: number): void {
+    // Zero-mean "Mexican hat": the centre sinks while a rim rises, so no net water
+    // accumulates along the path and the first crest appears immediately.
+    const col = x / this.cellWidth - 0.5, row = y / this.cellHeight - 0.5
+    const aspect = this.cellHeight / this.cellWidth
+    const reachX = Math.ceil(RIPPLE_RADIUS * 4), reachY = Math.ceil(RIPPLE_RADIUS * 4 / aspect)
+    const inverse = 1 / (2 * RIPPLE_RADIUS * RIPPLE_RADIUS)
+    const top = Math.max(1, Math.round(row) - reachY), bottom = Math.min(this.rows - 2, Math.round(row) + reachY)
+    const left = Math.max(1, Math.round(col) - reachX), right = Math.min(this.cols - 2, Math.round(col) + reachX)
+    for (let r = top; r <= bottom; r++) {
+      const offsetY = (r - row) * aspect
+      for (let c = left; c <= right; c++) {
+        const offsetX = c - col
+        const i = r * this.cols + c
+        const falloff = (offsetX * offsetX + offsetY * offsetY) * inverse
+        this.ripple[i] = clamp(this.ripple[i] - strength * (1 - falloff) * Math.exp(-falloff), -1.5, 1.5)
+      }
+    }
+  }
+
+  private stepRipples(): void {
+    const { cols, rows } = this
+    const height = this.ripple, previous = this.ripplePrev, sponge = this.rippleSponge
+    const courantX = (RIPPLE_SPEED * RIPPLE_STEP / this.cellWidth) ** 2
+    const courantZ = (RIPPLE_SPEED * RIPPLE_STEP / this.cellHeight) ** 2
+    let peak = 0
+    // Leapfrog update written into the previous buffer; the sponge band absorbs outgoing waves.
+    for (let row = 1; row < rows - 1; row++) {
+      for (let col = 1, i = row * cols + 1; col < cols - 1; col++, i++) {
+        const current = height[i]
+        // Damp only the velocity term: damping height itself would act as a reflecting step.
+        const next = (current + (current - previous[i]) * RIPPLE_DAMPING * sponge[i]
+          + courantX * (height[i - 1] + height[i + 1] - 2 * current)
+          + courantZ * (height[i - cols] + height[i + cols] - 2 * current)) * 0.999
+        previous[i] = next
+        const magnitude = next < 0 ? -next : next
+        if (magnitude > peak) peak = magnitude
+      }
+    }
+    this.ripple = previous
+    this.ripplePrev = height
+    if (peak < 0.003) {
+      this.ripple.fill(0)
+      this.ripplePrev.fill(0)
+      this.rippleActive = false
+    }
+  }
+
   private drawWater(age: number, radius: number): void {
     // Sum-of-sines surface + analytic normals, following GPU Gems chapter 1.
     // Spatial trigonometry is cached; only the per-wave phases advance per frame.
@@ -220,6 +361,7 @@ export class AsciiRiver {
       ? 1 : -Math.expm1(-8 * (age - this.waterAge))
     this.waterAge = age
     const impactStrength = age < REVEAL_TIME + 0.6 ? 1 / (1 + radius / this.reach * 0.7) : 0
+    const ripple = this.ripple, cols = this.cols, rippling = this.rippleActive
     for (let i = 0; i < this.count; i++) {
       const edge = clamp((radius - this.distance[i]) / 24)
       const reveal = edge * edge * (3 - 2 * edge)
@@ -234,6 +376,14 @@ export class AsciiRiver {
       const impactSlope = (-2 * front * crest + 2 * wakeFront * trough)
         * 0.18 * impactStrength * inverseWorldScale / 36
       const inverseDistance = this.distance[i] > 0 ? 1 / this.distance[i] : 0
+      // Pointer wake: height plus central-difference slope in pixels.
+      let rippleHeight = 0, rippleX = 0, rippleZ = 0
+      if (rippling) {
+        rippleHeight = ripple[i]
+        rippleX = ((ripple[i + 1] ?? 0) - (ripple[i - 1] ?? 0)) / (2 * this.cellWidth)
+        rippleZ = ((i + cols < this.count ? ripple[i + cols] : 0) - (i >= cols ? ripple[i - cols] : 0))
+          / (2 * this.cellHeight)
+      }
       const radialX = (this.x[i] - this.width / 2) * inverseDistance
       const radialZ = (this.y[i] - this.height / 2) * inverseDistance
       const windSine = this.gustSine[i] * gustCosine - this.gustCosine[i] * gustSine
@@ -272,22 +422,25 @@ export class AsciiRiver {
         slopeX += (wave.dx * cosine * gust + wave.amplitude * sine * windX) * weight
         slopeZ += (wave.dz * cosine * gust + wave.amplitude * sine * windZ) * weight
       }
-      slopeX = (slopeX - impactSlope * radialX + swellX) * WAVE_HEIGHT + impactSlope * radialX
-      slopeZ = (slopeZ - impactSlope * radialZ + swellZ) * WAVE_HEIGHT + impactSlope * radialZ
-      const level = (height + impactHeight) * this.heightNorm
+      slopeX = (slopeX - impactSlope * radialX + swellX) * WAVE_HEIGHT + impactSlope * radialX + rippleX * RIPPLE_SLOPE
+      slopeZ = (slopeZ - impactSlope * radialZ + swellZ) * WAVE_HEIGHT + impactSlope * radialZ + rippleZ * RIPPLE_SLOPE
+      const level = (height + impactHeight) * this.heightNorm + rippleHeight * RIPPLE_LEVEL
       // Swell faces toward the sun brighten broad areas; wind-sea facets add local relief.
       const facing = clamp(0.5 - (slopeX * SUN_X + slopeZ * SUN_Z) * 3
         - (swellX * SUN_X + swellZ * SUN_Z) * 4 * WAVE_HEIGHT)
       const reflectionX = (slopeX + REFLECTION_X) / 0.11
       const reflectionZ = (slopeZ + REFLECTION_Z) / 0.07
       const glint = Math.exp(-reflectionX * reflectionX - reflectionZ * reflectionZ)
-      const target = clamp(facing * 0.85 + crest * impactStrength * 0.3)
+      const target = clamp(facing * 0.85 + crest * impactStrength * 0.3 + Math.max(0, rippleHeight) * 0.15)
       const luminance = this.luminance[i] + (target - this.luminance[i]) * blend
       this.luminance[i] = luminance
       // Low relief: troughs stay readable and crests only slightly brighter.
-      const body = smoothstep(-0.6, 0.6, level * WAVE_HEIGHT + impactHeight * this.heightNorm * 0.5)
+      const body = smoothstep(-0.6, 0.6, level * WAVE_HEIGHT + impactHeight * this.heightNorm * 0.5
+        + rippleHeight * 0.4)
       let glyph = level > 0.55 ? TILDE : level > 0.1 ? DASH : DOT
       let alpha = (0.17 + body * 0.42) * (0.65 + luminance * 0.4)
+      // Wake crests catch a little extra light so the rings read over the wind sea.
+      if (rippleHeight > 0) alpha += smoothstep(0.05, 0.6, rippleHeight) * 0.08
       // Sun glitter brightens the crest itself; only the hottest facets sparkle.
       if (glint > 0.4 && level > 0) {
         if (glint > 0.85 && level > 0.3) glyph = STAR
@@ -295,10 +448,13 @@ export class AsciiRiver {
         alpha = Math.max(alpha, 0.3 + glint * 0.5)
       }
       const displacement = impactHeight * inverseWorldScale * 0.35
+      // Refraction-like shift: glyphs lean down the wake's slope by a few pixels.
+      const shiftX = clamp(-rippleX * RIPPLE_SHIFT, -RIPPLE_SHIFT_MAX, RIPPLE_SHIFT_MAX)
+      const shiftY = clamp(-rippleZ * RIPPLE_SHIFT, -RIPPLE_SHIFT_MAX, RIPPLE_SHIFT_MAX)
       this.glyph(
         glyph,
-        this.x[i] + radialX * displacement,
-        this.y[i] + radialZ * displacement,
+        this.x[i] + radialX * displacement + shiftX,
+        this.y[i] + radialZ * displacement + shiftY,
         alpha * reveal,
       )
     }
@@ -350,7 +506,10 @@ export class AsciiRiver {
       this.setState(this.motion.matches ? 'still' : age < REVEAL_TIME ? 'ripple' : 'flowing')
       // Constant-speed propagation carries the crest beyond the viewport corners.
       const radius = this.reach * Math.min(age / REVEAL_TIME, 1.25)
-      this.atmosphere.update(age - REVEAL_TIME, this.width, this.height, !this.motion.matches)
+      this.atmosphere.update(
+        age - REVEAL_TIME, this.width, this.height, !this.motion.matches, this.pointerX, this.pointerY,
+      )
+      this.pushHull()
       this.drawWater(age, radius)
       this.drawSplash(age)
       this.atmosphere.draw(ctx)
@@ -362,7 +521,19 @@ export class AsciiRiver {
     this.raf = 0
     if (this.destroyed || document.hidden) return
     if (this.motion.matches) return this.motionChange()
-    if (this.last) this.elapsed += Math.min(0.05, (now - this.last) / 1000)
+    if (this.last) {
+      const delta = Math.min(0.05, (now - this.last) / 1000)
+      this.elapsed += delta
+      if (this.rippleActive) {
+        this.rippleClock += delta
+        for (let steps = 0; this.rippleClock >= RIPPLE_STEP && steps < 4; steps++) {
+          this.rippleClock -= RIPPLE_STEP
+          this.stepRipples()
+          if (!this.rippleActive) break
+        }
+        this.rippleClock = Math.min(this.rippleClock, RIPPLE_STEP)
+      } else this.rippleClock = 0
+    }
     this.last = now
     if (now - this.painted >= FRAME_TIME - 0.5) {
       this.draw()
@@ -393,6 +564,10 @@ export class AsciiRiver {
     if (!this.started) return
     this.stop()
     this.elapsed = DROP_TIME + REVEAL_TIME + 4
+    this.ripple.fill(0)
+    this.ripplePrev.fill(0)
+    this.rippleActive = false
+    this.hullX = Number.NaN
     this.draw()
     this.resume()
   }
@@ -412,6 +587,10 @@ export class AsciiRiver {
     this.observer.disconnect()
     document.removeEventListener('visibilitychange', this.visibility)
     this.motion.removeEventListener('change', this.motionChange)
+    window.removeEventListener('pointermove', this.pointer)
+    window.removeEventListener('pointerout', this.pointerGone)
+    window.removeEventListener('pointerup', this.pointerGone)
+    window.removeEventListener('pointercancel', this.pointerGone)
     this.setState('waiting')
   }
 }
