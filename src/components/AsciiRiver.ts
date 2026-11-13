@@ -1,8 +1,31 @@
+import { AsciiAtmosphere } from './AsciiAtmosphere'
+
 const TAU = Math.PI * 2
 const DROP_TIME = 0.95
-const REVEAL_TIME = 1.85
+const REVEAL_TIME = 2.8
 const FRAME_TIME = 1000 / 30
-const GLYPHS = ' .,:~=-/\\|+*'
+const GLYPHS = ' .,:~=-/\\|+*%#@'
+const SHADE_GLYPHS = [1, 3, 6, 4, 5, 10, 11, 12, 13, 14]
+const WAVES = [
+  { wavelength: 7.4, amplitude: 0.13, angle: -0.26, phase: 0.4 },
+  { wavelength: 4.8, amplitude: 0.075, angle: 0.33, phase: 2.7 },
+  { wavelength: 2.7, amplitude: 0.035, angle: -0.52, phase: 4.1 },
+  { wavelength: 1.05, amplitude: 0.014, angle: 0.13, phase: 1.2 },
+  { wavelength: 0.72, amplitude: 0.007, angle: -0.23, phase: 3.5 },
+  { wavelength: 0.48, amplitude: 0.0035, angle: 0.31, phase: 5.2 },
+].map((wave) => {
+  const k = TAU / wave.wavelength
+  const kx = Math.sin(wave.angle) * k, kz = Math.cos(wave.angle) * k
+  return {
+    kx, kz, amplitude: wave.amplitude, phase: wave.phase,
+    dx: wave.amplitude * kx, dz: wave.amplitude * kz,
+    speed: Math.sqrt(1.25 * k) * 0.55,
+  }
+})
+// Overhead camera V=(0,1,0), with one elevated off-screen light.
+const HALF_HEIGHT = Math.hypot(0.2, 0.95, 0.24) + 0.95
+const REFLECTION_X = 0.2 / HALF_HEIGHT
+const REFLECTION_Z = 0.24 / HALF_HEIGHT
 const clamp = (value: number, min = 0, max = 1): number => Math.max(min, Math.min(max, value))
 
 function noise(x: number, y: number): number {
@@ -11,20 +34,17 @@ function noise(x: number, y: number): number {
   return ((hash ^ (hash >>> 16)) >>> 0) / 4294967295
 }
 
-function lineGlyph(dx: number, dy: number): number {
-  const angle = ((Math.atan2(dy, dx) + Math.PI) % Math.PI) / Math.PI
-  return angle < 0.125 || angle >= 0.875 ? 6 : angle < 0.375 ? 8 : angle < 0.625 ? 9 : 7
-}
 
 type RiverState = 'waiting' | 'falling' | 'ripple' | 'flowing' | 'still'
 
-/** A small falling drop opens a procedural river; only glyphs are painted. */
+/** A small falling drop opens a quiet, full-viewport ASCII water surface. */
 export class AsciiRiver {
   private readonly canvas: HTMLCanvasElement
   private readonly ctx: CanvasRenderingContext2D
   private readonly atlas = document.createElement('canvas')
   private readonly motion = matchMedia('(prefers-reduced-motion: reduce)')
   private readonly observer: ResizeObserver
+  private readonly atmosphere = new AsciiAtmosphere()
   private state: RiverState = 'waiting'
   private started = false
   private destroyed = false
@@ -41,15 +61,20 @@ export class AsciiRiver {
   private tileHeight = 1
   private reach = 1
   private count = 0
-  private waterCount = 0
+  private worldScale = 1
+  private waterAge = -1
+  private luminance!: Float32Array
   private x!: Float32Array
   private y!: Float32Array
   private distance!: Float32Array
-  private across!: Float32Array
-  private grain!: Float32Array
-  private direction!: Uint8Array
-  private radial!: Uint8Array
-  private water!: Uint32Array
+  private spatialSine!: Float32Array
+  private spatialCosine!: Float32Array
+  private readonly sampleWeight = new Float32Array(WAVES.length)
+  private gustSine!: Float32Array
+  private gustCosine!: Float32Array
+  private readonly timeSine = new Float32Array(WAVES.length)
+  private readonly timeCosine = new Float32Array(WAVES.length)
+  private shades: number[] = []
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -96,34 +121,40 @@ export class AsciiRiver {
     const cols = Math.ceil(this.width / this.cellWidth)
     const rows = Math.ceil(this.height / this.cellHeight)
     this.count = cols * rows
+    this.waterAge = -1
+    this.luminance = new Float32Array(this.count)
     this.x = new Float32Array(this.count)
     this.y = new Float32Array(this.count)
     this.distance = new Float32Array(this.count)
-    this.across = new Float32Array(this.count)
-    this.grain = new Float32Array(this.count)
-    this.direction = new Uint8Array(this.count)
-    this.radial = new Uint8Array(this.count)
-    this.water = new Uint32Array(this.count)
-    this.waterCount = 0
-    const breadth = Math.min(this.width * 0.3, this.height * 0.29)
+    this.spatialSine = new Float32Array(this.count * WAVES.length)
+    this.spatialCosine = new Float32Array(this.count * WAVES.length)
+    this.gustSine = new Float32Array(this.count)
+    this.gustCosine = new Float32Array(this.count)
+    // Uniform orthographic scale across the entire surface, including the top.
+    this.worldScale = 8 / Math.max(this.height, 640)
+    for (let w = 0; w < WAVES.length; w++) {
+      const wave = WAVES[w]
+      const footprint = Math.abs(wave.kx * this.cellWidth * this.worldScale) + Math.abs(wave.kz * this.cellHeight * this.worldScale)
+      this.sampleWeight[w] = clamp((Math.PI - footprint) / (Math.PI * 0.5))
+    }
     for (let row = 0; row < rows; row++) {
       const y = (row + 0.5) * this.cellHeight
-      const v = y / this.height - 0.5
-      const centre = this.width * (0.5 + Math.sin(v * 5.8) * 0.14 + Math.sin(v * 13) * 0.025)
-      const slope = this.width / this.height * (Math.cos(v * 5.8) * 0.812 + Math.cos(v * 13) * 0.325)
-      const halfWidth = breadth * (0.88 + 0.14 * Math.sin(v * 5 + 1) + 0.13 * (v + 0.5))
-      const bank = Math.sin(y * 0.019) * 0.018 + Math.sin(y * 0.057) * 0.008
+      const worldZ = (y - this.height / 2) * this.worldScale
       for (let col = 0; col < cols; col++) {
         const i = row * cols + col
         const x = (col + 0.5) * this.cellWidth
+        const worldX = (x - this.width / 2) * this.worldScale
         this.x[i] = x
         this.y[i] = y
         this.distance[i] = Math.hypot(x - this.width / 2, y - this.height / 2)
-        this.across[i] = (x - centre) / halfWidth + bank
-        this.grain[i] = noise(col, row)
-        this.direction[i] = lineGlyph(slope, 1)
-        this.radial[i] = lineGlyph(-(y - this.height / 2), x - this.width / 2)
-        if (Math.abs(this.across[i]) < 1.025) this.water[this.waterCount++] = i
+        this.gustSine[i] = Math.sin(worldX * 0.28 + worldZ * 0.18)
+        this.gustCosine[i] = Math.cos(worldX * 0.28 + worldZ * 0.18)
+        for (let w = 0; w < WAVES.length; w++) {
+          const wave = WAVES[w], slot = i * WAVES.length + w
+          const phase = wave.kx * worldX + wave.kz * worldZ + wave.phase
+          this.spatialSine[slot] = Math.sin(phase)
+          this.spatialCosine[slot] = Math.cos(phase)
+        }
       }
     }
     this.buildAtlas()
@@ -142,6 +173,17 @@ export class AsciiRiver {
     for (let i = 1; i < GLYPHS.length; i++) {
       ctx.fillText(GLYPHS[i], (i + 0.5) * this.tileWidth, this.tileHeight * 0.5)
     }
+    // Match tone to actual ink coverage in the loaded font, not glyph names.
+    const pixels = ctx.getImageData(0, 0, this.atlas.width, this.atlas.height).data
+    const ink = new Float32Array(GLYPHS.length)
+    for (const glyph of SHADE_GLYPHS) {
+      for (let y = 0; y < this.tileHeight; y++) {
+        for (let x = 0; x < this.tileWidth; x++) {
+          ink[glyph] += pixels[(y * this.atlas.width + glyph * this.tileWidth + x) * 4 + 3]
+        }
+      }
+    }
+    this.shades = SHADE_GLYPHS.slice().sort((a, b) => ink[a] - ink[b])
   }
 
   private glyph(index: number, x: number, y: number, alpha: number): void {
@@ -154,52 +196,97 @@ export class AsciiRiver {
   }
 
   private drawWater(age: number, radius: number): void {
-    for (let k = 0; k < this.waterCount; k++) {
-      const i = this.water[k]
-      const reveal = clamp((radius - this.distance[i]) / 48)
-      const top = clamp((this.y[i] - 72) / 110)
-      if (!reveal || !top) continue
-      const u = this.across[i]
-      const depth = Math.max(0, 1 - Math.abs(u))
-      // Advection carries the same features downstream instead of scrambling the grid.
-      const travel = this.y[i] * 0.052 - age * (2.2 + depth * 1.15)
-      const wave = 0.5 + 0.5 * Math.sin(travel + Math.sin(u * 10) * 1.8)
-      const crest = wave * wave * wave * wave * wave * wave
-      const strand = 0.5 + 0.5 * Math.sin(u * 34 + Math.sin(travel * 0.19 - age * 0.16) * 2.1)
-      const thread = strand * strand * strand * strand * strand * strand
-      const foam = Math.exp(-depth * 45) * (0.4 + 0.6 * Math.sin(travel * 0.8 + u * 4) ** 2)
-      const eddy = Math.sin(u * 17 - travel * 0.37) * Math.sin(travel * 0.41 + u * 7)
-      let light = 0.085 + thread * 0.32 + crest * 0.3 + foam * 0.55 + eddy * 0.04
-      light *= 0.65 + this.grain[i] * 0.45
-      let glyph = this.direction[i]
-      if (depth < 0.055) glyph = this.grain[i] > 0.6 ? 3 : 1
-      else if (crest > 0.65) glyph = thread > 0.6 ? 5 : 4
-      else if (thread < 0.25) glyph = this.grain[i] > 0.7 ? 2 : 1
-      else if (this.grain[i] > 0.85) glyph = 3
-      this.glyph(glyph, this.x[i], this.y[i], light * reveal * top)
+    // Sum-of-sines surface + analytic normals, following GPU Gems chapter 1.
+    // Spatial trigonometry is cached; only these six phases advance per frame.
+    for (let w = 0; w < WAVES.length; w++) {
+      this.timeSine[w] = Math.sin(WAVES[w].speed * age)
+      this.timeCosine[w] = Math.cos(WAVES[w].speed * age)
+    }
+    const gustSine = Math.sin(age * 0.24), gustCosine = Math.cos(age * 0.24)
+    const breezes = this.atmosphere.breezes
+    const inverseWorldScale = 1 / this.worldScale
+    // Filter light before choosing a glyph, keeping small reflections from flickering.
+    const blend = this.motion.matches || this.waterAge < 0 || age < this.waterAge
+      ? 1 : -Math.expm1(-8 * (age - this.waterAge))
+    this.waterAge = age
+    const impactStrength = age < REVEAL_TIME + 0.6 ? 1 / (1 + radius / this.reach * 0.7) : 0
+    for (let i = 0; i < this.count; i++) {
+      const edge = clamp((radius - this.distance[i]) / 24)
+      const reveal = edge * edge * (3 - 2 * edge)
+      if (!reveal) continue
+      // A travelling elevation crest and its trailing trough belong to the surface.
+      // Differentiate the same height profile for the water's reflection normals.
+      const front = (this.distance[i] - radius + 32) / 36
+      const wakeFront = front + 1.8
+      const crest = impactStrength > 0 && Math.abs(front) < 3 ? Math.exp(-front * front) : 0
+      const trough = impactStrength > 0 && Math.abs(wakeFront) < 3
+        ? Math.exp(-wakeFront * wakeFront) * 0.35 : 0
+      const height = (crest - trough) * 0.18 * impactStrength
+      const derivative = (-2 * front * crest + 2 * wakeFront * trough)
+        * 0.18 * impactStrength * inverseWorldScale / 36
+      const inverseDistance = this.distance[i] > 0 ? 1 / this.distance[i] : 0
+      const radialX = (this.x[i] - this.width / 2) * inverseDistance
+      const radialZ = (this.y[i] - this.height / 2) * inverseDistance
+      const windSine = this.gustSine[i] * gustCosine - this.gustCosine[i] * gustSine
+      const windCosine = this.gustCosine[i] * gustCosine + this.gustSine[i] * gustSine
+      let pressure = 0, pressureX = 0, pressureZ = 0
+      for (let b = 0; b < breezes.length; b++) {
+        const breeze = breezes[b]
+        if (breeze.strength <= 0) continue
+        const dx = this.x[i] - breeze.x, dy = this.y[i] - breeze.y
+        const falloff = dx * dx * breeze.inverseX + dy * dy * breeze.inverseY
+        if (falloff > 12) continue
+        const force = breeze.strength * Math.exp(-falloff)
+        pressure += force
+        pressureX -= 2 * dx * breeze.inverseX * inverseWorldScale * force
+        pressureZ -= 2 * dy * breeze.inverseY * inverseWorldScale * force
+      }
+      const gust = 0.75 + 0.25 * windSine + pressure * 0.45
+      const windX = 0.07 * windCosine + pressureX * 0.45
+      const windZ = 0.045 * windCosine + pressureZ * 0.45
+      let slopeX = derivative * radialX, slopeZ = derivative * radialZ
+      for (let w = 0; w < WAVES.length; w++) {
+        const wave = WAVES[w], slot = i * WAVES.length + w
+        const sine = this.spatialSine[slot] * this.timeCosine[w] - this.spatialCosine[slot] * this.timeSine[w]
+        const cosine = this.spatialCosine[slot] * this.timeCosine[w] + this.spatialSine[slot] * this.timeSine[w]
+        const shape = sine + 0.28 * sine * cosine
+        const derivative = cosine + 0.28 * (2 * cosine * cosine - 1)
+        const envelope = w < 3 ? 1 : gust
+        const weight = this.sampleWeight[w]
+        slopeX += wave.dx * derivative * envelope * weight
+        slopeZ += wave.dz * derivative * envelope * weight
+        if (w >= 3) {
+          // Include envelope derivatives so wind and reflected light agree.
+          slopeX += wave.amplitude * shape * windX * weight
+          slopeZ += wave.amplitude * shape * windZ * weight
+        }
+      }
+      const ny = 1 / Math.sqrt(1 + slopeX * slopeX + slopeZ * slopeZ)
+      const grazing = 1 - ny, grazing2 = grazing * grazing
+      const fresnel = 0.02 + 0.98 * grazing2 * grazing2 * grazing
+      const reflectedY = 2 * ny * ny - 1
+      const skyAngle = (reflectedY - 0.86) / 0.23
+      const environment = 0.045 + 0.14 * Math.exp(-skyAngle * skyAngle)
+      const reflectionX = (slopeX + REFLECTION_X) / 0.24
+      const reflectionZ = (slopeZ + REFLECTION_Z) / 0.09
+      const glint = Math.exp(-reflectionX * reflectionX - reflectionZ * reflectionZ)
+      const radiance = (1 - fresnel) * 0.026 + fresnel * environment + (0.095 + fresnel * 0.5) * glint * 1.8
+      const target = clamp(1 - Math.exp(-radiance * 2.8) + crest * impactStrength * 0.3)
+      const luminance = this.luminance[i] + (target - this.luminance[i]) * blend
+      this.luminance[i] = luminance
+      const visibility = clamp((luminance - 0.055) / 0.12)
+      const tone = Math.min(this.shades.length - 1, Math.floor(luminance * this.shades.length))
+      const glyph = this.shades[tone]
+      const displacement = height * inverseWorldScale * 0.35
+      this.glyph(
+        glyph,
+        this.x[i] + radialX * displacement,
+        this.y[i] + radialZ * displacement,
+        (0.14 + luminance * 0.8) * visibility * reveal,
+      )
     }
   }
 
-  private drawWave(age: number, radius: number): void {
-    if (age >= REVEAL_TIME) return
-    const fade = 1 - age / REVEAL_TIME * 0.45
-    for (let i = 0; i < this.count; i++) {
-      const band = Math.abs(this.distance[i] - radius)
-      if (band > 16 || this.grain[i] < 0.22) continue
-      const alpha = (1 - band / 16) * fade * 0.64 * clamp((this.y[i] - 72) / 70)
-      this.glyph(this.radial[i], this.x[i], this.y[i], alpha)
-    }
-    // A quieter echo follows the leading edge, not another reveal.
-    const echo = radius - 38
-    if (echo > 0) {
-      for (let i = 0; i < this.count; i++) {
-        const band = Math.abs(this.distance[i] - echo)
-        if (band < 9 && this.grain[i] > 0.5) {
-          this.glyph(1, this.x[i], this.y[i], (1 - band / 9) * fade * 0.2)
-        }
-      }
-    }
-  }
 
   private drawSplash(age: number): void {
     if (age > 0.75) return
@@ -244,10 +331,12 @@ export class AsciiRiver {
     } else {
       const age = this.elapsed - DROP_TIME
       this.setState(this.motion.matches ? 'still' : age < REVEAL_TIME ? 'ripple' : 'flowing')
-      const radius = this.reach * clamp(age / REVEAL_TIME)
+      // Constant-speed propagation carries the crest beyond the viewport corners.
+      const radius = this.reach * Math.min(age / REVEAL_TIME, 1.25)
+      this.atmosphere.update(age - REVEAL_TIME, this.width, this.height, !this.motion.matches)
       this.drawWater(age, radius)
-      this.drawWave(age, radius)
       this.drawSplash(age)
+      this.atmosphere.draw(ctx)
     }
     ctx.globalAlpha = 1
   }

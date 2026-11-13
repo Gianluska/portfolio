@@ -1,17 +1,19 @@
 # Gianlucca Claudino — portfolio
 
-Portfólio com abertura ASCII, cabeçalho e um rio procedural em caracteres sobre preto. Sem hero, baralho ou cena 3D.
+Portfólio com abertura ASCII, cabeçalho e uma superfície aberta de água em caracteres ocupando a tela inteira. Sem hero, baralho ou cena 3D.
 
 ## Experiência atual
 
 - A cada carregamento, um dos 37 efeitos do tte.js é sorteado para revelar a logo ASCII oficial, com duração também aleatória entre 1 e 5 s. A abertura permanece monocromática, com pausa final de 0,25 s e sem repetição em loop.
 - A abertura desaparece e o cabeçalho entra com a logo à esquerda e Projects / Contact à direita.
 - Hovers e foco do cabeçalho preservados: onda de fontes na logo, scramble, sublinhado espectral e atração magnética nos links.
-- Depois da abertura, uma gota ASCII cai no centro em 0,95 s. O impacto cria uma onda circular que revela o rio ao longo de 1,85 s.
-- A correnteza continua animada: linhas de fluxo, pequenas cristas e espuma nas margens. O restante da tela permanece preto, sem grão ou novas seções.
-- Movimento reduzido: logo inicial estática e rio estático, sem queda nem onda. A animação da água pausa quando a aba fica oculta.
+- Depois da abertura, a gota ASCII cai no centro em 0,95 s. O impacto gera uma onda na própria superfície: uma crista elevada e uma depressão atrás dela alteram as normais, os reflexos e a posição dos caracteres. A onda se propaga radialmente em velocidade constante, revelando o mar atrás dela até cobrir toda a tela em 2,8 s. Não há anéis desenhados por cima da água.
+- A água ocupa toda a tela, sem canal ou margens, mais clara e em vista vertical de cima. A escala é uniforme, sem horizonte ou compressão de perspectiva. As ondas menores têm menos amplitude e comprimentos maiores; a luminosidade é suavizada no tempo para reduzir cintilação, sem recorte aleatório de visibilidade.
+- O vento aparece em listras ASCII longas, sem espirais, camadas ou ramificações. Uma nova passagem começa a cada 1,25 s e dura 12 s, permitindo até dez listras simultâneas. Cada uma tem opacidade própria entre 0,14 e 0,34, com pontas suaves e ondulação lenta. Os traços chegam a aproximadamente 560 px no desktop e 80% da largura no mobile. Todos os campos de pressão continuam afetando a água.
+- Os pássaros usam silhuetas compactas de três linhas e cinco colunas ASCII, com bico, corpo e asas em três poses, sem pescoço ou detalhes de penas. Voam somente sozinhos, em pares ou em setas triangulares de cinco, com um líder e dois pares atrás. Um novo grupo surge a cada 5,5 s, com voos de 12 a 15 s e até três grupos simultâneos. O espaçamento mantém as silhuetas separadas no desktop e no mobile.
+- Movimento reduzido: logo inicial e água estáticas, sem queda, onda, brisas ou pássaros. A animação pausa quando a aba fica oculta.
 
-React 19 + TypeScript + Vite; GSAP para a entrada do cabeçalho, Geist Mono local e [tte.js](https://github.com/flaviocopes/tte-js) para o efeito Canvas da abertura. O rio usa um motor Canvas 2D local, com atlas de glifos, geometria pré-calculada e desenho limitado a 30 fps, sem atualizações React por frame. Sem Three.js ou React Three Fiber. A dependência MIT tte.js está fixada na revisão `9b120c2f65d48f996a027ef061712bb87ad467bb`, com seus créditos e licenças originais.
+React 19 + TypeScript + Vite; GSAP para a entrada do cabeçalho, Geist Mono local e [tte.js](https://github.com/flaviocopes/tte-js) para o efeito Canvas da abertura. A água usa um motor Canvas 2D local: seis ondas direcionais com dispersão, normais analíticas, reflexão aproximada e seleção de caracteres por cobertura de tinta. A projeção ortográfica usa escala uniforme; as fases espaciais são pré-calculadas e as frequências são filtradas conforme o tamanho das células. `AsciiAtmosphere` desenha brisas e pássaros no mesmo Canvas e no mesmo relógio, sem outro loop. Desenho limitado a 30 fps, sem atualizações React por frame. Sem Three.js ou React Three Fiber. A dependência MIT tte.js está fixada na revisão `9b120c2f65d48f996a027ef061712bb87ad467bb`, com seus créditos e licenças originais.
 
 ## Executar
 
@@ -37,4 +39,13 @@ Projects e Contact continuam links mock, sem seções de destino. Os arquivos in
 
 ## Verificação
 
-Build de produção concluído. A sequência `waiting → falling → ripple → flowing` foi exercitada no Chromium: gota centralizada e descendente, revelação radial progressiva e correnteza com pixels variando após o impacto. Desktop 1440×900, mobile 390×844, foco do cabeçalho, movimento reduzido e `?intro=0` verificados, sem erros de execução. O Canvas temporário da logo é descartado; permanece somente o Canvas do rio atrás do cabeçalho.
+Build de produção concluído. Cena real exercitada no Chromium em 1440×900 e 390×844: queda central e impacto preservados, água e atores em movimento, um único Canvas, ausência de overflow, redimensionamento sem trocar o Canvas e `?intro=0`. Movimento reduzido mantém pixels estáticos e a retomada não repete a gota. Sem erros de execução.
+
+A sequência atual foi conferida no Chromium em desktop e mobile: impacto central e onda na própria água, com revelação progressiva até toda a tela. O desenho nativo verificou cinco estágios nas duas larguras, a contenção da água na área alcançada pela onda, a revelação completa e o fim da deformação do impacto. Pássaros simplificados e ventos permanecem. Sem erros de execução nas duas larguras.
+
+## Referências da água
+
+- [GPU Gems — Effective Water Simulation from Physical Models](https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models): soma de ondas, derivadas analíticas e filtragem.
+- [Ocean waves with WebGL — Matthias Volk](https://relint.de/waves.html): dispersão, normais e contribuição da reflexão para a leitura da água. A implementação local não utiliza FFT nem WebGL.
+- [Obsessed Waves — Ken Goyarola](https://kgaw.io/projects/obsessed-waves/): referência visual de continuidade e profundidade em ASCII; seu código, objetos e controles não foram incorporados.
+
