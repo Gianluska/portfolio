@@ -70,7 +70,7 @@ export class AsciiBreezes {
     const centreY = height * laneY
       + Math.sin(progress * Math.PI) * height * 0.015 * depth * SEA_TILT
     const flow = age * 0.65 + birth * 1.7
-    const opacity = (0.14 + cohortSeed(birth, 8) * 0.2) * depth
+    const opacity = (0.2 + cohortSeed(birth, 8) * 0.18) * (0.8 + depth * 0.2)
     const samples = Math.min(MAX_GLYPHS, Math.max(9, Math.ceil(length / (6.5 * depth))))
     let minX = Infinity
     let maxX = -Infinity
@@ -114,20 +114,22 @@ export class AsciiBreezes {
 
   draw(ctx: CanvasRenderingContext2D): void {
     ctx.save()
-    ctx.font = '400 11px "Geist Mono", monospace'
+    ctx.font = '500 11px "Geist Mono", monospace'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillStyle = '#ffffff'
-    let previousScale = 1
-    ctx.scale(1, SEA_TILT)
+    let previousWidth = 1, previousHeight = 1
     for (let point = 0; point < this.count; point++) {
       const depth = this.scale[point]
-      if (depth !== previousScale) {
-        ctx.scale(depth / previousScale, depth / previousScale)
-        previousScale = depth
+      // The path is already foreshortened; keep the ink thick enough to read over the sea.
+      const height = Math.max(0.85, depth)
+      if (depth !== previousWidth || height !== previousHeight) {
+        ctx.scale(depth / previousWidth, height / previousHeight)
+        previousWidth = depth
+        previousHeight = height
       }
       ctx.globalAlpha = this.alpha[point]
-      ctx.fillText('-', this.x[point] / depth, this.y[point] / (depth * SEA_TILT))
+      ctx.fillText('-', this.x[point] / depth, this.y[point] / height)
     }
     ctx.restore()
   }

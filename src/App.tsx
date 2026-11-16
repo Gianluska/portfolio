@@ -19,6 +19,7 @@ export default function App() {
         loader: $('.loader'),
         loaderLogo: $('.loader__logo'),
         river: el.querySelector<HTMLCanvasElement>('.river')!,
+        hero: $('.hero'),
         ui: $('.ui'),
         header: $('.header'),
         headerLink: $('.header__home'),
@@ -65,6 +66,26 @@ export default function App() {
             </ul>
           </nav>
         </header>
+
+        <main className="hero" aria-labelledby="hero-name" hidden>
+          <div className="hero__copy">
+            <h1 id="hero-name" className="hero__name">
+              <span className="hero__line">
+                <span className="hero__text" data-hero-name>Gianlucca Cludino</span>
+                <span className="hero__skeleton" aria-hidden="true" hidden />
+              </span>
+            </h1>
+            <p className="hero__roles">
+              <span className="sr-only">Creative Technologist, Frontend Specialist, Product Engineer.</span>
+              <button className="hero__role" type="button" aria-label="Pause role animation" aria-pressed="false">
+                <span className="hero__line">
+                  <span className="hero__text" data-hero-role aria-hidden="true">Creative Technologist</span>
+                  <span className="hero__skeleton" aria-hidden="true" hidden />
+                </span>
+              </button>
+            </p>
+          </div>
+        </main>
 
       </div>
     </div>

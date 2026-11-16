@@ -153,13 +153,13 @@ export class AsciiBirdFlocks {
       // One reference depth keeps the pair/V rigid, even through a curved route.
       const depth = sceneScale(laneY * height, height)
       const formationSpacing = spacing * depth
-      // Far flights cover less of the viewport, fading softly rather than teleporting.
-      const travel = (width + (preset.extent * spacing + 28) * 2) * depth
+      // Depth changes the flock, not the viewport span: every member starts and ends offscreen.
+      const margin = (preset.extent * spacing + 28) * depth
+      const travel = width + margin * 2
       const routePhase = progress * Math.PI
       const slope = Math.sin(birth * 2.3 + 0.5) * 0.045 * depth
       const bend = Math.cos(birth * 1.3) * 0.035 * depth
       const tangentY = height * (slope + Math.cos(routePhase) * Math.PI * bend)
-      const edgeFade = Math.max(0, Math.min(1, age / 1.1, (duration - age) / 1.1))
       const leaderX = width / 2 + direction * (progress - 0.5) * travel
       const leaderY = height * (laneY + (progress - 0.5) * slope + Math.sin(routePhase) * bend)
       const routeAngle = Math.atan2(tangentY, direction * travel)
@@ -170,7 +170,7 @@ export class AsciiBirdFlocks {
       cohort.active = true
       cohort.preset = preset
       cohort.scale = depth
-      cohort.alpha = edgeFade * edgeFade * (3 - 2 * edgeFade) * depth
+      cohort.alpha = depth
       const birds = preset.birds
       for (let member = 0; member < birds.length; member++) {
         const bird = birds[member]
@@ -189,7 +189,7 @@ export class AsciiBirdFlocks {
 
       // Any bird within reach startles the whole flock. Each flees straight away from
       // the boat, keeping a little of its heading; nearer birds react first.
-      if (!cohort.scared && threat && edgeFade > 0.2) {
+      if (!cohort.scared && threat) {
         let nearest = Infinity
         for (let member = 0; member < birds.length; member++) {
           nearest = Math.min(nearest, Math.hypot(cohort.x[member] - threatX, cohort.y[member] - threatY))

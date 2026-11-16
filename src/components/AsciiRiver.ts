@@ -4,6 +4,7 @@ import { DEPTH_CENTER, DEPTH_RANGE, sceneScale, SEA_TILT, seaX, seaZ } from './A
 const TAU = Math.PI * 2
 const DROP_TIME = 0.95
 const REVEAL_TIME = 2.8
+const HERO_START = Math.max(0, DROP_TIME + REVEAL_TIME - 3)
 const FRAME_TIME = 1000 / 30
 // Sea palette: troughs fade out, slopes read as dashes, crests as tildes, sun glints sparkle.
 const GLYPHS = ' .-~+*'
@@ -82,6 +83,7 @@ export class AsciiRiver {
   private state: RiverState = 'waiting'
   private started = false
   private destroyed = false
+  private heroStarted = false
   private raf = 0
   private last = 0
   private painted = 0
@@ -130,7 +132,7 @@ export class AsciiRiver {
   private hullY = 0
   private bottomContact = 1
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, private readonly onHeroReady: () => void) {
     this.canvas = canvas
     const ctx = canvas.getContext('2d', { alpha: false })
     if (!ctx) throw new Error('The ASCII river requires a 2D canvas context')
@@ -606,6 +608,10 @@ export class AsciiRiver {
     ctx.globalAlpha = 1
     ctx.fillStyle = '#000000'
     ctx.fillRect(0, 0, this.width, this.height)
+    if (!this.heroStarted && this.elapsed >= HERO_START) {
+      this.heroStarted = true
+      this.onHeroReady()
+    }
     if (this.elapsed < DROP_TIME) {
       this.setState('falling')
       this.drawDrop()

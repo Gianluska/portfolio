@@ -38,13 +38,29 @@ export class AsciiRiverAir {
   private readonly mistScale = new Float32Array(MIST_POINTS)
   private readonly mistTexture = Float32Array.from({ length: MIST_POINTS }, (_, i) => seed(i, 19))
   private readonly veil = document.createElement('canvas')
+  private readonly depthVeil = document.createElement('canvas')
+  private fogWidth = 0
+  private fogHeight = 0
+  private fogAlpha = 0
   private readonly banks = Array.from({ length: MIST_BANKS }, () => ({
     x: 0, y: 0, radiusX: 0, radiusY: 0, alpha: 0,
   }))
   private bankCount = 0
 
   constructor() {
-    // Cache the faint light scattering once; moving fog costs only three image draws.
+    // Cache both scattering textures once; frames only move and composite small atlases.
+    this.depthVeil.width = 4
+    this.depthVeil.height = 256
+    const depth = this.depthVeil.getContext('2d')!
+    const haze = depth.createLinearGradient(0, 0, 0, 256)
+    haze.addColorStop(0, 'rgba(255,255,255,0.18)')
+    haze.addColorStop(0.18, 'rgba(255,255,255,0.15)')
+    haze.addColorStop(0.4, 'rgba(255,255,255,0.09)')
+    haze.addColorStop(0.65, 'rgba(255,255,255,0.035)')
+    haze.addColorStop(0.9, 'rgba(255,255,255,0)')
+    haze.addColorStop(1, 'rgba(255,255,255,0)')
+    depth.fillStyle = haze
+    depth.fillRect(0, 0, 4, 256)
     this.veil.width = 256
     this.veil.height = 96
     const ctx = this.veil.getContext('2d')
@@ -54,8 +70,9 @@ export class AsciiRiverAir {
       ctx.translate(65 + lobe * 63, 48 + (lobe === 1 ? -8 : 6))
       ctx.scale(65 + (lobe === 1 ? 15 : 0), 30)
       const scatter = ctx.createRadialGradient(0, 0, 0, 0, 0, 1)
-      scatter.addColorStop(0, 'rgba(255,255,255,0.7)')
-      scatter.addColorStop(0.45, 'rgba(255,255,255,0.3)')
+      scatter.addColorStop(0, 'rgba(255,255,255,0.85)')
+      scatter.addColorStop(0.45, 'rgba(255,255,255,0.6)')
+      scatter.addColorStop(0.78, 'rgba(255,255,255,0.16)')
       scatter.addColorStop(1, 'rgba(255,255,255,0)')
       ctx.fillStyle = scatter
       ctx.fillRect(-1, -1, 2, 2)
@@ -68,9 +85,13 @@ export class AsciiRiverAir {
     this.dustCount = 0
     this.mistCount = 0
     this.bankCount = 0
+    this.fogAlpha = 0
     if (!enabled || !Number.isFinite(time) || time <= 0 || width <= 0 || height <= 0) return
     this.time = time
     const entrance = fade(time / 2)
+    this.fogWidth = width
+    this.fogHeight = height
+    this.fogAlpha = entrance
     const area = width * height
     const insectDensity = Math.min(INSECTS, Math.max(3, area / 150000))
     const dustDensity = Math.min(DUST, Math.max(12, area / 40000))
@@ -112,22 +133,22 @@ export class AsciiRiverAir {
     const bankDensity = 2 + fade((width - 560) / 240)
     const columns = MIST_COLUMNS
     for (let bank = 0; bank < Math.ceil(bankDensity); bank++) {
-      const laneY = 0.2 + bank * 0.3
+      const laneY = 0.18 + bank * 0.21
       const depth = sceneScale(laneY * height, height)
-      const radiusX = Math.min(330, width * 0.65) * depth
+      const radiusX = Math.min(820, width * 0.95) * (1.1 - depth * 0.3)
       const bankFade = Math.min(1, bankDensity - bank)
       const travel = width + radiusX * 2
       // Clock phase is viewport-independent, so resizing never restarts a bank.
       const progress = (seed(bank, 10) + time * (7 + bank * 1.5) * depth / 1940) % 1
       const centreX = -radiusX + progress * travel
       const centreY = height * laneY + Math.sin(time * 0.12 * depth + bank) * 12 * depth * SEA_TILT
-      const radiusY = (28 + bank * 8) * depth * SEA_TILT
+      const radiusY = height * (0.14 + bank * 0.02) * (0.65 + depth * 0.35) * SEA_TILT
       const veil = this.banks[this.bankCount++]
       veil.x = centreX
       veil.y = centreY
       veil.radiusX = radiusX
-      veil.radiusY = radiusY * 1.5
-      veil.alpha = entrance * (0.055 + Math.sin(time * 0.14 + bank) * 0.012) * depth * bankFade
+      veil.radiusY = radiusY * 1.8
+      veil.alpha = entrance * (0.2 + Math.sin(time * 0.14 + bank) * 0.025) * (1.3 - depth * 0.5) * bankFade
       for (let row = 0; row < MIST_ROWS; row++) {
         const v = row / (MIST_ROWS - 1) * 2 - 1
         const vertical = (1 - v * v) ** 2
@@ -136,7 +157,8 @@ export class AsciiRiverAir {
           const u = col / (columns - 1) * 2 - 1
           const texture = this.mistTexture[(bank * MIST_ROWS + row) * MIST_COLUMNS + col]
           if (texture < 0.2) continue
-          const alpha = entrance * (1 - u * u) ** 2 * vertical * (0.045 + texture * 0.065) * depth * bankFade
+          const alpha = entrance * (1 - u * u) ** 2 * vertical * (0.055 + texture * 0.065)
+            * (1.2 - depth * 0.4) * bankFade
           if (alpha < 0.004) continue
           const point = this.mistCount++
           this.mistX[point] = centreX + u * radiusX + (texture - 0.5) * 7 * depth
@@ -150,10 +172,12 @@ export class AsciiRiverAir {
     }
   }
 
-  /** Low veils sit behind the ship and birds, never bleaching their silhouettes. */
+  /** Dense distant haze and drifting banks stay behind the readable ship, wind and birds. */
   drawMist(ctx: CanvasRenderingContext2D): void {
-    if (this.mistCount === 0) return
+    if (this.fogAlpha <= 0) return
     ctx.save()
+    ctx.globalAlpha = this.fogAlpha
+    ctx.drawImage(this.depthVeil, 0, 0, this.fogWidth, this.fogHeight)
     ctx.fillStyle = '#ffffff'
     ctx.font = '400 12px "Geist Mono", monospace'
     ctx.textAlign = 'center'

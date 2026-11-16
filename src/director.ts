@@ -3,6 +3,7 @@ import { createTextEffect, effectNames, type TextEffect } from 'tte.js'
 import { env, wait } from './lib/env'
 import { AsciiLogo } from './components/AsciiLogo'
 import { AsciiRiver } from './components/AsciiRiver'
+import { AsciiHero } from './components/AsciiHero'
 import { NavLink } from './components/NavLink'
 
 type Phase = 'boot' | 'animating' | 'reveal' | 'idle'
@@ -11,6 +12,7 @@ interface DirectorRefs {
   loader: HTMLElement
   loaderLogo: HTMLElement
   river: HTMLCanvasElement
+  hero: HTMLElement
   ui: HTMLElement
   header: HTMLElement
   headerLink: HTMLElement
@@ -28,12 +30,14 @@ export class Director {
   private intro: TextEffect | null = null
   private headerLogo: AsciiLogo
   private river: AsciiRiver
+  private hero: AsciiHero
   private links: NavLink[]
 
   constructor(refs: DirectorRefs) {
     this.refs = refs
     this.headerLogo = new AsciiLogo(refs.headerLogo)
-    this.river = new AsciiRiver(refs.river)
+    this.hero = new AsciiHero(refs.hero)
+    this.river = new AsciiRiver(refs.river, () => { void this.hero.start() })
     this.links = refs.links.map((el) => new NavLink(el))
     refs.headerLink.addEventListener('pointerenter', this.onLogoEnter)
     refs.headerLink.addEventListener('focus', this.onLogoEnter)
@@ -117,6 +121,7 @@ export class Director {
     this.refs.headerLink.removeEventListener('focus', this.onLogoEnter)
     this.intro?.destroy()
     this.river.destroy()
+    this.hero.destroy()
     this.headerLogo.destroy()
     this.links.forEach((link) => link.destroy())
   }

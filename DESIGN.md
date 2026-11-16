@@ -2,7 +2,7 @@
 
 ## Escopo vigente
 
-Preservar a abertura da logo `lvsk`, o cabeçalho e a gota aprovada. Depois do impacto, um mar calmo ocupa toda a tela em perspectiva oblíqua: a água se comprime e perde contraste ao fundo, e o primeiro plano ganha escala. Navio, brisas, pássaros e partículas compartilham a mesma leitura de distância. Tudo é ASCII monocromático. Sem ilhas, canal, margens continentais, céu, sol ou novo conteúdo de apresentação.
+Preservar a abertura da logo `lvsk`, o cabeçalho e a gota aprovada. Depois do impacto, um mar calmo ocupa toda a tela em perspectiva oblíqua. Um hero tipográfico central apresenta o nome solicitado e as três roles, sem CTA ou texto adicional. Navio, brisas, pássaros e partículas preservam a leitura de distância e a paleta monocromática. Sem ilhas, canal, margens continentais, céu ou sol.
 
 ## Elementos preservados
 
@@ -11,6 +11,15 @@ Preservar a abertura da logo `lvsk`, o cabeçalho e a gota aprovada. Depois do i
 - A abertura permanece monocromática, inclusive nos efeitos com paletas próprias, sem afetar as cores das interações do cabeçalho.
 - Logo no topo esquerdo, com escala visual de 0,9 e deslocamento de -4 px no eixo vertical. A área de interação e a posição de Projects / Contact no topo direito permanecem intactas.
 - Entrada do cabeçalho e interações existentes de hover/foco, sem redesenho.
+
+## Hero
+
+O nome aparece como `Gianlucca Cludino`, conforme o copy fornecido, em Geist Mono branco e escala fluida de 26 a 64 px. A composição fica centralizada a 44% da altura, acima do ponto de repouso do navio. A linha inferior reserva largura para a maior role, evitando saltos de layout entre `Creative Technologist`, `Frontend Specialist` e `Product Engineer`.
+
+O pacote MIT `ascii-reveal` 0.3.0 fornece o `AsciiSkeleton` original via `asciiSkeletonHTML`, `animateSkeleton` e `SKELETON_CSS`, com variante `dither`. A transição dura 900 ms em duas varreduras lineares: por 450 ms, o placeholder cresce da esquerda para a direita e cobre o texto anterior; nos 450 ms seguintes, ele recua na mesma direção, revelando o novo texto progressivamente. Não há aparecimento instantâneo da barra nem fade da linha inteira. Nome e role recebem a onda na primeira entrada; nas trocas seguintes, apenas a role. A ordem permanece fixa, com pausa de leitura de 3,2 s. O hero começa 3 s antes da revelação completa do mar: aos 0,75 s do relógio do rio, ainda durante a queda da gota. O gatilho usa esse mesmo relógio e dispara uma única vez; pular a abertura ou ativar movimento reduzido mantém a entrada imediata.
+
+A role também é um botão discreto: clique, Enter ou espaço pausam e retomam o ciclo. O foco é visível, a área de toque tem ao menos 44 px e leitores de tela recebem uma lista estável das três roles. Pausar durante a onda cancela os recortes animados e restaura imediatamente o texto; ocultar a aba cancela a fase pendente. Movimento reduzido mantém o texto estático e desativa o botão. Os canvases temporários de shimmer são removidos ao fim da transição. Desmontar cancela animações e timeouts, resolve a espera pendente, remove estilos e listeners.
+
 
 ## Fundo
 
@@ -30,7 +39,7 @@ As coberturas antialias dos glifos são pré-renderizadas em cada tamanho projet
 
 ### Água e vento
 
-O vento usa uma única listra ASCII por passagem, sem variantes de estilo, espirais, camadas ou caudas divididas. Uma nova passagem começa a cada 1,25 s e dura 12 s, com até dez simultâneas. Cada uma mantém sua opacidade entre 0,14 e 0,34 e sua posição e direção durante redimensionamentos. O comprimento fica em torno de 560 px, limitado a 80% da largura da tela. Apenas glifos `-`, sem falhas aleatórias ou sombra duplicada; pontas suaves, entrada de 1,1 s e saída de 1,5 s. Uma ondulação rasa com fase de 0,65 rad/s deforma lentamente cada listra enquanto ela atravessa a superfície em velocidade constante.
+O vento usa uma única listra ASCII por passagem, sem variantes de estilo, espirais, camadas ou caudas divididas. Uma nova passagem começa a cada 1,25 s e dura 12 s, com até dez simultâneas. A opacidade base varia entre 0,20 e 0,38, com atenuação suave pela distância em vez de multiplicação direta pela profundidade. O comprimento chega a 560 px, limitado a 80% da largura e escalado pela distância. Apenas glifos `-` de 11 px e peso 500, sem falhas aleatórias ou sombra duplicada; pontas suaves, entrada de 1,1 s e saída de 1,5 s. O traçado já se comprime no plano da água; a tinta não recebe uma segunda compressão e mantém escala vertical mínima de 0,85 para continuar legível. A ondulação rasa de 0,65 rad/s, o ritmo das passagens e os campos de pressão permanecem.
 
 Dois swells longos (5 e 3,6 unidades) e seis ondas de vento (2 a 0,74), com direções espalhadas até ±0,35 rad, compõem a superfície contínua. As amplitudes curtas são baixas, o que mantém a inclinação suave, e a velocidade de fase foi reduzida. As cristas formam faixas amplas e tranquilas. O vento de base varia a ondulação em apenas ±10%; cada brisa modula somente as ondas de vento, e seus campos de pressão e derivadas entram na altura e nas normais. Sem máscaras Perlin ou recortes de visibilidade por noise.
 
@@ -50,6 +59,8 @@ A esteira vem do casco, não do ponteiro. Uma equação de onda 2D amortecida ro
 
 Somente voos solo, pares e formações em seta triangular de cinco pássaros: um líder, um par atrás e outro par mais aberto. Cada pássaro usa três linhas e cinco colunas ASCII com um pequeno bico, um glifo de corpo, cauda curta e três poses de asas, sem pescoço ou penas separados. Fonte de 8 px e entrelinha de 5,5 px. O bico acompanha a direção do voo e a sombra permanece discreta. Um grupo novo surge a cada 5,5 s, com duração entre 12 e 15 s e até três grupos simultâneos. O espaçamento preserva a separação entre as silhuetas nas duas larguras. As formações permanecem estáveis durante cada voo e em redimensionamentos; não há sprites, imagens ou modelos.
 
+Cada bando já nasce completamente formado fora da borda esquerda ou direita e cruza a tela antes de sair pela borda oposta. A margem considera a formação inteira e o tamanho dos glifos. A profundidade altera escala, espaçamento, contraste e curva vertical, mas nunca encurta a travessia da viewport. Não há fade de surgimento ou desaparecimento dentro da cena.
+
 Os pássaros se assustam com o barco, não com o cursor. O alcance de referência é de 170 px no desktop e 120 px no mobile, multiplicado pela profundidade média do pássaro e do casco. Um membro próximo dispara a fuga do bando inteiro. Cada pássaro foge para longe do navio, mantendo parte do rumo anterior; os mais próximos reagem primeiro. Aceleração, velocidade de fuga e atraso entre membros acompanham a escala de distância. As asas batem três vezes mais rápido e o bico segue a direção real do voo. O susto pertence a cada voo, sobrevive ao nascimento do bando seguinte e mantém seus deslocamentos durante redimensionamentos. O cursor só guia o barco; longe do casco, o bando segue calmo.
 
 
@@ -60,7 +71,7 @@ Após a revelação completa, insetos pequenos de quatro asas e corpo `:` pairam
 
 A poeira usa pontos e apóstrofos isolados, sem grão sobre a tela: até 32 partículas no desktop e 12 em 390 × 844 px, fonte de 9 px e opacidade entre 0,14 e 0,32 antes dos fades. Deriva para a direita e sobe lentamente em ciclos de 18–30 s; desaparece antes de reiniciar o percurso.
 
-A névoa forma até três bancos baixos no desktop e dois no mobile. Passa a 7–10 px/s, com bordas suaves, pequenas ondulações e textura ASCII `.:-`. Um pequeno atlas de dispersão luminosa é gerado uma única vez e reutilizado sob os caracteres, com opacidade máxima do véu de 0,067. A névoa é desenhada atrás do navio e dos pássaros; insetos e poeira ficam à frente do navio. As três camadas entram suavemente em 2 s, preservam a paleta monocromática e não alteram as ondas.
+A névoa é densa ao fundo e se dissipa gradualmente em direção ao primeiro plano. Um véu atmosférico contínuo, com opacidade de até 0,18, reduz o contraste da água distante sem desenhar horizonte. Sobre ele passam até três bancos largos e baixos no desktop e dois no mobile, com bordas suaves, pequenas ondulações e textura ASCII `.:-`. Os bancos têm espalhamento mais espesso e opacidade modulada lentamente em torno de 0,20, reforçada à distância; a compressão vertical preserva o plano do mar. A névoa fica atrás de brisas, navio e pássaros, mantendo as silhuetas e o hero legíveis. A entrada permanece suave em 2 s e não altera a física das ondas.
 
 ## Movimento reduzido
 
@@ -72,7 +83,7 @@ React, TypeScript, Vite e GSAP. Geist Mono local. O catálogo de tte.js fornece 
 
 `AsciiAtmosphere` compartilha o tempo desde a revelação com `AsciiBirdFlocks`, `AsciiBreezes` e `AsciiBoat`. Os pássaros reutilizam três slots de coortes; as brisas reutilizam buffers de posição e opacidade com capacidade para dez listras e expõem dez campos de pressão; o barco reutiliza um anel de 48 pontos de espuma e expõe posição, rumo e velocidade para que `AsciiRiver` aplique a esteira. O barco é desenhado entre as brisas e os pássaros. Não há alocações de arrays por frame, timers, listeners ou loops adicionais. A aba oculta pausa o relógio; movimento reduzido limpa os atores e mantém só a água estática. Desmontar cancela o frame e remove os listeners do controlador. As variantes FIGlet permanecem no cabeçalho. Sem Three.js / React Three Fiber e sem novas seções ou informações pessoais.
 
-`AsciiRiverAir` reutiliza buffers fixos para insetos, poeira e caracteres de névoa e um atlas fora do DOM para o véu. Compartilha o relógio e a pausa do controlador existente, sem novos listeners, timers, loops ou dependências. A densidade acompanha a área da viewport; a névoa é desenhada antes das brisas, e as partículas antes dos pássaros.
+`AsciiRiverAir` reutiliza buffers fixos para insetos, poeira e caracteres de névoa e dois atlas pequenos fora do DOM: um gradiente de distância de 4 × 256 px e uma textura de bancos de 256 × 96 px. Gradientes são gerados apenas no construtor; o desenho usa até quatro cópias de imagem por quadro, sem blur ou noise por pixel. Compartilha o relógio e a pausa do controlador existente, sem novos listeners, timers, loops ou dependências. A névoa é desenhada antes das brisas; as partículas ficam antes dos pássaros. Movimento reduzido omite a névoa junto dos demais atores atmosféricos.
 
 As camadas atmosféricas usam `sceneScale`: bandos e espaçamentos diminuem ao fundo, assim como a velocidade aparente e o raio de susto do navio. As brisas distantes ficam mais curtas, finas e translúcidas; os campos de pressão acompanham o desenho. A névoa se achata sobre a água e insetos e poeira variam escala, opacidade e deriva com a distância. Sem novos loops ou listeners.
 
