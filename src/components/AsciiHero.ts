@@ -3,6 +3,7 @@ import { animateSkeleton, asciiSkeletonHTML, SKELETON_CSS } from 'ascii-reveal/c
 const ROLES = ['Creative Technologist', 'Frontend Specialist', 'Product Engineer'] as const
 const HOLD = 3200
 const LOADING = 900
+const ENTRANCE_STAGGER = 50
 // ascii-reveal 0.3.0 caps block textures at 96 glyph columns.
 const SKELETON_COLUMNS = 96
 
@@ -10,9 +11,17 @@ const SKELETON_COLUMNS = 96
 export class AsciiHero {
   private readonly styles = document.createElement('style')
   private readonly roleSizer = document.createElement('span')
-  private readonly role: HTMLButtonElement
+  private readonly role: HTMLElement
   private readonly text: HTMLElement
   private readonly metrics: CanvasRenderingContext2D
+  private readonly name: HTMLElement
+  private readonly nickname: HTMLElement
+  private readonly hover = matchMedia('(hover: hover) and (pointer: fine)')
+  private readonly nicknameWaves: Animation[] = []
+  private stopNicknameShimmer: (() => void) | null = null
+  private nicknameHovered = false
+  private nicknameFocused = false
+  private nicknameOpen = false
   private readonly motion = matchMedia('(prefers-reduced-motion: reduce)')
   private readonly skeletonStops: (() => void)[] = []
   private readonly waveLines: HTMLElement[] = []
@@ -25,7 +34,6 @@ export class AsciiHero {
   private started = false
   private destroyed = false
   private busy = false
-  private paused = false
 
   constructor(private readonly el: HTMLElement) {
     const canvas = document.createElement('canvas')
@@ -33,8 +41,15 @@ export class AsciiHero {
     this.metrics = canvas.getContext('2d')!
     this.styles.textContent = SKELETON_CSS
     el.append(this.styles)
-    this.role = el.querySelector<HTMLButtonElement>('.hero__role')!
+    this.role = el.querySelector<HTMLElement>('.hero__role')!
     this.text = el.querySelector<HTMLElement>('[data-hero-role]')!
+    this.name = el.querySelector<HTMLElement>('.hero__name')!
+    this.nickname = el.querySelector<HTMLElement>('.hero__nickname-content')!
+    this.name.addEventListener('pointerenter', this.nicknameEnter)
+    this.name.addEventListener('pointerleave', this.nicknameLeave)
+    this.name.addEventListener('focus', this.nicknameFocus)
+    this.name.addEventListener('blur', this.nicknameBlur)
+    this.hover.addEventListener('change', this.nicknameLeave)
     this.roleSizer.className = 'hero__role-sizer'
     this.roleSizer.setAttribute('aria-hidden', 'true')
     for (const label of ROLES) {
@@ -43,10 +58,8 @@ export class AsciiHero {
       this.roleSizer.append(option)
     }
     this.role.prepend(this.roleSizer)
-    this.role.addEventListener('click', this.toggle)
     this.motion.addEventListener('change', this.motionChange)
     document.addEventListener('visibilitychange', this.visibility)
-    this.updateControl()
   }
 
   async start(): Promise<void> {
@@ -63,7 +76,7 @@ export class AsciiHero {
     if (!this.motion.matches) await this.play(true)
   }
 
-  private showSkeleton(line: HTMLElement, seed: number, initial: boolean): void {
+  private showSkeleton(line: HTMLElement, seed: number, initial: boolean, delay = 0): void {
     const overlay = line.querySelector<HTMLElement>('.hero__skeleton')!
     const style = getComputedStyle(overlay)
     const baseFontSize = Number.parseFloat(style.fontSize)
@@ -94,10 +107,26 @@ export class AsciiHero {
     const resize = new ResizeObserver(render)
     resize.observe(line)
     this.waveLines.push(line)
-    this.sweep(overlay, 'inset(0 100% 0 0)', 'inset(0)')
     const text = line.querySelector<HTMLElement>('.hero__text')!
-    if (initial) text.style.clipPath = 'inset(0 100% 0 0)'
-    else this.sweep(text, 'inset(0)', 'inset(0 0 0 100%)')
+    if (initial) {
+      text.style.clipPath = 'inset(0 100% 0 0)'
+      const timing: KeyframeAnimationOptions = { duration: LOADING, delay, easing: 'linear', fill: 'both' }
+      this.waves.push(
+        overlay.animate([
+          { clipPath: 'inset(0 100% 0 0)', offset: 0 },
+          { clipPath: 'inset(0)', offset: 0.5 },
+          { clipPath: 'inset(0 0 0 100%)', offset: 1 },
+        ], timing),
+        text.animate([
+          { clipPath: 'inset(0 100% 0 0)', offset: 0 },
+          { clipPath: 'inset(0 100% 0 0)', offset: 0.5 },
+          { clipPath: 'inset(0)', offset: 1 },
+        ], timing),
+      )
+    } else {
+      this.sweep(overlay, 'inset(0 100% 0 0)', 'inset(0)')
+      this.sweep(text, 'inset(0)', 'inset(0 0 0 100%)')
+    }
     this.skeletonStops.push(() => {
       disposed = true
       resize.disconnect()
@@ -125,26 +154,29 @@ export class AsciiHero {
     ))
   }
 
-  private waitForSweep(): Promise<void> {
+  private waitForSweep(duration = LOADING / 2): Promise<void> {
     const { promise, resolve } = Promise.withResolvers<void>()
     this.finishLoading = resolve
-    this.loadingTimer = window.setTimeout(resolve, LOADING / 2)
+    this.loadingTimer = window.setTimeout(resolve, duration)
     return promise
   }
 
   private async play(initial = false): Promise<void> {
-    if (this.destroyed || this.paused || this.motion.matches || document.hidden) return
+    if (this.destroyed || this.motion.matches || document.hidden) return
     const epoch = ++this.epoch
     this.busy = true
-    if (initial) this.showSkeleton(this.el.querySelector<HTMLElement>('.hero__name .hero__line')!, 7, true)
-    this.showSkeleton(this.role.querySelector<HTMLElement>('.hero__line')!, 17 + this.index, initial)
     try {
+      if (initial) {
+        const lines = this.el.querySelectorAll<HTMLElement>('.hero__line')
+        lines.forEach((line, i) => this.showSkeleton(line, 7 + i * 10, true, i * ENTRANCE_STAGGER))
+        await this.waitForSweep(LOADING + (lines.length - 1) * ENTRANCE_STAGGER)
+        return
+      }
+      this.showSkeleton(this.role.querySelector<HTMLElement>('.hero__line')!, 17 + this.index, false)
       await this.waitForSweep()
       if (epoch !== this.epoch || this.destroyed) return
-      if (!initial) {
-        this.index = (this.index + 1) % ROLES.length
-        this.text.textContent = ROLES[this.index]
-      }
+      this.index = (this.index + 1) % ROLES.length
+      this.text.textContent = ROLES[this.index]
       for (const line of this.waveLines) {
         this.sweep(line.querySelector<HTMLElement>('.hero__skeleton')!, 'inset(0)', 'inset(0 0 0 100%)')
         this.sweep(line.querySelector<HTMLElement>('.hero__text')!, 'inset(0 100% 0 0)', 'inset(0)')
@@ -164,11 +196,91 @@ export class AsciiHero {
   private schedule(): void {
     window.clearTimeout(this.timer)
     this.timer = 0
-    if (!this.started || this.destroyed || this.busy || this.paused || this.motion.matches || document.hidden) return
+    if (!this.started || this.destroyed || this.busy || this.motion.matches || document.hidden) return
     this.timer = window.setTimeout(() => {
       this.timer = 0
       void this.play()
     }, HOLD)
+  }
+
+  private updateNickname(instant = false): void {
+    const open = this.nicknameHovered || this.nicknameFocused
+    this.nicknameOpen = open
+    this.name.classList.toggle('is-nickname-open', open)
+    if (this.motion.matches || document.hidden || this.destroyed) {
+      this.clearNickname()
+      return
+    }
+    const overlay = this.nickname.querySelector<HTMLElement>('.hero__nickname-noise')!
+    if (!this.nicknameWaves.length) {
+      const rows = Math.max(1, Math.ceil(this.nickname.offsetHeight / 10))
+      overlay.innerHTML = asciiSkeletonHTML({ variant: 'dither', rows, seed: 27, css: false })
+      const timing: KeyframeAnimationOptions = { duration: 400, easing: 'linear', fill: 'both' }
+      this.nicknameWaves.push(
+        overlay.animate([
+          { clipPath: 'inset(0 100% 0 0)', offset: 0 },
+          { clipPath: 'inset(0)', offset: 0.5 },
+          { clipPath: 'inset(0 0 0 100%)', offset: 1 },
+        ], timing),
+        this.nickname.querySelector<HTMLElement>('.hero__nickname-text')!.animate([
+          { clipPath: 'inset(0 100% 0 0)', offset: 0 },
+          { clipPath: 'inset(0 100% 0 0)', offset: 0.5 },
+          { clipPath: 'inset(0)', offset: 1 },
+        ], timing),
+      )
+      for (const wave of this.nicknameWaves) {
+        wave.pause()
+        wave.currentTime = 0
+      }
+    }
+    if (instant) {
+      for (const wave of this.nicknameWaves) {
+        wave.pause()
+        wave.currentTime = open ? 400 : 0
+      }
+      this.stopNicknameShimmer?.()
+      this.stopNicknameShimmer = null
+      return
+    }
+    this.stopNicknameShimmer ??= animateSkeleton(overlay.firstElementChild as HTMLElement)
+    for (const wave of this.nicknameWaves) {
+      wave.updatePlaybackRate(open ? 1 : -1)
+      wave.play()
+    }
+    void this.nicknameWaves[0].finished.then(() => {
+      if (this.nicknameOpen !== open) return
+      this.stopNicknameShimmer?.()
+      this.stopNicknameShimmer = null
+    }).catch(() => {})
+  }
+
+  private clearNickname(): void {
+    this.stopNicknameShimmer?.()
+    this.stopNicknameShimmer = null
+    for (const wave of this.nicknameWaves) wave.cancel()
+    this.nicknameWaves.length = 0
+    this.nickname.querySelector('.hero__nickname-noise')!.replaceChildren()
+  }
+
+  private nicknameEnter = (event: PointerEvent): void => {
+    if (!this.hover.matches || event.pointerType === 'touch') return
+    this.nicknameHovered = true
+    this.updateNickname()
+  }
+
+  private nicknameLeave = (): void => {
+    this.nicknameHovered = false
+    this.updateNickname()
+  }
+
+  private nicknameFocus = (): void => {
+    this.nicknameFocused = this.name.matches(':focus-visible')
+    this.updateNickname()
+  }
+
+  private nicknameBlur = (): void => {
+    this.nicknameFocused = false
+    this.updateNickname()
   }
 
   private stop(): void {
@@ -184,36 +296,33 @@ export class AsciiHero {
     this.text.textContent = ROLES[this.index]
   }
 
-  private updateControl(): void {
-    this.role.disabled = this.motion.matches
-    this.role.setAttribute('aria-pressed', String(this.paused))
-    const label = this.paused ? 'Resume role animation' : 'Pause role animation'
-    this.role.setAttribute('aria-label', label)
-    this.role.title = this.motion.matches ? 'Role animation disabled with reduced motion' : label
-  }
-
-  private toggle = (): void => {
-    this.paused = !this.paused
-    if (this.paused) this.stop()
-    else this.schedule()
-    this.updateControl()
-  }
-
   private motionChange = (): void => {
     this.stop()
-    this.updateControl()
+    this.clearNickname()
+    this.updateNickname(true)
     this.schedule()
   }
 
   private visibility = (): void => {
-    if (document.hidden) this.stop()
-    else this.schedule()
+    if (document.hidden) {
+      this.stop()
+      this.nicknameHovered = false
+      this.nicknameFocused = false
+      this.updateNickname(true)
+    } else {
+      this.schedule()
+    }
   }
 
   destroy(): void {
     this.destroyed = true
     this.stop()
-    this.role.removeEventListener('click', this.toggle)
+    this.clearNickname()
+    this.name.removeEventListener('pointerenter', this.nicknameEnter)
+    this.name.removeEventListener('pointerleave', this.nicknameLeave)
+    this.name.removeEventListener('focus', this.nicknameFocus)
+    this.name.removeEventListener('blur', this.nicknameBlur)
+    this.hover.removeEventListener('change', this.nicknameLeave)
     this.motion.removeEventListener('change', this.motionChange)
     document.removeEventListener('visibilitychange', this.visibility)
     this.styles.remove()
