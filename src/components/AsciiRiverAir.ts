@@ -1,3 +1,5 @@
+import { sceneScale, SEA_TILT } from './AsciiPerspective'
+
 const INSECTS = 8
 const DUST = 32
 const MIST_BANKS = 3
@@ -24,13 +26,16 @@ export class AsciiRiverAir {
   private readonly insectX = new Float32Array(INSECTS)
   private readonly insectY = new Float32Array(INSECTS)
   private readonly insectAlpha = new Float32Array(INSECTS)
+  private readonly insectScale = new Float32Array(INSECTS)
   private readonly dustX = new Float32Array(DUST)
   private readonly dustY = new Float32Array(DUST)
   private readonly dustAlpha = new Float32Array(DUST)
+  private readonly dustScale = new Float32Array(DUST)
   private readonly mistX = new Float32Array(MIST_POINTS)
   private readonly mistY = new Float32Array(MIST_POINTS)
   private readonly mistAlpha = new Float32Array(MIST_POINTS)
   private readonly mistGlyph = new Uint8Array(MIST_POINTS)
+  private readonly mistScale = new Float32Array(MIST_POINTS)
   private readonly mistTexture = Float32Array.from({ length: MIST_POINTS }, (_, i) => seed(i, 19))
   private readonly veil = document.createElement('canvas')
   private readonly banks = Array.from({ length: MIST_BANKS }, () => ({
@@ -67,8 +72,10 @@ export class AsciiRiverAir {
     this.time = time
     const entrance = fade(time / 2)
     const area = width * height
-    this.insectCount = Math.min(INSECTS, Math.max(3, Math.floor(area / 150000)))
-    this.dustCount = Math.min(DUST, Math.max(12, Math.floor(area / 40000)))
+    const insectDensity = Math.min(INSECTS, Math.max(3, area / 150000))
+    const dustDensity = Math.min(DUST, Math.max(12, area / 40000))
+    this.insectCount = Math.ceil(insectDensity)
+    this.dustCount = Math.ceil(dustDensity)
 
     for (let i = 0; i < this.insectCount; i++) {
       const life = 20 + i * 1.7
@@ -76,41 +83,51 @@ export class AsciiRiverAir {
       const birth = Math.floor(flight / life)
       const age = flight - birth * life
       const identity = birth * INSECTS + i
-      const phase = age * (1.2 + seed(identity, 1) * 0.6) + i * 2.1
       const anchorX = width * (0.12 + seed(identity, 2) * 0.76)
-      const anchorY = height * (0.27 + seed(identity, 3) * 0.58)
-      // Loitering loops with smaller course corrections, rather than straight particle rain.
-      this.insectX[i] = anchorX + Math.sin(phase) * 23 + Math.sin(phase * 2.3) * 5 + age * 0.8
-      this.insectY[i] = anchorY + Math.cos(phase * 0.83) * 14 + Math.sin(phase * 1.7) * 5
+      const anchorY = height * (0.19 + seed(identity, 3) * 0.7)
+      const depth = sceneScale(anchorY, height)
+      const phase = age * (1.2 + seed(identity, 1) * 0.6) * depth + i * 2.1
+      // Stable reference depth shrinks and slows the entire loitering flight.
+      this.insectX[i] = anchorX
+        + (Math.sin(phase) * 23 + Math.sin(phase * 2.3) * 5 + age * 0.8) * depth
+      this.insectY[i] = anchorY + (Math.cos(phase * 0.83) * 14 + Math.sin(phase * 1.7) * 5) * depth
+      this.insectScale[i] = depth
       this.insectAlpha[i] = entrance * fade(age / 1.2) * fade((life - age) / 1.5)
-        * (0.36 + seed(identity, 4) * 0.16)
+        * (0.36 + seed(identity, 4) * 0.16) * depth * Math.min(1, insectDensity - i)
     }
 
     for (let i = 0; i < this.dustCount; i++) {
       const life = 18 + seed(i, 5) * 12
       const progress = (time / life + seed(i, 6)) % 1
-      const phase = time * 0.35 + i * 2.4
-      this.dustX[i] = (width * seed(i, 7) + progress * 65 + Math.sin(phase) * 10) % (width + 20) - 10
-      this.dustY[i] = height * (0.28 + seed(i, 8) * 0.62) - progress * 65 + Math.cos(phase * 0.7) * 5
+      const anchorY = height * (0.18 + seed(i, 8) * 0.72)
+      const depth = sceneScale(anchorY, height)
+      const phase = time * 0.35 * depth + i * 2.4
+      this.dustX[i] = width * seed(i, 7) + (progress * 65 + Math.sin(phase) * 10) * depth
+      this.dustY[i] = anchorY - (progress * 65 - Math.cos(phase * 0.7) * 5) * depth
+      this.dustScale[i] = depth
       this.dustAlpha[i] = entrance * fade(progress / 0.12) * fade((1 - progress) / 0.18)
-        * (0.14 + seed(i, 9) * 0.18)
+        * (0.14 + seed(i, 9) * 0.18) * depth * Math.min(1, dustDensity - i)
     }
 
-    const banks = width < 640 ? 2 : MIST_BANKS
-    const columns = width < 640 ? 32 : MIST_COLUMNS
-    const radiusX = Math.min(330, width * 0.65)
-    for (let bank = 0; bank < banks; bank++) {
+    const bankDensity = 2 + fade((width - 560) / 240)
+    const columns = MIST_COLUMNS
+    for (let bank = 0; bank < Math.ceil(bankDensity); bank++) {
+      const laneY = 0.2 + bank * 0.3
+      const depth = sceneScale(laneY * height, height)
+      const radiusX = Math.min(330, width * 0.65) * depth
+      const bankFade = Math.min(1, bankDensity - bank)
       const travel = width + radiusX * 2
-      const progress = (seed(bank, 10) + time * (7 + bank * 1.5) / travel) % 1
+      // Clock phase is viewport-independent, so resizing never restarts a bank.
+      const progress = (seed(bank, 10) + time * (7 + bank * 1.5) * depth / 1940) % 1
       const centreX = -radiusX + progress * travel
-      const centreY = height * (0.32 + bank * 0.23) + Math.sin(time * 0.12 + bank) * 12
-      const radiusY = 28 + bank * 8
+      const centreY = height * laneY + Math.sin(time * 0.12 * depth + bank) * 12 * depth * SEA_TILT
+      const radiusY = (28 + bank * 8) * depth * SEA_TILT
       const veil = this.banks[this.bankCount++]
       veil.x = centreX
       veil.y = centreY
       veil.radiusX = radiusX
       veil.radiusY = radiusY * 1.5
-      veil.alpha = entrance * (0.055 + Math.sin(time * 0.14 + bank) * 0.012)
+      veil.alpha = entrance * (0.055 + Math.sin(time * 0.14 + bank) * 0.012) * depth * bankFade
       for (let row = 0; row < MIST_ROWS; row++) {
         const v = row / (MIST_ROWS - 1) * 2 - 1
         const vertical = (1 - v * v) ** 2
@@ -119,12 +136,13 @@ export class AsciiRiverAir {
           const u = col / (columns - 1) * 2 - 1
           const texture = this.mistTexture[(bank * MIST_ROWS + row) * MIST_COLUMNS + col]
           if (texture < 0.2) continue
-          const alpha = entrance * (1 - u * u) ** 2 * vertical * (0.045 + texture * 0.065)
+          const alpha = entrance * (1 - u * u) ** 2 * vertical * (0.045 + texture * 0.065) * depth * bankFade
           if (alpha < 0.004) continue
           const point = this.mistCount++
-          this.mistX[point] = centreX + u * radiusX + (texture - 0.5) * 7
+          this.mistX[point] = centreX + u * radiusX + (texture - 0.5) * 7 * depth
           this.mistY[point] = centreY + v * radiusY
-            + Math.sin(u * 5 - time * 0.18 + bank) * radiusY * 0.28
+            + Math.sin(u * 5 - time * 0.18 * depth + bank) * radiusY * 0.28
+          this.mistScale[point] = depth
           this.mistAlpha[point] = alpha
           this.mistGlyph[point] = texture < 0.45 ? 0 : texture < 0.75 ? 1 : 2
         }
@@ -146,9 +164,16 @@ export class AsciiRiverAir {
       ctx.drawImage(this.veil, bank.x - bank.radiusX, bank.y - bank.radiusY,
         bank.radiusX * 2, bank.radiusY * 2)
     }
+    let previousScale = 1
+    ctx.scale(1, SEA_TILT)
     for (let i = 0; i < this.mistCount; i++) {
+      const depth = this.mistScale[i]
+      if (depth !== previousScale) {
+        ctx.scale(depth / previousScale, depth / previousScale)
+        previousScale = depth
+      }
       ctx.globalAlpha = this.mistAlpha[i]
-      ctx.fillText('.:-'[this.mistGlyph[i]], this.mistX[i], this.mistY[i])
+      ctx.fillText('.:-'[this.mistGlyph[i]], this.mistX[i] / depth, this.mistY[i] / (depth * SEA_TILT))
     }
     ctx.restore()
   }
@@ -160,10 +185,17 @@ export class AsciiRiverAir {
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.font = '400 9px "Geist Mono", monospace'
+    let previousScale = 1
     for (let i = 0; i < this.dustCount; i++) {
+      const depth = this.dustScale[i]
+      if (depth !== previousScale) {
+        ctx.scale(depth / previousScale, depth / previousScale)
+        previousScale = depth
+      }
       ctx.globalAlpha = this.dustAlpha[i]
-      ctx.fillText(i % 4 === 0 ? "'" : '.', this.dustX[i], this.dustY[i])
+      ctx.fillText(i % 4 === 0 ? "'" : '.', this.dustX[i] / depth, this.dustY[i] / depth)
     }
+    ctx.scale(1 / previousScale, 1 / previousScale)
     ctx.font = '400 7px "Geist Mono", monospace'
     for (let i = 0; i < this.insectCount; i++) {
       const phase = this.time * 17 + i * 2.1
@@ -171,6 +203,7 @@ export class AsciiRiverAir {
       const wingY = -1.5 - Math.cos(phase) * 1.2
       ctx.save()
       ctx.translate(this.insectX[i], this.insectY[i])
+      ctx.scale(this.insectScale[i], this.insectScale[i])
       ctx.rotate(Math.sin(this.time * 1.2 + i) * 0.45)
       ctx.globalAlpha = this.insectAlpha[i]
       ctx.fillText(':', 0, 0)

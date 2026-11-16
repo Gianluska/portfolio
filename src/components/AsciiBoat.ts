@@ -1,4 +1,6 @@
-// A top-down old sailing ship enters when the reveal wave reaches the bottom and steers toward the pointer.
+import { DEPTH_FAR, DEPTH_RANGE, sceneScale, SEA_TILT } from './AsciiPerspective'
+
+// An upright, full-rigged ship above a turning, foreshortened waterline.
 const BOAT_ENTER = 0
 const FADE_IN = 0.8
 const MAX_SPEED = 230
@@ -11,47 +13,35 @@ const TURN_RESPONSE = 6
 // Stops short of the cursor instead of circling under it; the bowsprit ends near the cursor.
 const ARRIVE = 90
 const SLOW_RADIUS = 210
-// Keeps the whole ship, bowsprit to rudder, on screen once it has sailed in.
-const EDGE = 64
+// Reference-plane bounds include the bowsprit and the masthead's fluttering pennant.
+const EDGE = 88
+const MAST_CLEARANCE = 124
+const WATER_EDGE = 38
 // Foam: two arms spread from the transom while the ship is under way.
 const FOAM_POINTS = 48
 const FOAM_LIFE = 1.4
 const FOAM_GAP = 7
-const STERN = 58
-const LINE = 8.5
-const CHAR = 6
-// Authored bow up, 15 columns: bowsprit and forestay, pointed bow, three masts (`o`)
-// whose yards carry bellied square sails wider than the hull, stern castle and rudder.
-const HULL = [
-  '       |       ',
-  '      /|\\      ',
-  '     / | \\     ',
-  '    /  |  \\    ',
-  '  .----o----.  ',
-  '  \\_________/  ',
-  '    |  .  |    ',
-  ' .-----o-----. ',
-  ' \\___________/ ',
-  '    |  .  |    ',
-  '   .---o---.   ',
-  '   \\_______/   ',
-  '    |[___]|    ',
-  '    \\_____/    ',
-  '       |       ',
+const STERN = 46
+const MASTS = [
+  { along: -31, across: 4, height: 74, half: 15 },
+  { along: 0, across: 0, height: 94, half: 22 },
+  { along: 31, across: -4, height: 82, half: 18 },
 ] as const
-const MIDDLE = (HULL.length - 1) / 2
-// Each sail spans its yard row and the bellied row below it; half-width in characters.
-const SAILS = [
-  { row: 4, half: 5.5 },
-  { row: 7, half: 6.5 },
-  { row: 10, half: 4.5 },
+// Four rows of cloth; the yard is rigid, the body and hem breathe below it.
+const SAIL = [
+  '.--+--.',
+  '| :|: |',
+  '( .|. )',
+  ' \\_|_/ ',
 ] as const
 // Idle life. The prevailing wind blows toward screen east, a little south; the
 // pennant streams with it at rest and swings aft as the ship gathers way.
+// Offset the scene's extra 20% gain so the ship keeps its approved brightness.
+const INK = '#d5d5d5'
 const WIND = 0.15
-const BILLOW = 5
-const PENNANT = 9
-const PENNANT_STEP = 6.5
+const BILLOW = 3
+const PENNANT = 7
+const PENNANT_STEP = 4.5
 const PENNANT_RESPONSE = 4
 // Wavelets lap at the hull while the ship lies still.
 const LAP_PERIOD = 2.6
@@ -78,6 +68,9 @@ export class AsciiBoat {
   private steered = false
   private lastTime = Number.NaN
   private travelled = 0
+  private scale = 1
+  private projectionX = 1
+  private projectionY = 0
   private foamHead = 0
   private readonly foamX = new Float32Array(FOAM_POINTS)
   private readonly foamY = new Float32Array(FOAM_POINTS)
@@ -85,7 +78,7 @@ export class AsciiBoat {
   private readonly foamSideY = new Float32Array(FOAM_POINTS)
   private readonly foamBirth = new Float32Array(FOAM_POINTS).fill(-Infinity)
   private readonly foamStrength = new Float32Array(FOAM_POINTS)
-  private readonly billow = new Float32Array(SAILS.length)
+  private readonly foamScale = new Float32Array(FOAM_POINTS)
 
   /** 0..1 share of top speed, used by the river to scale the hull's push on the water. */
   get wake(): number {
@@ -108,7 +101,10 @@ export class AsciiBoat {
     const dt = time > this.lastTime ? Math.min(0.05, time - this.lastTime) : 0
     this.lastTime = time
     this.time = time
+    // Shrink only on genuinely narrow canvases; normal phone sizes retain the full rig.
+    const fit = Math.min(1, Math.max(0.1, (width - 16) / (EDGE * 2.2)))
     if (!this.spawned) this.spawn(time, width, height)
+    this.scale = sceneScale(this.y, height) * fit
     this.active = true
     const fade = clamp((time - this.born) / FADE_IN)
     this.alpha = fade * fade * (3 - 2 * fade)
@@ -127,7 +123,8 @@ export class AsciiBoat {
 
     let desiredSpeed = 0, desiredTurn = 0
     if (Number.isFinite(targetX)) {
-      const dx = targetX - this.x, dy = targetY - this.y
+      const dx = (targetX - this.x) / this.scale
+      const dy = (targetY - this.y) / (this.scale * SEA_TILT)
       const distance = Math.hypot(dx, dy)
       const error = wrapAngle(Math.atan2(dy, dx) - this.heading)
       // Ease off while the bow points away, so a target behind makes a tight turn.
@@ -152,8 +149,9 @@ export class AsciiBoat {
     lateral *= Math.exp(-KEEL * dt)
     this.vx = fx * forward - fy * lateral
     this.vy = fy * forward + fx * lateral
-    this.x += this.vx * dt
-    this.y += this.vy * dt
+    this.x += this.vx * dt * this.scale
+    this.y += this.vy * dt * this.scale * SEA_TILT
+    this.scale = sceneScale(this.y, height) * fit
     this.speed = Math.hypot(this.vx, this.vy)
 
     // Blend angles, not opposing vectors: wind and aft must not cancel into a flip.
@@ -163,11 +161,16 @@ export class AsciiBoat {
       this.pennantAngle + wrapAngle(target - this.pennantAngle) * -Math.expm1(-PENNANT_RESPONSE * dt),
     )
 
-    // It enters from below the viewport; once inside, the edges hold it.
-    if (!this.inside && this.y < height - EDGE * 1.5) this.inside = true
+    // Solve y >= mastHeight * sceneScale(y): even a northbound masthead stays visible.
+    const top = (MAST_CLEARANCE * fit * DEPTH_FAR + 8)
+      / Math.max(0.1, 1 - MAST_CLEARANCE * fit * DEPTH_RANGE / height)
+    const edge = EDGE * this.scale
+    const bottom = WATER_EDGE * this.scale
+    if (!this.inside && this.y < height - bottom) this.inside = true
     if (this.inside) {
-      this.x = clamp(this.x, EDGE, Math.max(EDGE, width - EDGE))
-      this.y = clamp(this.y, EDGE, Math.max(EDGE, height - EDGE))
+      this.x = clamp(this.x, edge, Math.max(edge, width - edge))
+      this.y = clamp(this.y, Math.min(top, height / 2), Math.max(top, height - bottom))
+      this.scale = sceneScale(this.y, height) * fit
     }
 
     this.travelled += this.speed * dt
@@ -176,10 +179,11 @@ export class AsciiBoat {
       if (this.speed > 30) {
         const slot = this.foamHead
         this.foamHead = (slot + 1) % FOAM_POINTS
-        this.foamX[slot] = this.x - fx * STERN
-        this.foamY[slot] = this.y - fy * STERN
+        this.foamX[slot] = this.x - fx * STERN * this.scale
+        this.foamY[slot] = this.y - fy * STERN * this.scale * SEA_TILT
         this.foamSideX[slot] = -fy
-        this.foamSideY[slot] = fx
+        this.foamSideY[slot] = fx * SEA_TILT
+        this.foamScale[slot] = this.scale
         this.foamBirth[slot] = time
         this.foamStrength[slot] = clamp(this.speed / MAX_SPEED)
       }
@@ -203,14 +207,99 @@ export class AsciiBoat {
     this.foamBirth.fill(-Infinity)
   }
 
+  /** ASCII strokes are sampled in screen space, so no contour becomes a solid line. */
+  private stroke(
+    ctx: CanvasRenderingContext2D,
+    x0: number, y0: number, x1: number, y1: number, glyph = '',
+  ): void {
+    const dx = x1 - x0, dy = y1 - y0
+    const count = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 5.5))
+    const mark = glyph || (Math.abs(dy) < Math.abs(dx) * 0.42
+      ? '-' : Math.abs(dx) < Math.abs(dy) * 0.32 ? '|' : dx * dy > 0 ? '\\' : '/')
+    for (let step = 0; step <= count; step++) {
+      const along = step / count
+      ctx.fillText(mark, x0 + dx * along, y0 + dy * along)
+    }
+  }
+
+  /** Rotation affects only the ground plane; elevation always points up the screen. */
+  private groundStroke(
+    ctx: CanvasRenderingContext2D,
+    x0: number, y0: number, z0: number,
+    x1: number, y1: number, z1: number, glyph = '',
+  ): void {
+    const fx = this.projectionX, fy = this.projectionY
+    this.stroke(
+      ctx, x0 * fx - y0 * fy, (x0 * fy + y0 * fx) * SEA_TILT - z0,
+      x1 * fx - y1 * fy, (x1 * fy + y1 * fx) * SEA_TILT - z1, glyph,
+    )
+  }
+
+  private maskPoint(
+    ctx: CanvasRenderingContext2D, along: number, across: number, elevation: number,
+    first = false,
+  ): void {
+    const x = along * this.projectionX - across * this.projectionY
+    const y = (along * this.projectionY + across * this.projectionX) * SEA_TILT - elevation
+    if (first) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+
+  private drawMast(ctx: CanvasRenderingContext2D, index: number, opacity: number): void {
+    const mast = MASTS[index]
+    const x = mast.along * this.projectionX - mast.across * this.projectionY
+    const deckY = (mast.along * this.projectionY + mast.across * this.projectionX) * SEA_TILT
+    ctx.font = '400 9px "Geist Mono", monospace'
+    ctx.fillStyle = INK
+    ctx.globalAlpha = opacity * 0.86
+    this.stroke(ctx, x, deckY - 16, x, deckY - mast.height, '|')
+    ctx.fillText('+', x, deckY - mast.height)
+
+    for (let tier = 0; tier < 2; tier++) {
+      // Yards keep a readable width even when the keel points directly at the viewer.
+      const half = Math.max(15, mast.half * (tier === 0 ? 0.76 : 1))
+        * (0.9 + Math.abs(this.projectionY) * 0.1)
+      const top = deckY - mast.height + (tier === 0 ? 12 : 42)
+      const belly = BILLOW * (0.55 + 0.25 * Math.sin(this.time * 0.9)
+        + 0.2 * Math.sin(this.time * 1.6 + index * 0.9 + tier))
+      // Only backing is polygonal; every visible seam, hem and spar is an ASCII glyph.
+      ctx.fillStyle = '#000000'
+      ctx.globalAlpha = opacity * 0.95
+      ctx.beginPath()
+      ctx.moveTo(x - half, top - 3)
+      ctx.lineTo(x + half, top - 3)
+      ctx.lineTo(x + half, top + 12)
+      ctx.quadraticCurveTo(x, top + 25 + belly, x - half, top + 12)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = INK
+      ctx.font = '400 8px "Geist Mono", monospace'
+      for (let row = 0; row < SAIL.length; row++) {
+        const cloth = SAIL[row]
+        for (let col = 0; col < cloth.length; col++) {
+          const glyph = cloth[col]
+          if (glyph === ' ') continue
+          const across = (col - 3) / 3
+          const bow = Math.max(0, 1 - across * across)
+          const edge = row === 0 || row === 3 || col === 0 || col === 6 || col === 3
+          ctx.globalAlpha = opacity * (edge ? 0.91 : 0.35)
+          ctx.fillText(
+            glyph, x + across * half,
+            top + row * 6 + (row === 0 ? 0 : belly * bow * row / 3),
+          )
+        }
+      }
+    }
+  }
+
   draw(ctx: CanvasRenderingContext2D): void {
     if (!this.active || this.alpha <= 0) return
     ctx.save()
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = INK
 
-    // Foam arms widen and fade behind the transom.
+    // Each stamp keeps the scale and ground-plane direction at the time it was shed.
     ctx.font = '400 9px "Geist Mono", monospace'
     for (let slot = 0; slot < FOAM_POINTS; slot++) {
       const age = this.time - this.foamBirth[slot]
@@ -219,114 +308,172 @@ export class AsciiBoat {
       const strength = this.foamStrength[slot]
       const spread = 8 + age * 26 * strength
       const alpha = life * life * (0.18 + strength * 0.4) * this.alpha
-      const x = this.foamX[slot], y = this.foamY[slot]
-      const sideX = this.foamSideX[slot] * spread, sideY = this.foamSideY[slot] * spread
+      const sideX = this.foamSideX[slot] * spread
+      const sideY = this.foamSideY[slot] * spread
+      ctx.save()
+      ctx.translate(this.foamX[slot], this.foamY[slot])
+      ctx.scale(this.foamScale[slot], this.foamScale[slot])
       ctx.globalAlpha = alpha
-      ctx.fillText(age < 0.35 ? ':' : '.', x + sideX, y + sideY)
-      ctx.fillText(age < 0.35 ? ':' : '.', x - sideX, y - sideY)
-      // Stern wash churns the centre line briefly.
+      ctx.fillText(age < 0.35 ? ':' : '.', sideX, sideY)
+      ctx.fillText(age < 0.35 ? ':' : '.', -sideX, -sideY)
       if (age < 0.5) {
         ctx.globalAlpha = alpha * 0.8
-        ctx.fillText(age < 0.2 ? '*' : '~', x, y)
+        ctx.fillText(age < 0.2 ? '*' : '~', 0, 0)
       }
-    }
-
-    // Gentle rocking at rest, steadier under way.
-    const calm = 1 - clamp(this.speed / MAX_SPEED)
-    const rock = Math.sin(this.time * 1.7) * 0.05 * calm
-    ctx.translate(this.x, this.y + Math.sin(this.time * 1.3) * 0.8 * calm)
-    ctx.rotate(this.heading + Math.PI / 2 + rock)
-    // A dark hull and dark sails hide the water glyphs underneath the ship.
-    const top = (1 - MIDDLE) * LINE - LINE * 0.5, beam = 3.5 * CHAR
-    const shoulder = (3.5 - MIDDLE) * LINE, quarter = (12.5 - MIDDLE) * LINE
-    const stern = (13 - MIDDLE) * LINE + LINE * 0.5
-    ctx.fillStyle = '#000000'
-    ctx.globalAlpha = 0.9 * this.alpha
-    ctx.beginPath()
-    ctx.moveTo(0, top)
-    ctx.lineTo(beam, shoulder)
-    ctx.lineTo(beam, quarter)
-    ctx.lineTo(beam * 0.7, stern)
-    ctx.lineTo(-beam * 0.7, stern)
-    ctx.lineTo(-beam, quarter)
-    ctx.lineTo(-beam, shoulder)
-    ctx.closePath()
-    for (const sail of SAILS) {
-      ctx.rect(-sail.half * CHAR, (sail.row - MIDDLE - 0.5) * LINE, sail.half * 2 * CHAR, LINE * 2 + BILLOW)
-    }
-    ctx.fill()
-    // The yards stay rigid; cloth and hem bow together between their fixed ends.
-    const gust = 0.55 + 0.25 * Math.sin(this.time * 0.9) + 0.2 * Math.sin(this.time * 2.3 + 1.1)
-    ctx.fillStyle = '#ffffff'
-    for (let sail = 0; sail < SAILS.length; sail++) {
-      const { row, half } = SAILS[sail]
-      const belly = BILLOW * gust * (0.6 + 0.4 * Math.sin(this.time * 1.6 + sail * 0.9))
-      this.billow[sail] = belly
-      const left = -half * CHAR + 2, right = half * CHAR - 2
-      const yardY = (row - MIDDLE) * LINE + 2
-      const hemY = (row + 1 - MIDDLE) * LINE + 2
-      ctx.globalAlpha = (0.09 + belly * 0.006) * this.alpha
-      ctx.beginPath()
-      ctx.moveTo(left, yardY)
-      ctx.lineTo(right, yardY)
-      ctx.lineTo(right - CHAR, hemY)
-      ctx.quadraticCurveTo(0, hemY + belly * 2, left + CHAR, hemY)
-      ctx.closePath()
-      ctx.fill()
-    }
-    ctx.font = '400 10px "Geist Mono", monospace'
-    ctx.globalAlpha = 0.88 * this.alpha
-    let sail = 0
-    for (let row = 0; row < HULL.length; row++) {
-      const y = (row - MIDDLE) * LINE
-      if (sail < SAILS.length && row === SAILS[sail].row + 1) {
-        // Warp the hem glyph by glyph, rather than sliding a straight row.
-        for (let col = 0; col < HULL[row].length; col++) {
-          const glyph = HULL[row][col]
-          if (glyph === ' ') continue
-          const x = (col - 7) * CHAR
-          const across = x / (SAILS[sail].half * CHAR)
-          const bow = Math.max(0, 1 - across * across)
-          ctx.fillText(glyph, x, y + this.billow[sail] * bow)
-        }
-        sail++
-      } else {
-        ctx.fillText(HULL[row], 0, y)
-      }
-    }
-
-    // World-space easing keeps the ribbon continuous through turns and braking.
-    const flowAngle = this.pennantAngle - (this.heading + Math.PI / 2 + rock)
-    const flowX = Math.cos(flowAngle), flowY = Math.sin(flowAngle)
-    const mastY = (SAILS[1].row - MIDDLE) * LINE
-    ctx.font = '600 11px "Geist Mono", monospace'
-    for (let k = 1; k <= PENNANT; k++) {
-      // A brighter, longer ribbon tapers to one fluttering tip.
-      const wave = Math.sin(this.time * 8 - k * 1.3) * k * 0.7
-      const px = flowX * k * PENNANT_STEP - flowY * wave
-      const py = mastY + flowY * k * PENNANT_STEP + flowX * wave
-      const halfWidth = 5 * (1 - k / PENNANT)
-      ctx.save()
-      ctx.translate(px, py)
-      ctx.rotate(flowAngle)
-      ctx.globalAlpha = (0.98 - k * 0.035) * this.alpha
-      ctx.fillText('~', 0, -halfWidth)
-      if (k < PENNANT) ctx.fillText('~', 0, halfWidth)
       ctx.restore()
     }
 
-    // Wavelets lap outward from both sides of the hull, only when the ship is nearly still.
-    // They sit on the open hull rows between the sails, so the canvas never covers them.
+    const calm = 1 - clamp(this.speed / MAX_SPEED)
+    const rock = Math.sin(this.time * 1.7) * 0.018 * calm
+    this.projectionX = Math.cos(this.heading + rock)
+    this.projectionY = Math.sin(this.heading + rock)
+    const fx = this.projectionX, fy = this.projectionY
+    const opacity = this.alpha * (0.65 + 0.35 * Math.min(1, this.scale / 1.1))
+    ctx.translate(this.x, this.y + Math.sin(this.time * 1.3) * 0.65 * calm * this.scale)
+    ctx.scale(this.scale, this.scale)
+    ctx.font = '400 9px "Geist Mono", monospace'
+
+    // Raised stern, broad deck and tapered bow: the black silhouette only hides water.
+    ctx.fillStyle = '#000000'
+    ctx.globalAlpha = this.alpha * 0.96
+    ctx.beginPath()
+    this.maskPoint(ctx, -53, -12, 22, true)
+    this.maskPoint(ctx, -38, -17, 15)
+    this.maskPoint(ctx, 36, -14, 15)
+    this.maskPoint(ctx, 57, 0, 18)
+    this.maskPoint(ctx, 36, 14, 15)
+    this.maskPoint(ctx, -38, 17, 15)
+    this.maskPoint(ctx, -53, 12, 22)
+    ctx.closePath()
+    ctx.fill()
+
+    // Forestays, shrouds and the long bowsprit are character strokes, not Canvas lines.
+    ctx.fillStyle = INK
+    ctx.globalAlpha = opacity * 0.45
+    for (let index = 0; index < MASTS.length; index++) {
+      const mast = MASTS[index]
+      this.groundStroke(ctx, mast.along, mast.across, mast.height - 3, -49, 0, 20, '.')
+      this.groundStroke(ctx, mast.along, mast.across, mast.height - 3, 75, 0, 24, '.')
+      this.groundStroke(ctx, mast.along, mast.across, mast.height - 28, mast.along - 12, -15, 15, ':')
+      this.groundStroke(ctx, mast.along, mast.across, mast.height - 28, mast.along - 12, 15, 15, ':')
+    }
+    ctx.globalAlpha = opacity * 0.92
+    this.groundStroke(ctx, 36, 0, 16, 82, 0, 27)
+    this.groundStroke(ctx, -53, -12, 22, -38, -17, 15)
+    this.groundStroke(ctx, -38, -17, 15, 36, -14, 15)
+    this.groundStroke(ctx, 36, -14, 15, 57, 0, 18)
+    this.groundStroke(ctx, 57, 0, 18, 36, 14, 15)
+    this.groundStroke(ctx, 36, 14, 15, -38, 17, 15)
+    this.groundStroke(ctx, -38, 17, 15, -53, 12, 22)
+    this.groundStroke(ctx, -53, 12, 22, -53, -12, 22)
+    // Hatch and sterncastle windows remain attached to the turning deck.
+    ctx.globalAlpha = opacity * 0.55
+    this.groundStroke(ctx, -45, -8, 23, -35, -8, 23, '=')
+    this.groundStroke(ctx, -45, 8, 23, -35, 8, 23, '=')
+    this.groundStroke(ctx, -15, 0, 16, 18, 0, 16, ':')
+
+    // Paint the far mast first; the nearer canvas naturally occludes its rigging.
+    for (let layer = 0; layer < MASTS.length; layer++) {
+      this.drawMast(ctx, fy >= 0 ? layer : MASTS.length - 1 - layer, opacity)
+    }
+
+    // The near planked hull covers the mast feet, with gunports and a high transom.
+    const near = fx >= 0 ? 1 : -1
+    ctx.font = '400 9px "Geist Mono", monospace'
+    ctx.fillStyle = '#000000'
+    ctx.globalAlpha = this.alpha * 0.96
+    ctx.beginPath()
+    this.maskPoint(ctx, -53, near * 12, 22, true)
+    this.maskPoint(ctx, -38, near * 17, 15)
+    this.maskPoint(ctx, 36, near * 14, 15)
+    this.maskPoint(ctx, 57, 0, 18)
+    this.maskPoint(ctx, 39, near * 9, 0)
+    this.maskPoint(ctx, -47, near * 11, 0)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = INK
+    ctx.globalAlpha = opacity * 0.94
+    this.groundStroke(ctx, -53, near * 12, 22, -38, near * 17, 15)
+    this.groundStroke(ctx, -38, near * 17, 15, 36, near * 14, 15)
+    this.groundStroke(ctx, 36, near * 14, 15, 57, 0, 18)
+    this.groundStroke(ctx, 57, 0, 18, 39, near * 9, 0)
+    this.groundStroke(ctx, 39, near * 9, 0, -47, near * 11, 0, '_')
+    this.groundStroke(ctx, -47, near * 11, 0, -53, near * 12, 22)
+    ctx.globalAlpha = opacity * 0.5
+    this.groundStroke(ctx, -44, near * 13, 5, 39, near * 11, 5, '=')
+    for (let along = -34; along <= 30; along += 16) {
+      ctx.fillText('o', along * fx - near * 15 * fy, (along * fy + near * 15 * fx) * SEA_TILT - 10)
+    }
+    this.groundStroke(ctx, -52, -8, 17, -52, 8, 17, '#')
+    this.groundStroke(ctx, -52, 0, 0, -58, 0, -3, '|')
+
+    // End-on headings expose a full transom or both cheeks of the pointed bow.
+    if (fy < 0) {
+      ctx.fillStyle = '#000000'
+      ctx.globalAlpha = this.alpha * 0.96
+      ctx.beginPath()
+      this.maskPoint(ctx, -53, -12, 22, true)
+      this.maskPoint(ctx, -53, 12, 22)
+      this.maskPoint(ctx, -47, 11, 0)
+      this.maskPoint(ctx, -47, -11, 0)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = INK
+      ctx.globalAlpha = opacity * 0.85
+      this.groundStroke(ctx, -53, -12, 22, -53, 12, 22)
+      this.groundStroke(ctx, -53, -12, 22, -47, -11, 0)
+      this.groundStroke(ctx, -53, 12, 22, -47, 11, 0)
+      this.groundStroke(ctx, -47, -11, 0, -47, 11, 0, '_')
+      ctx.globalAlpha = opacity * 0.55
+      this.groundStroke(ctx, -51, -8, 13, -51, 8, 13, '#')
+    } else {
+      ctx.fillStyle = '#000000'
+      ctx.globalAlpha = this.alpha * 0.96
+      ctx.beginPath()
+      this.maskPoint(ctx, 36, -14, 15, true)
+      this.maskPoint(ctx, 57, 0, 18)
+      this.maskPoint(ctx, 36, 14, 15)
+      this.maskPoint(ctx, 39, 9, 0)
+      this.maskPoint(ctx, 39, -9, 0)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = INK
+      ctx.globalAlpha = opacity * 0.85
+      this.groundStroke(ctx, 36, -14, 15, 57, 0, 18)
+      this.groundStroke(ctx, 36, 14, 15, 57, 0, 18)
+      this.groundStroke(ctx, 57, 0, 18, 39, -9, 0)
+      this.groundStroke(ctx, 57, 0, 18, 39, 9, 0)
+      this.groundStroke(ctx, 39, -9, 0, 39, 9, 0, '_')
+    }
+
+    // A screen-space ribbon eases continuously between wind and the projected stern.
+    const flagX = 0, flagY = -MASTS[1].height
+    const flowX = Math.cos(this.pennantAngle)
+    const flowY = Math.sin(this.pennantAngle) * SEA_TILT
+    ctx.font = '600 9px "Geist Mono", monospace'
+    for (let step = 1; step <= PENNANT; step++) {
+      const wave = Math.sin(this.time * 7 - step * 1.1) * step * 0.45
+      const x = flagX + flowX * step * PENNANT_STEP - flowY * wave
+      const y = flagY + flowY * step * PENNANT_STEP + flowX * wave
+      const width = 2.5 * (1 - step / PENNANT)
+      ctx.globalAlpha = opacity * (1 - step * 0.025)
+      ctx.fillText('~', x, y - width)
+      if (step < PENNANT - 1) ctx.fillText('~', x, y + width)
+    }
+
+    // Lapping foam is projected around the waterline, never around the tall sails.
     if (calm > 0.4) {
       const lap = (this.time / LAP_PERIOD) % 1
       const fade = (calm - 0.4) / 0.6 * Math.sin(lap * Math.PI)
-      const out = beam + 3 + lap * 9
+      const across = 21 + lap * 9
       ctx.font = '400 9px "Geist Mono", monospace'
-      ctx.globalAlpha = 0.4 * fade * this.alpha
+      ctx.globalAlpha = 0.35 * fade * opacity
       for (let side = -1; side <= 1; side += 2) {
-        const arc = side < 0 ? '(' : ')'
-        for (let row = 6; row <= 12; row += 3) {
-          ctx.fillText(lap < 0.5 ? arc : '~', side * out, (row - MIDDLE) * LINE)
+        for (let along = -27; along <= 27; along += 27) {
+          ctx.fillText(
+            '~', along * fx - side * across * fy,
+            (along * fy + side * across * fx) * SEA_TILT + 1,
+          )
         }
       }
     }

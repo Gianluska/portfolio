@@ -1,3 +1,5 @@
+import { sceneScale, SEA_TILT } from './AsciiPerspective'
+
 export type BreezeField = {
   x: number
   y: number
@@ -28,6 +30,7 @@ export class AsciiBreezes {
   private readonly x = new Float32Array(MAX_GLYPHS * SLOT_COUNT)
   private readonly y = new Float32Array(MAX_GLYPHS * SLOT_COUNT)
   private readonly alpha = new Float32Array(MAX_GLYPHS * SLOT_COUNT)
+  private readonly scale = new Float32Array(MAX_GLYPHS * SLOT_COUNT)
 
   /** Seconds since the complete water reveal; each passage stays stable on resize. */
   update(time: number, width: number, height: number, enabled: boolean): void {
@@ -59,15 +62,16 @@ export class AsciiBreezes {
     if (envelope === 0) return
 
     const size = 0.9 + cohortSeed(birth, 3) * 0.2
-    const length = Math.max(36, Math.min(560 * size, width * 0.8))
+    const laneY = 0.18 + cohortSeed(birth, 5) * 0.7
+    const depth = sceneScale(laneY * height, height)
+    const length = Math.max(36, Math.min(560 * size, width * 0.8)) * depth
     const direction = cohortSeed(birth, 4) < 0.5 ? -1 : 1
-    const travelX = -length * 0.5 + progress * (width + length)
-    const centreX = direction > 0 ? travelX : width - travelX
-    const centreY = height * (0.34 + cohortSeed(birth, 5) * 0.46)
-      + Math.sin(progress * Math.PI) * height * 0.015
+    const centreX = width / 2 + direction * (progress - 0.5) * (width * depth + length)
+    const centreY = height * laneY
+      + Math.sin(progress * Math.PI) * height * 0.015 * depth * SEA_TILT
     const flow = age * 0.65 + birth * 1.7
-    const opacity = 0.14 + cohortSeed(birth, 8) * 0.2
-    const samples = Math.min(MAX_GLYPHS, Math.max(9, Math.ceil(length / 6.5)))
+    const opacity = (0.14 + cohortSeed(birth, 8) * 0.2) * depth
+    const samples = Math.min(MAX_GLYPHS, Math.max(9, Math.ceil(length / (6.5 * depth))))
     let minX = Infinity
     let maxX = -Infinity
     let minY = Infinity
@@ -80,13 +84,14 @@ export class AsciiBreezes {
       const u = sample / (samples - 1)
       const x = centreX + (u - 0.5) * length * direction
       // A shallow travelling bend, without curls, split tails or flickering glyphs.
-      const y = centreY + Math.sin(u * Math.PI * 2 - flow) * 5 * size
-        + Math.sin(u * Math.PI + flow * 0.35) * 3 * size
+      const y = centreY + (Math.sin(u * Math.PI * 2 - flow) * 5 * size
+        + Math.sin(u * Math.PI + flow * 0.35) * 3 * size) * depth * SEA_TILT
       const alpha = envelope * opacity * (0.12 + Math.sin(u * Math.PI) * 0.88)
       const point = this.count++
       this.x[point] = x
       this.y[point] = y
       this.alpha[point] = alpha
+      this.scale[point] = depth
       minX = Math.min(minX, x)
       maxX = Math.max(maxX, x)
       minY = Math.min(minY, y)
@@ -99,11 +104,12 @@ export class AsciiBreezes {
     // Pressure follows the visible stripe, preserving its interaction with the water.
     field.x = weightedX / weight
     field.y = weightedY / weight
-    field.radiusX = Math.max(12, field.x - minX, maxX - field.x) + 7
-    field.radiusY = Math.max(9, field.y - minY, maxY - field.y) + 6
+    field.radiusX = Math.max(12 * depth, field.x - minX, maxX - field.x) + 7 * depth
+    field.radiusY = Math.max(9 * depth * SEA_TILT, field.y - minY, maxY - field.y)
+      + 6 * depth * SEA_TILT
     field.inverseX = 1 / (field.radiusX * field.radiusX)
     field.inverseY = 1 / (field.radiusY * field.radiusY)
-    field.strength = 0.44 * envelope
+    field.strength = 0.44 * envelope * depth
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
@@ -112,9 +118,16 @@ export class AsciiBreezes {
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillStyle = '#ffffff'
+    let previousScale = 1
+    ctx.scale(1, SEA_TILT)
     for (let point = 0; point < this.count; point++) {
+      const depth = this.scale[point]
+      if (depth !== previousScale) {
+        ctx.scale(depth / previousScale, depth / previousScale)
+        previousScale = depth
+      }
       ctx.globalAlpha = this.alpha[point]
-      ctx.fillText('-', this.x[point], this.y[point])
+      ctx.fillText('-', this.x[point] / depth, this.y[point] / (depth * SEA_TILT))
     }
     ctx.restore()
   }

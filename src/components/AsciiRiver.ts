@@ -1,4 +1,5 @@
 import { AsciiAtmosphere } from './AsciiAtmosphere'
+import { DEPTH_CENTER, DEPTH_RANGE, sceneScale, SEA_TILT, seaX, seaZ } from './AsciiPerspective'
 
 const TAU = Math.PI * 2
 const DROP_TIME = 0.95
@@ -46,7 +47,7 @@ const WAVES = [
     speed: Math.sqrt(1.25 * k) * 0.32,
   }
 })
-// Overhead camera V=(0,1,0); the sun sits up and toward the lower right.
+// Pitched view; the same low sun keeps the broad swells softly lit.
 const SUN_X = 0.2, SUN_Z = 0.24
 const HALF_HEIGHT = Math.hypot(SUN_X, 0.95, SUN_Z) + 0.95
 const REFLECTION_X = SUN_X / HALF_HEIGHT
@@ -71,6 +72,10 @@ export class AsciiRiver {
   private readonly canvas: HTMLCanvasElement
   private readonly ctx: CanvasRenderingContext2D
   private readonly atlas = document.createElement('canvas')
+  private readonly waterCanvas = document.createElement('canvas')
+  private readonly waterContext = this.waterCanvas.getContext('2d')!
+  private waterPixels!: ImageData
+  private readonly glyphMasks: Uint8Array[] = []
   private readonly motion = matchMedia('(prefers-reduced-motion: reduce)')
   private readonly observer: ResizeObserver
   private readonly atmosphere = new AsciiAtmosphere()
@@ -90,6 +95,9 @@ export class AsciiRiver {
   private cellHeight = 12
   private tileWidth = 1
   private tileHeight = 1
+  private glyphSlot = new Uint16Array(0)
+  private readonly glyphWidth: number[] = []
+  private readonly glyphHeight: number[] = []
   private reach = 1
   private count = 0
   private worldScale = 1
@@ -97,10 +105,14 @@ export class AsciiRiver {
   private luminance!: Float32Array
   private x!: Float32Array
   private y!: Float32Array
+  private planeX!: Float32Array
+  private planeZ!: Float32Array
   private distance!: Float32Array
   private spatialSine!: Float32Array
   private spatialCosine!: Float32Array
-  private readonly sampleWeight = new Float32Array(WAVES.length)
+  private sampleWeight = new Float32Array(0)
+  private rowNorm = new Float32Array(0)
+  private rowScale = new Float32Array(0)
   private gustSine!: Float32Array
   private gustCosine!: Float32Array
   private readonly timeSine = new Float32Array(WAVES.length)
@@ -116,7 +128,7 @@ export class AsciiRiver {
   private pointerY = 0
   private hullX = Number.NaN
   private hullY = 0
-  private heightNorm = 1
+  private bottomContact = 1
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -163,7 +175,14 @@ export class AsciiRiver {
     this.cellHeight = this.width < 640 ? 10 : 12
     this.canvas.width = Math.round(this.width * this.dpr)
     this.canvas.height = Math.round(this.height * this.dpr)
-    this.reach = Math.hypot(this.width / 2, this.height / 2) + 64
+    this.waterCanvas.width = this.canvas.width
+    this.waterCanvas.height = this.canvas.height
+    this.waterPixels = this.waterContext.createImageData(this.canvas.width, this.canvas.height)
+    const farX = seaX(0, 0, this.width, this.height)
+    const nearX = seaX(0, this.height, this.width, this.height)
+    const farZ = seaZ(0, this.height), nearZ = seaZ(this.height, this.height)
+    this.reach = Math.max(Math.hypot(farX, farZ), Math.hypot(nearX, nearZ)) + 64
+    this.bottomContact = nearZ
     const cols = Math.ceil(this.width / this.cellWidth)
     const rows = Math.ceil(this.height / this.cellHeight)
     this.count = cols * rows
@@ -190,36 +209,48 @@ export class AsciiRiver {
     this.luminance = new Float32Array(this.count)
     this.x = new Float32Array(this.count)
     this.y = new Float32Array(this.count)
+    this.planeX = new Float32Array(this.count)
+    this.planeZ = new Float32Array(this.count)
     this.distance = new Float32Array(this.count)
     this.spatialSine = new Float32Array(this.count * WAVES.length)
     this.spatialCosine = new Float32Array(this.count * WAVES.length)
     this.gustSine = new Float32Array(this.count)
     this.gustCosine = new Float32Array(this.count)
-    // Uniform orthographic scale across the entire surface, including the top.
     this.worldScale = 8 / Math.max(this.height, 640)
-    for (let w = 0; w < WAVES.length; w++) {
-      const wave = WAVES[w]
-      const footprint = Math.abs(wave.kx * this.cellWidth * this.worldScale) + Math.abs(wave.kz * this.cellHeight * this.worldScale)
-      this.sampleWeight[w] = clamp((Math.PI - footprint) / (Math.PI * 0.5))
-    }
-    // Normalise crest height to about ±1 at two standard deviations. Swell only
-    // lifts the pattern slightly, so wind sea decides where short crests appear.
-    let variance = 0
-    for (let w = 0; w < WAVES.length; w++) {
-      const amplitude = WAVES[w].amplitude * this.sampleWeight[w] * (w < SWELLS ? SWELL_LIFT : 1)
-      variance += amplitude * amplitude * 0.5
-    }
-    this.heightNorm = 1 / (2 * Math.sqrt(variance))
+    this.sampleWeight = new Float32Array(rows * WAVES.length)
+    this.rowNorm = new Float32Array(rows)
+    this.rowScale = new Float32Array(rows)
     for (let row = 0; row < rows; row++) {
       const y = (row + 0.5) * this.cellHeight
-      const worldZ = (y - this.height / 2) * this.worldScale
+      const depth = sceneScale(y, this.height)
+      this.rowScale[row] = depth
+      const inverseX = DEPTH_CENTER / depth
+      const inverseZ = DEPTH_CENTER * DEPTH_CENTER / (depth * depth * SEA_TILT)
+      const shear = this.width * 0.5 * DEPTH_CENTER * DEPTH_RANGE / (this.height * depth * depth)
+      const worldZ = seaZ(y, this.height) * this.worldScale
+      let variance = 0
+      for (let w = 0; w < WAVES.length; w++) {
+        const wave = WAVES[w]
+        // Row-specific pixel footprints remove distant frequencies before they alias.
+        const footprint = (Math.abs(wave.kx) * (this.cellWidth * inverseX + this.cellHeight * shear)
+          + Math.abs(wave.kz) * this.cellHeight * inverseZ) * this.worldScale
+        const weight = clamp((Math.PI - footprint) / (Math.PI * 0.5))
+        this.sampleWeight[row * WAVES.length + w] = weight
+        const amplitude = wave.amplitude * weight * (w < SWELLS ? SWELL_LIFT : 1)
+        variance += amplitude * amplitude * 0.5
+      }
+      this.rowNorm[row] = 1 / Math.max(0.001, 2 * Math.sqrt(variance))
       for (let col = 0; col < cols; col++) {
         const i = row * cols + col
         const x = (col + 0.5) * this.cellWidth
-        const worldX = (x - this.width / 2) * this.worldScale
+        const planeX = seaX(x, y, this.width, this.height)
+        const planeZ = seaZ(y, this.height)
+        const worldX = planeX * this.worldScale
         this.x[i] = x
         this.y[i] = y
-        this.distance[i] = Math.hypot(x - this.width / 2, y - this.height / 2)
+        this.planeX[i] = planeX
+        this.planeZ[i] = planeZ
+        this.distance[i] = Math.hypot(planeX, planeZ)
         this.gustSine[i] = Math.sin(worldX * 0.28 + worldZ * 0.18)
         this.gustCosine[i] = Math.cos(worldX * 0.28 + worldZ * 0.18)
         for (let w = 0; w < WAVES.length; w++) {
@@ -234,27 +265,86 @@ export class AsciiRiver {
   }
 
   private buildAtlas(): void {
-    this.tileWidth = Math.ceil(this.cellWidth * this.dpr)
-    this.tileHeight = Math.ceil(this.cellHeight * this.dpr)
+    this.tileWidth = Math.ceil(this.cellWidth * 1.05 * this.dpr)
+    this.tileHeight = Math.ceil(this.cellHeight * 1.065 * this.dpr)
+    this.glyphSlot = new Uint16Array(this.rows)
+    this.glyphWidth.length = 0
+    this.glyphHeight.length = 0
+    const sizes = new Map<number, number>()
+    for (let row = 0; row < this.rows; row++) {
+      const depth = this.rowScale[row]
+      const width = Math.round(this.cellWidth * (0.5 + depth * 0.5) * this.dpr)
+      const height = Math.round(this.cellHeight * (0.35 + depth * 0.65) * this.dpr)
+      const key = width * 256 + height
+      let slot = sizes.get(key)
+      if (slot === undefined) {
+        slot = sizes.size
+        sizes.set(key, slot)
+        this.glyphWidth.push(width)
+        this.glyphHeight.push(height)
+      }
+      this.glyphSlot[row] = slot
+    }
     this.atlas.width = this.tileWidth * GLYPHS.length
-    this.atlas.height = this.tileHeight
+    this.atlas.height = this.tileHeight * sizes.size
     const ctx = this.atlas.getContext('2d')!
-    ctx.fillStyle = '#ffffff'
     ctx.font = `400 ${this.cellHeight * 0.83 * this.dpr}px "Geist Mono", monospace`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    for (let i = 1; i < GLYPHS.length; i++) {
-      ctx.fillText(GLYPHS[i], (i + 0.5) * this.tileWidth, this.tileHeight * 0.5)
+    ctx.fillStyle = '#ffffff'
+    for (let slot = 0; slot < sizes.size; slot++) {
+      const width = this.glyphWidth[slot], height = this.glyphHeight[slot]
+      for (let i = 1; i < GLYPHS.length; i++) {
+        ctx.save()
+        ctx.translate(i * this.tileWidth + width / 2, slot * this.tileHeight + height / 2)
+        ctx.scale(width / (this.cellWidth * this.dpr), height / (this.cellHeight * this.dpr))
+        ctx.fillText(GLYPHS[i], 0, 0)
+        ctx.restore()
+      }
+    }
+    // Read coverage only when rebuilding; frames never read back the visible canvas.
+    const pixels = ctx.getImageData(0, 0, this.atlas.width, this.atlas.height).data
+    this.glyphMasks.length = 0
+    for (let slot = 0; slot < sizes.size; slot++) {
+      const width = this.glyphWidth[slot], height = this.glyphHeight[slot]
+      for (let glyph = 0; glyph < GLYPHS.length; glyph++) {
+        const mask = new Uint8Array(width * height)
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const pixel = ((slot * this.tileHeight + y) * this.atlas.width + glyph * this.tileWidth + x) * 4
+            mask[y * width + x] = pixels[pixel + 3]
+          }
+        }
+        this.glyphMasks.push(mask)
+      }
     }
   }
 
-  private glyph(index: number, x: number, y: number, alpha: number): void {
+  private glyph(index: number, x: number, y: number, alpha: number, row = this.rows - 1): void {
     if (alpha < 0.025) return
-    this.ctx.globalAlpha = Math.min(1, alpha)
-    this.ctx.drawImage(
-      this.atlas, index * this.tileWidth, 0, this.tileWidth, this.tileHeight,
-      x - this.cellWidth / 2, y - this.cellHeight / 2, this.cellWidth, this.cellHeight,
-    )
+    const slot = this.glyphSlot[row]
+    const width = this.glyphWidth[slot], height = this.glyphHeight[slot]
+    const opacity = Math.min(1, alpha)
+    const mask = this.glyphMasks[slot * GLYPHS.length + index]
+    const left = Math.round(x * this.dpr - width / 2)
+    const top = Math.round(y * this.dpr - height / 2)
+    const pixels = this.waterPixels.data
+    const stride = this.waterCanvas.width
+    const x0 = Math.max(0, -left), x1 = Math.min(width, stride - left)
+    const y0 = Math.max(0, -top), y1 = Math.min(height, this.waterCanvas.height - top)
+    for (let y = y0; y < y1; y++) {
+      let pixel = ((top + y) * stride + left + x0) * 4
+      for (let x = x0; x < x1; x++, pixel += 4) {
+        const a = Math.round(mask[y * width + x] * opacity)
+        if (!a) continue
+        const oldAlpha = pixels[pixel + 3]
+        const outAlpha = a + oldAlpha * (1 - a / 255)
+        pixels[pixel] = 255
+        pixels[pixel + 1] = 255
+        pixels[pixel + 2] = 255
+        pixels[pixel + 3] = outAlpha
+      }
+    }
   }
 
   private pointerGone = (event: PointerEvent): void => {
@@ -291,7 +381,8 @@ export class AsciiRiver {
     const dx = x - previousX, dy = y - previousY
     const length = Math.hypot(dx, dy)
     if (length < 0.5 || length > 200) return
-    const strength = RIPPLE_PUSH * BOAT_PUSH * (0.25 + wake * 0.75)
+    const depth = sceneScale(y, this.height) / DEPTH_CENTER
+    const strength = RIPPLE_PUSH * BOAT_PUSH * (0.25 + wake * 0.75) * depth
     const steps = Math.ceil(length / this.cellWidth)
     for (let s = 1; s <= steps; s++) {
       const t = s / steps
@@ -304,9 +395,13 @@ export class AsciiRiver {
     // Zero-mean "Mexican hat": the centre sinks while a rim rises, so no net water
     // accumulates along the path and the first crest appears immediately.
     const col = x / this.cellWidth - 0.5, row = y / this.cellHeight - 0.5
-    const aspect = this.cellHeight / this.cellWidth
-    const reachX = Math.ceil(RIPPLE_RADIUS * 4), reachY = Math.ceil(RIPPLE_RADIUS * 4 / aspect)
-    const inverse = 1 / (2 * RIPPLE_RADIUS * RIPPLE_RADIUS)
+    const depth = sceneScale(y, this.height)
+    const scaleX = depth / DEPTH_CENTER
+    const scaleZ = depth * depth * SEA_TILT / (DEPTH_CENTER * DEPTH_CENTER)
+    const radius = RIPPLE_RADIUS * scaleX
+    const aspect = this.cellHeight / this.cellWidth * scaleX / scaleZ
+    const reachX = Math.ceil(radius * 4), reachY = Math.ceil(radius * 4 / aspect)
+    const inverse = 1 / (2 * radius * radius)
     const top = Math.max(1, Math.round(row) - reachY), bottom = Math.min(this.rows - 2, Math.round(row) + reachY)
     const left = Math.max(1, Math.round(col) - reachX), right = Math.min(this.cols - 2, Math.round(col) + reachX)
     for (let r = top; r <= bottom; r++) {
@@ -323,11 +418,15 @@ export class AsciiRiver {
   private stepRipples(): void {
     const { cols, rows } = this
     const height = this.ripple, previous = this.ripplePrev, sponge = this.rippleSponge
-    const courantX = (RIPPLE_SPEED * RIPPLE_STEP / this.cellWidth) ** 2
-    const courantZ = (RIPPLE_SPEED * RIPPLE_STEP / this.cellHeight) ** 2
+    const baseX = (RIPPLE_SPEED * RIPPLE_STEP / this.cellWidth) ** 2
+    const baseZ = (RIPPLE_SPEED * RIPPLE_STEP / this.cellHeight) ** 2
     let peak = 0
     // Leapfrog update written into the previous buffer; the sponge band absorbs outgoing waves.
     for (let row = 1; row < rows - 1; row++) {
+      const depth = this.rowScale[row] / DEPTH_CENTER
+      const courantX = baseX * depth * depth
+      const vertical = depth * depth * SEA_TILT
+      const courantZ = baseZ * vertical * vertical
       for (let col = 1, i = row * cols + 1; col < cols - 1; col++, i++) {
         const current = height[i]
         // Damp only the velocity term: damping height itself would act as a reflecting step.
@@ -365,6 +464,11 @@ export class AsciiRiver {
     const impactStrength = age < REVEAL_TIME + 0.6 ? 1 / (1 + radius / this.reach * 0.7) : 0
     const ripple = this.ripple, cols = this.cols, rippling = this.rippleActive
     for (let i = 0; i < this.count; i++) {
+      const row = Math.floor(i / cols)
+      const depth = this.rowScale[row]
+      const inverseX = DEPTH_CENTER / depth
+      const inverseZ = DEPTH_CENTER * DEPTH_CENTER / (depth * depth * SEA_TILT)
+      const heightNorm = this.rowNorm[row]
       const edge = clamp((radius - this.distance[i]) / 24)
       const reveal = edge * edge * (3 - 2 * edge)
       if (!reveal) continue
@@ -382,12 +486,12 @@ export class AsciiRiver {
       let rippleHeight = 0, rippleX = 0, rippleZ = 0
       if (rippling) {
         rippleHeight = ripple[i]
-        rippleX = ((ripple[i + 1] ?? 0) - (ripple[i - 1] ?? 0)) / (2 * this.cellWidth)
+        rippleX = ((ripple[i + 1] ?? 0) - (ripple[i - 1] ?? 0)) / (2 * this.cellWidth * inverseX)
         rippleZ = ((i + cols < this.count ? ripple[i + cols] : 0) - (i >= cols ? ripple[i - cols] : 0))
-          / (2 * this.cellHeight)
+          / (2 * this.cellHeight * inverseZ)
       }
-      const radialX = (this.x[i] - this.width / 2) * inverseDistance
-      const radialZ = (this.y[i] - this.height / 2) * inverseDistance
+      const radialX = this.planeX[i] * inverseDistance
+      const radialZ = this.planeZ[i] * inverseDistance
       const windSine = this.gustSine[i] * gustCosine - this.gustCosine[i] * gustSine
       const windCosine = this.gustCosine[i] * gustCosine + this.gustSine[i] * gustSine
       let pressure = 0, pressureX = 0, pressureZ = 0
@@ -399,8 +503,8 @@ export class AsciiRiver {
         if (falloff > 12) continue
         const force = breeze.strength * Math.exp(-falloff)
         pressure += force
-        pressureX -= 2 * dx * breeze.inverseX * inverseWorldScale * force
-        pressureZ -= 2 * dy * breeze.inverseY * inverseWorldScale * force
+        pressureX -= 2 * dx * breeze.inverseX * inverseWorldScale / inverseX * force
+        pressureZ -= 2 * dy * breeze.inverseY * inverseWorldScale / inverseZ * force
       }
       // Wind roughens only the short wind-sea components; swell stays untouched.
       const gust = 0.9 + 0.1 * windSine + pressure * 0.45
@@ -412,7 +516,7 @@ export class AsciiRiver {
         const wave = WAVES[w], slot = i * WAVES.length + w
         const sine = this.spatialSine[slot] * this.timeCosine[w] - this.spatialCosine[slot] * this.timeSine[w]
         const cosine = this.spatialCosine[slot] * this.timeCosine[w] + this.spatialSine[slot] * this.timeSine[w]
-        const weight = this.sampleWeight[w]
+        const weight = this.sampleWeight[row * WAVES.length + w]
         if (w < SWELLS) {
           height += wave.amplitude * sine * weight * SWELL_LIFT
           swellX += wave.dx * cosine * weight
@@ -426,7 +530,7 @@ export class AsciiRiver {
       }
       slopeX = (slopeX - impactSlope * radialX + swellX) * WAVE_HEIGHT + impactSlope * radialX + rippleX * RIPPLE_SLOPE
       slopeZ = (slopeZ - impactSlope * radialZ + swellZ) * WAVE_HEIGHT + impactSlope * radialZ + rippleZ * RIPPLE_SLOPE
-      const level = (height + impactHeight) * this.heightNorm + rippleHeight * RIPPLE_LEVEL
+      const level = (height + impactHeight) * heightNorm + rippleHeight * RIPPLE_LEVEL
       // Swell faces toward the sun brighten broad areas; wind-sea facets add local relief.
       const facing = clamp(0.5 - (slopeX * SUN_X + slopeZ * SUN_Z) * 3
         - (swellX * SUN_X + swellZ * SUN_Z) * 4 * WAVE_HEIGHT)
@@ -437,7 +541,7 @@ export class AsciiRiver {
       const luminance = this.luminance[i] + (target - this.luminance[i]) * blend
       this.luminance[i] = luminance
       // Low relief: troughs stay readable and crests only slightly brighter.
-      const body = smoothstep(-0.6, 0.6, level * WAVE_HEIGHT + impactHeight * this.heightNorm * 0.5
+      const body = smoothstep(-0.6, 0.6, level * WAVE_HEIGHT + impactHeight * heightNorm * 0.5
         + rippleHeight * 0.4)
       let glyph = level > 0.55 ? TILDE : level > 0.1 ? DASH : DOT
       let alpha = (0.17 + body * 0.42) * (0.65 + luminance * 0.4)
@@ -453,11 +557,13 @@ export class AsciiRiver {
       // Refraction-like shift: glyphs lean down the wake's slope by a few pixels.
       const shiftX = clamp(-rippleX * RIPPLE_SHIFT, -RIPPLE_SHIFT_MAX, RIPPLE_SHIFT_MAX)
       const shiftY = clamp(-rippleZ * RIPPLE_SHIFT, -RIPPLE_SHIFT_MAX, RIPPLE_SHIFT_MAX)
+      const x = this.x[i] + radialX * displacement / inverseX + shiftX
+      const y = this.y[i] + radialZ * displacement / inverseZ + shiftY
       this.glyph(
         glyph,
-        this.x[i] + radialX * displacement + shiftX,
-        this.y[i] + radialZ * displacement + shiftY,
-        alpha * reveal,
+        x, y,
+        alpha * reveal * (0.48 + depth * 0.52),
+        row,
       )
     }
   }
@@ -508,14 +614,18 @@ export class AsciiRiver {
       this.setState(this.motion.matches ? 'still' : age < REVEAL_TIME ? 'ripple' : 'flowing')
       // Constant-speed propagation carries the crest beyond the viewport corners.
       const radius = this.reach * Math.min(age / REVEAL_TIME, 1.25)
-      if (Number.isNaN(this.boatEntry) && radius >= this.height / 2) this.boatEntry = age
+      if (Number.isNaN(this.boatEntry) && radius >= this.bottomContact) this.boatEntry = age
       this.atmosphere.update(
         age - REVEAL_TIME, Number.isNaN(this.boatEntry) ? -1 : age - this.boatEntry,
         this.width, this.height, !this.motion.matches, this.pointerX, this.pointerY,
       )
       this.pushHull()
+      this.waterPixels.data.fill(0)
       this.drawWater(age, radius)
       this.drawSplash(age)
+      this.waterContext.putImageData(this.waterPixels, 0, 0)
+      ctx.globalAlpha = 1
+      ctx.drawImage(this.waterCanvas, 0, 0, this.width, this.height)
       this.atmosphere.draw(ctx)
     }
     ctx.globalAlpha = 1

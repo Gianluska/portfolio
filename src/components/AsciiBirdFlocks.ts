@@ -1,3 +1,5 @@
+import { sceneScale } from './AsciiPerspective'
+
 const FIRST_BIRTH = 1.4
 const BIRTH_PERIOD = 5.5
 const COHORT_LIMIT = 3
@@ -62,6 +64,7 @@ interface Cohort {
   scaredAge: number
   panic: number
   flap: number
+  scale: number
   readonly x: Float32Array
   readonly y: Float32Array
   readonly angle: Float32Array
@@ -78,7 +81,7 @@ interface Cohort {
 function createCohort(): Cohort {
   return {
     active: false, birth: -1, preset: PRESETS[0], alpha: 0,
-    scared: false, scaredAge: 0, panic: 0, flap: 0,
+    scared: false, scaredAge: 0, panic: 0, flap: 0, scale: 1,
     x: new Float32Array(MAX_BIRDS), y: new Float32Array(MAX_BIRDS),
     angle: new Float32Array(MAX_BIRDS), phase: new Float32Array(MAX_BIRDS),
     offsetX: new Float32Array(MAX_BIRDS), offsetY: new Float32Array(MAX_BIRDS),
@@ -104,6 +107,8 @@ function resetCohort(cohort: Cohort, birth: number): void {
 export class AsciiBirdFlocks {
   private readonly cohorts: readonly Cohort[] = [createCohort(), createCohort(), createCohort()]
   private lastTime = Number.NaN
+  private width = 0
+  private height = 0
 
   /**
    * Seconds since full reveal, plus the boat's centre in canvas pixels (NaN when absent).
@@ -117,12 +122,17 @@ export class AsciiBirdFlocks {
     // A backwards seek restarts every flight from its calm route.
     if (time < this.lastTime) for (const cohort of this.cohorts) cohort.birth = -1
     this.lastTime = time
+    const resizeX = this.width > 0 ? width / this.width : 1
+    const resizeY = this.height > 0 ? height / this.height : 1
+    this.width = width
+    this.height = height
     for (let slot = 0; slot < COHORT_LIMIT; slot++) this.cohorts[slot].active = false
     if (!enabled || time < FIRST_BIRTH || width <= 0 || height <= 0) return
 
     const latestBirth = Math.floor((time - FIRST_BIRTH) / BIRTH_PERIOD)
-    const spacing = width < 640 ? 0.9 : 1
-    const scareRadius = width < 640 ? SCARE_RADIUS_MOBILE : SCARE_RADIUS
+    const viewportDepth = Math.max(0, Math.min(1, (width - 390) / 250))
+    const spacing = 0.9 + viewportDepth * 0.1
+    const scareRadius = SCARE_RADIUS_MOBILE + (SCARE_RADIUS - SCARE_RADIUS_MOBILE) * viewportDepth
     const threat = Number.isFinite(threatX) && Number.isFinite(threatY)
     for (let offset = 0; offset < COHORT_LIMIT; offset++) {
       const birth = latestBirth - offset
@@ -138,33 +148,40 @@ export class AsciiBirdFlocks {
       const preset = PRESETS[birth % PRESETS.length]
       const progress = age / duration
       const direction = birth % 2 === 0 ? 1 : -1
-      // Include the farthest member, its wing width, deformation and shadow.
-      const margin = preset.extent * spacing + 28
-      const travel = width + margin * 2
-      const routePhase = progress * Math.PI
-      const lane = birth % 3
+      const lane = Math.floor(birth / PRESETS.length) % 3
       const laneY = 0.23 + lane * 0.2 + Math.sin(birth * 1.7) * 0.014
-      const slope = Math.sin(birth * 2.3 + 0.5) * 0.045
-      const bend = Math.cos(birth * 1.3) * 0.035
+      // One reference depth keeps the pair/V rigid, even through a curved route.
+      const depth = sceneScale(laneY * height, height)
+      const formationSpacing = spacing * depth
+      // Far flights cover less of the viewport, fading softly rather than teleporting.
+      const travel = (width + (preset.extent * spacing + 28) * 2) * depth
+      const routePhase = progress * Math.PI
+      const slope = Math.sin(birth * 2.3 + 0.5) * 0.045 * depth
+      const bend = Math.cos(birth * 1.3) * 0.035 * depth
       const tangentY = height * (slope + Math.cos(routePhase) * Math.PI * bend)
       const edgeFade = Math.max(0, Math.min(1, age / 1.1, (duration - age) / 1.1))
-      const leaderX = direction === 1 ? -margin + progress * travel : width + margin - progress * travel
+      const leaderX = width / 2 + direction * (progress - 0.5) * travel
       const leaderY = height * (laneY + (progress - 0.5) * slope + Math.sin(routePhase) * bend)
       const routeAngle = Math.atan2(tangentY, direction * travel)
       const dx = Math.cos(routeAngle)
       const dy = Math.sin(routeAngle)
-      const routeSpeed = travel / duration
+      const routeSpeed = Math.hypot(travel, tangentY) / duration
 
       cohort.active = true
       cohort.preset = preset
-      cohort.alpha = edgeFade * edgeFade * (3 - 2 * edgeFade)
+      cohort.scale = depth
+      cohort.alpha = edgeFade * edgeFade * (3 - 2 * edgeFade) * depth
       const birds = preset.birds
       for (let member = 0; member < birds.length; member++) {
         const bird = birds[member]
         const phase = age * 5.2 + birth * 1.37 + bird.phase + cohort.flap
         // Members breathe within their formation, never changing its silhouette.
-        const behind = bird.behind * spacing + Math.sin(phase * 0.31) * 1.3
-        const side = bird.side * spacing + Math.sin(phase * 0.43) * 1.8
+        const behind = bird.behind * formationSpacing + Math.sin(phase * 0.31) * 1.3 * depth
+        const side = bird.side * formationSpacing + Math.sin(phase * 0.43) * 1.8 * depth
+        cohort.offsetX[member] *= resizeX
+        cohort.offsetY[member] *= resizeY
+        cohort.velocityX[member] *= resizeX
+        cohort.velocityY[member] *= resizeY
         cohort.x[member] = leaderX - dx * behind - dy * side + cohort.offsetX[member]
         cohort.y[member] = leaderY - dy * behind + dx * side + cohort.offsetY[member]
         cohort.phase[member] = phase
@@ -172,12 +189,13 @@ export class AsciiBirdFlocks {
 
       // Any bird within reach startles the whole flock. Each flees straight away from
       // the boat, keeping a little of its heading; nearer birds react first.
-      if (!cohort.scared && threat && cohort.alpha > 0.2) {
+      if (!cohort.scared && threat && edgeFade > 0.2) {
         let nearest = Infinity
         for (let member = 0; member < birds.length; member++) {
           nearest = Math.min(nearest, Math.hypot(cohort.x[member] - threatX, cohort.y[member] - threatY))
         }
-        if (nearest < scareRadius) {
+        const reach = scareRadius * (depth + sceneScale(threatY, height)) * 0.5
+        if (nearest < reach) {
           cohort.scared = true
           for (let member = 0; member < birds.length; member++) {
             const awayX = cohort.x[member] - threatX
@@ -189,7 +207,7 @@ export class AsciiBirdFlocks {
             const length = Math.hypot(fleeX, fleeY)
             cohort.fleeX[member] = fleeX / length
             cohort.fleeY[member] = fleeY / length
-            cohort.delay[member] = (distance - nearest) / REACTION_SPREAD
+            cohort.delay[member] = (distance - nearest) / (REACTION_SPREAD * depth)
           }
         }
       }
@@ -201,12 +219,13 @@ export class AsciiBirdFlocks {
         cohort.flap += dt * 5.2 * (PANIC_FLAP - 1) * cohort.panic
         for (let member = 0; member < birds.length; member++) {
           if (cohort.scaredAge < cohort.delay[member]) continue
-          let velocityX = cohort.velocityX[member] + cohort.fleeX[member] * FLEE_ACCEL * dt
-          let velocityY = cohort.velocityY[member] + cohort.fleeY[member] * FLEE_ACCEL * dt
+          let velocityX = cohort.velocityX[member] + cohort.fleeX[member] * FLEE_ACCEL * depth * dt
+          let velocityY = cohort.velocityY[member] + cohort.fleeY[member] * FLEE_ACCEL * depth * dt
           const speed = Math.hypot(velocityX, velocityY)
-          if (speed > FLEE_SPEED) {
-            velocityX *= FLEE_SPEED / speed
-            velocityY *= FLEE_SPEED / speed
+          const maxSpeed = FLEE_SPEED * depth
+          if (speed > maxSpeed) {
+            velocityX *= maxSpeed / speed
+            velocityY *= maxSpeed / speed
           }
           cohort.velocityX[member] = velocityX
           cohort.velocityY[member] = velocityY
@@ -241,6 +260,7 @@ export class AsciiBirdFlocks {
         const pose = BIRD_POSES[flap > 0.4 ? 0 : flap < -0.4 ? 2 : 1]
         ctx.save()
         ctx.translate(cohort.x[member], cohort.y[member])
+        ctx.scale(cohort.scale, cohort.scale)
         // Authored facing up; rotate the beak into the flight direction.
         ctx.rotate(cohort.angle[member] + Math.PI / 2)
         ctx.fillStyle = '#000000'
