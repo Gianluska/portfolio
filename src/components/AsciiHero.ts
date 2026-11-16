@@ -7,6 +7,7 @@ const LOADING = 900
 /** Original dither skeletons shimmer briefly before the actual copy replaces them. */
 export class AsciiHero {
   private readonly styles = document.createElement('style')
+  private readonly roleSizer = document.createElement('span')
   private readonly role: HTMLButtonElement
   private readonly text: HTMLElement
   private readonly motion = matchMedia('(prefers-reduced-motion: reduce)')
@@ -28,6 +29,14 @@ export class AsciiHero {
     el.append(this.styles)
     this.role = el.querySelector<HTMLButtonElement>('.hero__role')!
     this.text = el.querySelector<HTMLElement>('[data-hero-role]')!
+    this.roleSizer.className = 'hero__role-sizer'
+    this.roleSizer.setAttribute('aria-hidden', 'true')
+    for (const label of ROLES) {
+      const option = document.createElement('span')
+      option.textContent = label
+      this.roleSizer.append(option)
+    }
+    this.role.prepend(this.roleSizer)
     this.role.addEventListener('click', this.toggle)
     this.motion.addEventListener('change', this.motionChange)
     document.addEventListener('visibilitychange', this.visibility)
@@ -37,7 +46,12 @@ export class AsciiHero {
   async start(): Promise<void> {
     if (this.started || this.destroyed) return
     this.started = true
-    await document.fonts.ready
+    const name = this.el.querySelector<HTMLElement>('[data-hero-name]')!
+    await Promise.all([
+      document.fonts.ready,
+      document.fonts.load(getComputedStyle(name).font),
+      document.fonts.load(getComputedStyle(this.text).font),
+    ])
     if (this.destroyed) return
     this.el.hidden = false
     if (!this.motion.matches) await this.play(true)
@@ -172,5 +186,6 @@ export class AsciiHero {
     this.motion.removeEventListener('change', this.motionChange)
     document.removeEventListener('visibilitychange', this.visibility)
     this.styles.remove()
+    this.roleSizer.remove()
   }
 }

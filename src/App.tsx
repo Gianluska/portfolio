@@ -71,7 +71,7 @@ export default function App() {
           <div className="hero__copy">
             <h1 id="hero-name" className="hero__name">
               <span className="hero__line">
-                <span className="hero__text" data-hero-name>Gianlucca Cludino</span>
+                <span className="hero__text" data-hero-name>Gianlucca Claudino</span>
                 <span className="hero__skeleton" aria-hidden="true" hidden />
               </span>
             </h1>

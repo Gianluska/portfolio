@@ -11,7 +11,7 @@ export class AsciiAtmosphere {
   readonly boat = new AsciiBoat()
   readonly breezes = this.wind.fields
 
-  /** Air/wind/birds start after full reveal; the ship's clock starts at bottom contact. */
+  /** Fog leads full reveal by 2 s; other air/wind/birds follow it, ship starts at bottom contact. */
   update(
     time: number, boatTime: number, width: number, height: number, enabled: boolean,
     pointerX = Number.NaN, pointerY = Number.NaN,
@@ -28,9 +28,9 @@ export class AsciiAtmosphere {
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    this.air.drawMist(ctx)
     this.wind.draw(ctx)
     this.boat.draw(ctx)
+    this.air.drawMist(ctx)
     this.air.drawMotes(ctx)
     this.birds.draw(ctx)
   }
