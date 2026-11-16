@@ -1,5 +1,4 @@
 import { AsciiAtmosphere } from './AsciiAtmosphere'
-import { AsciiIsland } from './AsciiIsland'
 
 const TAU = Math.PI * 2
 const DROP_TIME = 0.95
@@ -75,7 +74,6 @@ export class AsciiRiver {
   private readonly motion = matchMedia('(prefers-reduced-motion: reduce)')
   private readonly observer: ResizeObserver
   private readonly atmosphere = new AsciiAtmosphere()
-  private readonly island = new AsciiIsland()
   private state: RiverState = 'waiting'
   private started = false
   private destroyed = false
@@ -518,9 +516,7 @@ export class AsciiRiver {
       this.pushHull()
       this.drawWater(age, radius)
       this.drawSplash(age)
-      this.atmosphere.drawSurface(ctx)
-      this.island.draw(ctx, this.width, this.height, age, radius, this.motion.matches)
-      this.atmosphere.drawAir(ctx)
+      this.atmosphere.draw(ctx)
     }
     ctx.globalAlpha = 1
   }
