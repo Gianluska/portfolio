@@ -233,7 +233,7 @@ a {
 }
 
 .hero__roles {
-  margin: clamp(20px, 2.2vw, 32px) 0 0;
+  margin: clamp(8px, 0.8vw, 12px) 0 0;
 }
 
 .hero__role {
@@ -245,7 +245,7 @@ a {
   background: transparent;
   color: #c3c3c3;
   font: inherit;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Redaction 35', serif;
   font-size: clamp(20px, 1.8vw, 26px);
   line-height: 1.35;
   text-align: start;

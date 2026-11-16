@@ -3,6 +3,8 @@ import { animateSkeleton, asciiSkeletonHTML, SKELETON_CSS } from 'ascii-reveal/c
 const ROLES = ['Creative Technologist', 'Frontend Specialist', 'Product Engineer'] as const
 const HOLD = 3200
 const LOADING = 900
+// ascii-reveal 0.3.0 caps block textures at 96 glyph columns.
+const SKELETON_COLUMNS = 96
 
 /** Original dither skeletons shimmer briefly before the actual copy replaces them. */
 export class AsciiHero {
@@ -10,6 +12,7 @@ export class AsciiHero {
   private readonly roleSizer = document.createElement('span')
   private readonly role: HTMLButtonElement
   private readonly text: HTMLElement
+  private readonly metrics: CanvasRenderingContext2D
   private readonly motion = matchMedia('(prefers-reduced-motion: reduce)')
   private readonly skeletonStops: (() => void)[] = []
   private readonly waveLines: HTMLElement[] = []
@@ -25,6 +28,9 @@ export class AsciiHero {
   private paused = false
 
   constructor(private readonly el: HTMLElement) {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1
+    this.metrics = canvas.getContext('2d')!
     this.styles.textContent = SKELETON_CSS
     el.append(this.styles)
     this.role = el.querySelector<HTMLButtonElement>('.hero__role')!
@@ -59,20 +65,45 @@ export class AsciiHero {
 
   private showSkeleton(line: HTMLElement, seed: number, initial: boolean): void {
     const overlay = line.querySelector<HTMLElement>('.hero__skeleton')!
-    const fontSize = Number.parseFloat(getComputedStyle(overlay).fontSize)
-    const rows = Math.max(1, Math.ceil(line.getBoundingClientRect().height / fontSize))
-    overlay.innerHTML = asciiSkeletonHTML({ variant: 'dither', rows, seed, css: false })
+    const style = getComputedStyle(overlay)
+    const baseFontSize = Number.parseFloat(style.fontSize)
+    this.metrics.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+    const advance = this.metrics.measureText('M').width
+    let width = -1
+    let height = -1
+    let disposed = false
+    let stopShimmer: (() => void) | null = null
+    const render = () => {
+      if (disposed) return
+      const bounds = line.getBoundingClientRect()
+      if (bounds.width === width && bounds.height === height) return
+      width = bounds.width
+      height = bounds.height
+      stopShimmer?.()
+      // Leave one column spare so rounding cannot expose an untextured right edge.
+      const fontSize = Math.max(baseFontSize,
+        Math.ceil(width * baseFontSize / ((SKELETON_COLUMNS - 1) * advance)))
+      const rows = Math.max(1, Math.ceil(height / fontSize))
+      overlay.style.fontSize = `${fontSize}px`
+      overlay.innerHTML = asciiSkeletonHTML({ variant: 'dither', rows, seed, css: false })
+      stopShimmer = animateSkeleton(overlay.firstElementChild as HTMLElement)
+    }
     overlay.hidden = false
     line.classList.add('is-loading')
+    render()
+    const resize = new ResizeObserver(render)
+    resize.observe(line)
     this.waveLines.push(line)
     this.sweep(overlay, 'inset(0 100% 0 0)', 'inset(0)')
     const text = line.querySelector<HTMLElement>('.hero__text')!
     if (initial) text.style.clipPath = 'inset(0 100% 0 0)'
     else this.sweep(text, 'inset(0)', 'inset(0 0 0 100%)')
-    const stop = animateSkeleton(overlay.firstElementChild as HTMLElement)
     this.skeletonStops.push(() => {
-      stop()
+      disposed = true
+      resize.disconnect()
+      stopShimmer?.()
       overlay.replaceChildren()
+      overlay.style.removeProperty('font-size')
       overlay.hidden = true
       line.classList.remove('is-loading')
       text.style.removeProperty('clip-path')
