@@ -1,5 +1,7 @@
 import { AsciiAtmosphere } from './AsciiAtmosphere'
-import { DEPTH_CENTER, DEPTH_RANGE, sceneScale, SEA_TILT, seaX, seaZ } from './AsciiPerspective'
+import { DEPTH_CENTER, sceneScale, SEA_TILT, seaX, seaZ } from './AsciiPerspective'
+import { AsciiSceneCamera } from './AsciiSceneCamera'
+import { AsciiWaterfall, WATER_GLYPHS } from './AsciiWaterfall'
 
 const TAU = Math.PI * 2
 const DROP_TIME = 0.95
@@ -7,7 +9,7 @@ const REVEAL_TIME = 2.8
 const HERO_START = Math.max(0, DROP_TIME + REVEAL_TIME - 3)
 const FRAME_TIME = 1000 / 30
 // Sea palette: troughs fade out, slopes read as dashes, crests as tildes, sun glints sparkle.
-const GLYPHS = ' .-~+*'
+const GLYPHS = WATER_GLYPHS
 const DOT = 1, DASH = 2, TILDE = 3, PLUS = 4, STAR = 5
 // Two long swells shade the sea broadly; a gentle, narrow-angle wind sea draws wide, soft crests.
 const SWELLS = 2
@@ -75,11 +77,18 @@ export class AsciiRiver {
   private readonly atlas = document.createElement('canvas')
   private readonly waterCanvas = document.createElement('canvas')
   private readonly waterContext = this.waterCanvas.getContext('2d')!
+  private readonly actorsCanvas = document.createElement('canvas')
+  private readonly actorsContext = this.actorsCanvas.getContext('2d')!
   private waterPixels!: ImageData
   private readonly glyphMasks: Uint8Array[] = []
   private readonly motion = matchMedia('(prefers-reduced-motion: reduce)')
   private readonly observer: ResizeObserver
   private readonly atmosphere = new AsciiAtmosphere()
+  private readonly camera = new AsciiSceneCamera()
+  private readonly waterfall = new AsciiWaterfall()
+  private scrollProgress = 0
+  private scrollEnd = 1
+  private projectedProgress = -1
   private state: RiverState = 'waiting'
   private started = false
   private destroyed = false
@@ -115,6 +124,7 @@ export class AsciiRiver {
   private sampleWeight = new Float32Array(0)
   private rowNorm = new Float32Array(0)
   private rowScale = new Float32Array(0)
+  private rowInverseZ = new Float32Array(0)
   private gustSine!: Float32Array
   private gustCosine!: Float32Array
   private readonly timeSine = new Float32Array(WAVES.length)
@@ -128,11 +138,16 @@ export class AsciiRiver {
   private rippleClock = 0
   private pointerX = Number.NaN
   private pointerY = 0
+  private fallPointerX = Number.NaN
+  private fallPointerY = 0
   private hullX = Number.NaN
   private hullY = 0
   private bottomContact = 1
 
-  constructor(canvas: HTMLCanvasElement, private readonly onHeroReady: () => void) {
+  constructor(
+    canvas: HTMLCanvasElement, private readonly onHeroReady: () => void,
+    private readonly hero: HTMLElement, private readonly projects: HTMLElement,
+  ) {
     this.canvas = canvas
     const ctx = canvas.getContext('2d', { alpha: false })
     if (!ctx) throw new Error('The ASCII river requires a 2D canvas context')
@@ -144,6 +159,7 @@ export class AsciiRiver {
     window.addEventListener('pointerout', this.pointerGone, { passive: true })
     window.addEventListener('pointerup', this.pointerGone, { passive: true })
     window.addEventListener('pointercancel', this.pointerGone, { passive: true })
+    window.addEventListener('scroll', this.scroll, { passive: true })
     document.fonts.ready.then(() => {
       if (this.started && !this.destroyed) {
         this.buildAtlas()
@@ -172,6 +188,9 @@ export class AsciiRiver {
     const box = this.canvas.getBoundingClientRect()
     this.width = Math.max(1, box.width)
     this.height = Math.max(1, box.height)
+    this.scrollEnd = Math.max(1, this.projects.getBoundingClientRect().top + window.scrollY)
+    this.scrollProgress = clamp(window.scrollY / this.scrollEnd)
+    this.camera.update(this.motion.matches ? (this.scrollProgress >= 0.5 ? 1 : 0) : this.scrollProgress, this.height)
     this.dpr = Math.min(1.5, window.devicePixelRatio || 1)
     this.cellWidth = this.width < 640 ? 7 : 8
     this.cellHeight = this.width < 640 ? 10 : 12
@@ -179,6 +198,8 @@ export class AsciiRiver {
     this.canvas.height = Math.round(this.height * this.dpr)
     this.waterCanvas.width = this.canvas.width
     this.waterCanvas.height = this.canvas.height
+    this.actorsCanvas.width = this.canvas.width
+    this.actorsCanvas.height = this.canvas.height
     this.waterPixels = this.waterContext.createImageData(this.canvas.width, this.canvas.height)
     const farX = seaX(0, 0, this.width, this.height)
     const nearX = seaX(0, this.height, this.width, this.height)
@@ -222,18 +243,30 @@ export class AsciiRiver {
     this.sampleWeight = new Float32Array(rows * WAVES.length)
     this.rowNorm = new Float32Array(rows)
     this.rowScale = new Float32Array(rows)
+    this.rowInverseZ = new Float32Array(rows)
+    this.projectWater()
+    this.updateScrollCopy()
+    this.buildAtlas()
+  }
+
+  /** Reproject only when the camera changes; phase recurrences avoid per-cell trig. */
+  private projectWater(): void {
+    const { camera, height, width, cols, rows } = this
+    this.projectedProgress = this.scrollProgress
     for (let row = 0; row < rows; row++) {
       const y = (row + 0.5) * this.cellHeight
-      const depth = sceneScale(y, this.height)
+      const planeZ = camera.worldZ(Math.min(y, camera.lipY), height)
+      const scale = camera.scale(planeZ, height)
+      const depth = DEPTH_CENTER * scale
       this.rowScale[row] = depth
-      const inverseX = DEPTH_CENTER / depth
-      const inverseZ = DEPTH_CENTER * DEPTH_CENTER / (depth * depth * SEA_TILT)
-      const shear = this.width * 0.5 * DEPTH_CENTER * DEPTH_RANGE / (this.height * depth * depth)
-      const worldZ = seaZ(y, this.height) * this.worldScale
+      const inverseX = 1 / scale
+      const inverseZ = camera.inverseSlope(Math.min(y, camera.lipY), height)
+      this.rowInverseZ[row] = inverseZ
+      const shear = width * 0.5 * camera.perspective / (height * camera.zoom) * inverseZ
+      const worldZ = planeZ * this.worldScale
       let variance = 0
       for (let w = 0; w < WAVES.length; w++) {
         const wave = WAVES[w]
-        // Row-specific pixel footprints remove distant frequencies before they alias.
         const footprint = (Math.abs(wave.kx) * (this.cellWidth * inverseX + this.cellHeight * shear)
           + Math.abs(wave.kz) * this.cellHeight * inverseZ) * this.worldScale
         const weight = clamp((Math.PI - footprint) / (Math.PI * 0.5))
@@ -245,25 +278,51 @@ export class AsciiRiver {
       for (let col = 0; col < cols; col++) {
         const i = row * cols + col
         const x = (col + 0.5) * this.cellWidth
-        const planeX = seaX(x, y, this.width, this.height)
-        const planeZ = seaZ(y, this.height)
-        const worldX = planeX * this.worldScale
+        const planeX = (x - width / 2) * inverseX
         this.x[i] = x
         this.y[i] = y
         this.planeX[i] = planeX
         this.planeZ[i] = planeZ
         this.distance[i] = Math.hypot(planeX, planeZ)
-        this.gustSine[i] = Math.sin(worldX * 0.28 + worldZ * 0.18)
-        this.gustCosine[i] = Math.cos(worldX * 0.28 + worldZ * 0.18)
-        for (let w = 0; w < WAVES.length; w++) {
-          const wave = WAVES[w], slot = i * WAVES.length + w
-          const phase = wave.kx * worldX + wave.kz * worldZ + wave.phase
-          this.spatialSine[slot] = Math.sin(phase)
-          this.spatialCosine[slot] = Math.cos(phase)
+        const phase = planeX * this.worldScale * 0.28 + worldZ * 0.18
+        this.gustSine[i] = Math.sin(phase)
+        this.gustCosine[i] = Math.cos(phase)
+      }
+      for (let w = 0; w < WAVES.length; w++) {
+        const wave = WAVES[w]
+        const phase = wave.kx * this.planeX[row * cols] * this.worldScale + wave.kz * worldZ + wave.phase
+        const step = wave.kx * this.cellWidth * inverseX * this.worldScale
+        const stepSine = Math.sin(step), stepCosine = Math.cos(step)
+        let sine = Math.sin(phase), cosine = Math.cos(phase)
+        for (let col = 0; col < cols; col++) {
+          const slot = (row * cols + col) * WAVES.length + w
+          this.spatialSine[slot] = sine
+          this.spatialCosine[slot] = cosine
+          const nextSine = sine * stepCosine + cosine * stepSine
+          cosine = cosine * stepCosine - sine * stepSine
+          sine = nextSine
         }
       }
     }
-    this.buildAtlas()
+  }
+
+  private updateScrollCopy(): void {
+    const opacity = 1 - smoothstep(0, 0.28, this.scrollProgress)
+    this.hero.style.opacity = String(opacity)
+    this.hero.inert = opacity === 0
+    this.canvas.dataset.scene = this.scrollProgress === 0 ? 'sea'
+      : this.scrollProgress === 1 ? 'waterfall' : 'transition'
+  }
+
+  private scroll = (): void => {
+    this.scrollProgress = clamp(window.scrollY / this.scrollEnd)
+    if (this.scrollProgress > 0.03) this.pointerX = Number.NaN
+    this.updateScrollCopy()
+    if (this.started && this.motion.matches && !document.hidden) this.draw()
+  }
+
+  private readonly plotFall = (glyph: number, x: number, y: number, alpha: number): void => {
+    this.glyph(glyph, x, y, alpha)
   }
 
   private buildAtlas(): void {
@@ -274,7 +333,7 @@ export class AsciiRiver {
     this.glyphHeight.length = 0
     const sizes = new Map<number, number>()
     for (let row = 0; row < this.rows; row++) {
-      const depth = this.rowScale[row]
+      const depth = sceneScale((row + 0.5) * this.cellHeight, this.height)
       const width = Math.round(this.cellWidth * (0.5 + depth * 0.5) * this.dpr)
       const height = Math.round(this.cellHeight * (0.35 + depth * 0.65) * this.dpr)
       const key = width * 256 + height
@@ -350,18 +409,24 @@ export class AsciiRiver {
   }
 
   private pointerGone = (event: PointerEvent): void => {
-    // Leaving the window, or lifting a finger, removes the target the boat steers toward.
+    // Leaving the window or lifting a finger releases both scene-specific pointer targets.
     const gone = event.type === 'pointerout' ? event.relatedTarget === null : event.pointerType !== 'mouse'
-    if (gone) this.pointerX = Number.NaN
+    if (gone) {
+      this.pointerX = Number.NaN
+      this.fallPointerX = Number.NaN
+    }
   }
 
   private pointer = (event: PointerEvent): void => {
-    if (this.state !== 'ripple' && this.state !== 'flowing') {
+    const box = this.canvas.getBoundingClientRect()
+    this.fallPointerX = event.pointerType === 'mouse' && !this.motion.matches
+      ? event.clientX - box.left : Number.NaN
+    this.fallPointerY = event.clientY - box.top
+    if (this.scrollProgress > 0.03 || (this.state !== 'ripple' && this.state !== 'flowing')) {
       this.pointerX = Number.NaN
       return
     }
-    // The pointer only steers the boat; the hull makes the wake and startles the birds.
-    const box = this.canvas.getBoundingClientRect()
+    // On the sea, the pointer steers the boat; only its hull makes wakes and startles birds.
     this.pointerX = event.clientX - box.left
     this.pointerY = event.clientY - box.top
   }
@@ -467,12 +532,13 @@ export class AsciiRiver {
     const ripple = this.ripple, cols = this.cols, rippling = this.rippleActive
     for (let i = 0; i < this.count; i++) {
       const row = Math.floor(i / cols)
+      if (this.y[i] >= this.camera.lipY) continue
       const depth = this.rowScale[row]
       const inverseX = DEPTH_CENTER / depth
-      const inverseZ = DEPTH_CENTER * DEPTH_CENTER / (depth * depth * SEA_TILT)
+      const inverseZ = this.rowInverseZ[row]
       const heightNorm = this.rowNorm[row]
       const edge = clamp((radius - this.distance[i]) / 24)
-      const reveal = edge * edge * (3 - 2 * edge)
+      const reveal = age >= REVEAL_TIME ? 1 : edge * edge * (3 - 2 * edge)
       if (!reveal) continue
       // The impact's travelling crest and trailing trough are part of the height field.
       const front = (this.distance[i] - radius + 32) / 36
@@ -565,7 +631,7 @@ export class AsciiRiver {
         glyph,
         x, y,
         alpha * reveal * (0.48 + depth * 0.52),
-        row,
+        this.scrollProgress > 0 ? Math.round(clamp((depth - 0.3) / 0.8) * (this.rows - 1)) : row,
       )
     }
   }
@@ -608,6 +674,10 @@ export class AsciiRiver {
     ctx.globalAlpha = 1
     ctx.fillStyle = '#000000'
     ctx.fillRect(0, 0, this.width, this.height)
+    if (this.projectedProgress !== this.scrollProgress) {
+      this.camera.update(this.motion.matches ? (this.scrollProgress >= 0.5 ? 1 : 0) : this.scrollProgress, this.height)
+      this.projectWater()
+    }
     if (!this.heroStarted && this.elapsed >= HERO_START) {
       this.heroStarted = true
       this.onHeroReady()
@@ -623,16 +693,37 @@ export class AsciiRiver {
       if (Number.isNaN(this.boatEntry) && radius >= this.bottomContact) this.boatEntry = age
       this.atmosphere.update(
         age - REVEAL_TIME, Number.isNaN(this.boatEntry) ? -1 : age - this.boatEntry,
-        this.width, this.height, !this.motion.matches, this.pointerX, this.pointerY,
+        this.width, this.height, !this.motion.matches,
+        this.scrollProgress > 0.03 ? Number.NaN : this.pointerX, this.pointerY,
       )
-      this.pushHull()
+      if (this.scrollProgress === 0) this.pushHull()
       this.waterPixels.data.fill(0)
       this.drawWater(age, radius)
       this.drawSplash(age)
+      this.waterfall.draw(
+        this.motion.matches ? 0 : age, this.width, this.height, this.cellWidth, this.cellHeight,
+        this.camera, this.plotFall,
+        !this.motion.matches && this.scrollProgress >= 0.35 ? this.fallPointerX : Number.NaN,
+        this.fallPointerY,
+      )
       this.waterContext.putImageData(this.waterPixels, 0, 0)
       ctx.globalAlpha = 1
       ctx.drawImage(this.waterCanvas, 0, 0, this.width, this.height)
-      this.atmosphere.draw(ctx)
+      const actorFade = 1 - smoothstep(0.06, 0.5, this.scrollProgress)
+      if (actorFade > 0) {
+        const actors = this.actorsContext
+        actors.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
+        actors.clearRect(0, 0, this.width, this.height)
+        actors.save()
+        const zoom = this.camera.zoom
+        const pitch = zoom * this.camera.tilt / SEA_TILT
+        actors.translate(this.width * (1 - zoom) / 2, this.camera.centerY - this.height * pitch / 2)
+        actors.scale(zoom, pitch)
+        this.atmosphere.draw(actors, this.camera)
+        actors.restore()
+        ctx.globalAlpha = actorFade
+        ctx.drawImage(this.actorsCanvas, 0, 0, this.width, this.height)
+      }
     }
     ctx.globalAlpha = 1
   }
@@ -677,6 +768,7 @@ export class AsciiRiver {
 
   private visibility = (): void => {
     if (document.hidden) this.stop()
+    else if (this.motion.matches) this.draw()
     else this.resume()
   }
 
@@ -687,7 +779,9 @@ export class AsciiRiver {
     this.ripple.fill(0)
     this.ripplePrev.fill(0)
     this.rippleActive = false
+    this.projectedProgress = -1
     this.hullX = Number.NaN
+    this.fallPointerX = Number.NaN
     this.draw()
     this.resume()
   }
@@ -711,6 +805,9 @@ export class AsciiRiver {
     window.removeEventListener('pointerout', this.pointerGone)
     window.removeEventListener('pointerup', this.pointerGone)
     window.removeEventListener('pointercancel', this.pointerGone)
+    window.removeEventListener('scroll', this.scroll)
+    this.hero.style.removeProperty('opacity')
+    this.hero.inert = false
     this.setState('waiting')
   }
 }

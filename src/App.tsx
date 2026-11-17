@@ -1,9 +1,9 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { Director } from './director'
 import { glyphs } from './data/glyphs'
-const LINKS = [
-  { href: '#projects', label: 'Projects' },
-  { href: '#contact', label: 'Contact' },
+const NAV_ITEMS = [
+  { scene: 'projects', label: 'Projects', available: true },
+  { scene: 'contact', label: 'Contact', available: false },
 ]
 
 
@@ -20,6 +20,7 @@ export default function App() {
         loaderLogo: $('.loader__logo'),
         river: el.querySelector<HTMLCanvasElement>('.river')!,
         hero: $('.hero'),
+        projects: $('#projects'),
         ui: $('.ui'),
         header: $('.header'),
         headerLink: $('.header__home'),
@@ -49,9 +50,10 @@ export default function App() {
           </a>
           <nav aria-label="Main">
             <ul className="nav">
-              {LINKS.map(({ href, label }) => (
-                <li className="nav__item" key={href}>
-                  <a className="nav__link" href={href}>
+              {NAV_ITEMS.map(({ scene, label, available }) => (
+                <li className="nav__item" key={scene}>
+                  <button className="nav__link" type="button" data-scene={scene}
+                    aria-controls={available ? scene : undefined} disabled={!available}>
                     <span className="nav__label" data-label>
                       {label}
                     </span>
@@ -60,14 +62,17 @@ export default function App() {
                         <i key={i} style={{ '--i': i } as CSSProperties} />
                       ))}
                     </span>
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>
           </nav>
         </header>
+      </div>
 
-        <main className="hero" aria-labelledby="hero-name" hidden>
+      <main className="scene-content">
+
+        <section className="hero" aria-labelledby="hero-name" hidden>
           <div className="hero__copy">
             <h1 id="hero-name" className="hero__name" tabIndex={0} aria-label={'Gianlucca "lvsk" Claudino'}>
               <span className="hero__line">
@@ -96,9 +101,12 @@ export default function App() {
               </span>
             </p>
           </div>
-        </main>
+        </section>
 
-      </div>
+        <section id="projects" className="projects" aria-labelledby="projects-title">
+          <h2 id="projects-title">Projects</h2>
+        </section>
+      </main>
     </div>
   )
 }

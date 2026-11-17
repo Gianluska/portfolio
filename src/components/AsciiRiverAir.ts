@@ -1,4 +1,5 @@
 import { sceneScale, SEA_TILT } from './AsciiPerspective'
+import type { AsciiSceneCamera } from './AsciiSceneCamera'
 
 const INSECTS = 8
 const DUST = 32
@@ -177,11 +178,16 @@ export class AsciiRiverAir {
   }
 
   /** Depth haze and drifting banks veil the water, wind and ship beneath airborne actors. */
-  drawMist(ctx: CanvasRenderingContext2D): void {
+  drawMist(ctx: CanvasRenderingContext2D, camera: AsciiSceneCamera): void {
     if (this.fogAlpha <= 0) return
     ctx.save()
     ctx.globalAlpha = this.fogAlpha * FOG_OPACITY
-    ctx.drawImage(this.depthVeil, 0, 0, this.fogWidth, this.fogHeight)
+    // Unproject the screen-wide veil so camera retreat cannot expose its rectangular edges.
+    // Local banks below still inherit the actor projection.
+    const zoom = camera.zoom, pitch = zoom * camera.tilt / SEA_TILT
+    const left = this.fogWidth * (zoom - 1) / (2 * zoom)
+    const top = this.fogHeight / 2 - camera.centerY / pitch
+    ctx.drawImage(this.depthVeil, left, top, this.fogWidth / zoom, this.fogHeight / pitch)
     ctx.fillStyle = '#ffffff'
     ctx.font = '400 12px "Geist Mono", monospace'
     ctx.textAlign = 'center'

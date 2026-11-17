@@ -24,11 +24,39 @@
   box-sizing: border-box;
 }
 
+html[data-scroll-mode='snap'] {
+  scrollbar-width: none;
+  overscroll-behavior-y: none;
+}
+
+
 body {
   font-family: var(--mono);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+.scene-content {
+  padding-block-start: 220svh;
+}
+
+.projects {
+  position: relative;
+  z-index: 2;
+  min-height: 100svh;
+  padding: max(130px, 18svh) var(--pad) 18svh;
+}
+
+.projects h2 {
+  width: fit-content;
+  margin: 0;
+  color: var(--fg);
+  font-family: 'Redaction 35', serif;
+  font-size: clamp(48px, 6.8vw, 96px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
 }
 
 
@@ -161,7 +189,7 @@ a {
 /* ---------- hero ---------- */
 
 .hero {
-  position: absolute;
+  position: fixed;
   top: 50%;
   right: var(--pad);
   left: var(--pad);
@@ -169,6 +197,8 @@ a {
   display: grid;
   justify-items: start;
   text-align: start;
+  z-index: 3;
+  pointer-events: none;
 }
 
 .hero[hidden] {
@@ -410,6 +440,10 @@ a {
   pointer-events: auto;
   position: relative;
   display: inline-block;
+  appearance: none;
+  border: 0;
+  background: none;
+  cursor: pointer;
   padding: 10px 4px;
   font-family: var(--mono);
   font-size: 12px;
@@ -418,6 +452,11 @@ a {
   color: var(--muted);
   transition: color 0.4s var(--out);
   will-change: transform;
+}
+
+.nav__link:disabled {
+  cursor: default;
+  pointer-events: none;
 }
 
 .nav__link:hover,

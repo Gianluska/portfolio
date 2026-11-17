@@ -2,6 +2,7 @@ import { AsciiBirdFlocks } from './AsciiBirdFlocks'
 import { AsciiBoat } from './AsciiBoat'
 import { AsciiBreezes } from './AsciiBreezes'
 import { AsciiRiverAir } from './AsciiRiverAir';
+import type { AsciiSceneCamera } from './AsciiSceneCamera'
 
 /** Decorations share the water's clock; no additional animation loop or DOM. */
 export class AsciiAtmosphere {
@@ -27,10 +28,10 @@ export class AsciiAtmosphere {
     )
   }
 
-  draw(ctx: CanvasRenderingContext2D): void {
+  draw(ctx: CanvasRenderingContext2D, camera: AsciiSceneCamera): void {
     this.wind.draw(ctx)
     this.boat.draw(ctx)
-    this.air.drawMist(ctx)
+    this.air.drawMist(ctx, camera)
     this.air.drawMotes(ctx)
     this.birds.draw(ctx)
   }

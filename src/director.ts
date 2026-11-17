@@ -5,6 +5,7 @@ import { AsciiLogo } from './components/AsciiLogo'
 import { AsciiRiver } from './components/AsciiRiver'
 import { AsciiHero } from './components/AsciiHero'
 import { NavLink } from './components/NavLink'
+import { SceneNavigation } from './components/SceneNavigation'
 
 type Phase = 'boot' | 'animating' | 'reveal' | 'idle'
 
@@ -13,6 +14,7 @@ interface DirectorRefs {
   loaderLogo: HTMLElement
   river: HTMLCanvasElement
   hero: HTMLElement
+  projects: HTMLElement
   ui: HTMLElement
   header: HTMLElement
   headerLink: HTMLElement
@@ -27,6 +29,7 @@ export class Director {
   private refs: DirectorRefs
   private destroyed = false
   private transition: gsap.core.Timeline | null = null
+  private navigation: SceneNavigation
   private intro: TextEffect | null = null
   private headerLogo: AsciiLogo
   private river: AsciiRiver
@@ -37,19 +40,22 @@ export class Director {
     this.refs = refs
     this.headerLogo = new AsciiLogo(refs.headerLogo)
     this.hero = new AsciiHero(refs.hero)
-    this.river = new AsciiRiver(refs.river, () => { void this.hero.start() })
+    this.river = new AsciiRiver(refs.river, () => { void this.hero.start() }, refs.hero, refs.projects)
     this.links = refs.links.map((el) => new NavLink(el))
     refs.headerLink.addEventListener('pointerenter', this.onLogoEnter)
     refs.headerLink.addEventListener('focus', this.onLogoEnter)
+    this.navigation = new SceneNavigation(refs.projects, refs.ui)
   }
 
   private onLogoEnter = (): void => {
     if (this.phase === 'idle' && !env.reducedMotion) this.headerLogo.wave()
   }
 
+
   private setPhase(phase: Phase): void {
     this.phase = phase
     document.documentElement.dataset.phase = phase
+    if (phase === 'idle') this.navigation.start()
   }
 
   async run(): Promise<void> {
@@ -117,6 +123,7 @@ export class Director {
   destroy(): void {
     this.destroyed = true
     this.transition?.kill()
+    this.navigation.destroy()
     this.refs.headerLink.removeEventListener('pointerenter', this.onLogoEnter)
     this.refs.headerLink.removeEventListener('focus', this.onLogoEnter)
     this.intro?.destroy()

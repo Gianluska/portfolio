@@ -1,6 +1,6 @@
 # Gianlucca Claudino — portfolio
 
-Portfolio with an ASCII intro, header, typographic hero, and an open, full-screen water surface rendered in characters. No card deck or 3D scene.
+Portfolio with an ASCII intro, header, typographic hero, and a full-screen sea that becomes a waterfall as you scroll toward Projects. No card deck or 3D scene.
 
 ## Current experience
 
@@ -15,11 +15,25 @@ Portfolio with an ASCII intro, header, typographic hero, and an open, full-scree
 - The old sailing ship follows the pointer in an oblique view: the hull and deck rotate on the water plane, while the three masts and sails remain upright. Its size follows distance. It begins entering as soon as the shock wave reaches the center of the bottom edge, with a 0.8 s fade. The flag keeps fluttering with a smoothed direction, and the three sails billow out of phase. Everything uses the same Canvas and clock, without additional loops.
 - Fog concentrates in the distance: an atmospheric veil reduces the contrast of distant water, and broad banks drift slowly across the sea plane, with ASCII texture and soft dispersion. The same veil passes over the breezes and ship, integrating the boat into the fog banks; the foreground remains clearer. Insects, dust, birds, and the hero sit in front. Two small atlases are reused, without blur or per-pixel noise during animation.
 - Birds, breezes, fog, insects, and dust share depth: scale, spacing, opacity, and apparent speed decrease with distance. Foam and the wake remain anchored to the hull; the ship continues to scare flocks.
-- Reduced motion: a static intro logo and water, without the drop, wave, breezes, birds, insects, dust, or fog. Animation pauses while the tab is hidden.
+- Reduced motion: a static intro logo and water, without the drop, wave, breezes, birds, insects, dust, or fog. Scrolling switches between static sea and waterfall views without camera travel. Animation pauses while the tab is hidden.
 
 React 19 + TypeScript + Vite; GSAP for the header entrance, local Geist Mono, and [tte.js](https://github.com/flaviocopes/tte-js) for the intro's Canvas effect. Water uses a local Canvas 2D engine, with two swells and six directional wind waves, analytical normals, and soft reflections. Inverse projection samples the angled plane; spatial phases and depth filters are precomputed. `AsciiPerspective` shares distance scaling between water and actors. Rendering is capped at 30 fps, without per-frame React updates, Three.js, or React Three Fiber. The MIT-licensed tte.js dependency is pinned to revision `9b120c2f65d48f996a027ef061712bb87ad467bb`, with its original credits and licenses.
 
 Hero typography: [Redaction 35](https://fonts.google.com/specimen/Redaction+35) Bold 700 for the name and Regular 400 for the roles. The family has no Thin weight; Regular is the lightest available, chosen to keep both texts in the same typeface. Geist Mono remains in the ASCII and header. All fonts used permit commercial use under SIL OFL 1.1; there are no demo fonts or synthesized weights. WOFF2 files are local, preloaded, and fully loaded before the reveal; the role box follows the actual width of the longest phrase.
+
+## Scroll to Projects
+
+`SceneNavigation` uses GSAP Observer for virtual, scene-based scrolling. One vertical wheel/trackpad gesture or touch swipe animates the complete journey between the hero and waterfall, snapping to the destination rather than leaving the camera between scenes. The full journey lasts 3.2 seconds with a sine ease-in-out. Further gesture input is absorbed during travel instead of queuing or restarting transitions. The Projects menu button and navigation keys use the same controller; Escape settles at the nearest scene. Browser zoom, editable controls, and horizontal gestures are preserved. Reduced motion disables gesture interception and restores native scrolling with instant scene selection.
+
+Scene selection lives only in memory: menu clicks and gestures do not change the URL or create browser history entries. Every page entry, reload, and browser return starts at the hero. Legacy fragments such as `#projects` and `#contact` are removed while preserving the path and query string. Automatic scroll restoration is disabled so it cannot reopen the waterfall after a reload.
+
+The document retains its 220-viewport-height transition as the camera's progress source, while the scrollbar is hidden in virtual mode. The name and role fade out during the first 28%; the invisible hero becomes inert so it cannot receive keyboard focus. Resizing realigns the selected scene. Teardown kills the Observer and tween and removes listeners.
+
+`AsciiSceneCamera` pulls back and lowers the viewing angle over the same water plane. A fixed drop edge enters from below and rises toward the top of the viewport, revealing a full-width waterfall. The ship and atmospheric layers recede and fade as the camera leaves the sea. The depth veil is inverse-projected to remain full-bleed during camera retreat, preventing rectangular color seams at the viewport edges; individual mist banks still follow the actor projection. Scrolling back restores the original camera and hero without replaying the intro.
+
+`AsciiWaterfall` moves translucent, curved ASCII filaments down the fall instead of illuminating a rigid grid of vertical columns. Material points accelerate downward, with staggered highlights and short companion droplets. The impact uses softly blended, advected density fields for rounded foam, sparse bubble contours, low mist, ballistic spray with fine trails, and broken outward ripples. The old chevron lip and sharply peaked foam boundary are gone. Seed buffers, glyph masks, and the river's 30 fps clock are reused; there are no per-frame buffer allocations, new dependencies, or animation loops.
+
+Mouse movement gently parts nearby waterfall droplets and carries them slightly in the pointer's direction. A damped local field eases in and out, returning drops to their undisturbed trajectories when the pointer leaves. Only filaments, spray, and fine mist respond; foam and pooled water remain unchanged. The waterfall target is separate from ship steering. Touch gestures do not activate hover forces, and reduced motion keeps the scene static. The interaction shares the existing render clock without per-particle allocations or additional listeners.
 
 ## Running locally
 
@@ -41,9 +55,11 @@ npm run preview
 
 `?intro=0` skips the intro, drop, and wave; it displays the header and river directly. The old scene parameters (`debug`, `t`, `webgl`) have been removed.
 
-Projects and Contact remain placeholder links, without destination sections. The standalone GitHub cover files in `github-profile/` have not been changed.
+Projects is an in-page scene button; Contact is disabled because it has no destination yet. Neither adds URL fragments. The standalone GitHub cover files in `github-profile/` have not been changed.
 
 ## Previous verification
+
+The scroll transition passed a production build and browser checks at 1440×900, 390×844, and after resizing to 844×390. Checks covered hero opacity and focus exclusion, reverse scrolling, the Projects anchor, finite camera projection, no horizontal overflow, and a single visible scene Canvas once the hero reveal settles. Reduced motion produced identical pixels across frames. No runtime errors were observed.
 
 Production build completed. The actual scene was exercised in Chromium at 1440×900 and 390×844: central drop and impact preserved, water and actors in motion, a single Canvas, no overflow, resizing without replacing the Canvas, and `?intro=0`. Reduced motion keeps pixels static, and resuming does not repeat the drop. No runtime errors.
 
