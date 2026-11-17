@@ -1,27 +1,27 @@
 # Gianlucca Claudino — portfolio
 
-Portfólio com abertura ASCII, cabeçalho, hero tipográfico e uma superfície aberta de água em caracteres ocupando a tela inteira. Sem baralho ou cena 3D.
+Portfolio with an ASCII intro, header, typographic hero, and an open, full-screen water surface rendered in characters. No card deck or 3D scene.
 
-## Experiência atual
+## Current experience
 
-- A cada carregamento, um dos 37 efeitos do tte.js é sorteado para revelar a logo ASCII oficial. A animação dura entre 1 e 2,75 s, seguida de uma pausa final de 0,25 s: ciclo de no máximo 3 s, sem repetição em loop. A abertura permanece monocromática.
-- A abertura desaparece e o cabeçalho entra com a logo à esquerda e Projects / Contact à direita.
-- Hovers e foco do cabeçalho preservados: onda de fontes na logo, scramble, sublinhado espectral e atração magnética nos links.
-- Depois da abertura, a gota ASCII cai no centro em 0,95 s. O impacto gera uma onda na própria superfície, circular no plano da água e projetada obliquamente na tela. A crista e a depressão alteram normais, reflexos e posições dos caracteres; a onda revela o mar até cobrir a viewport em 2,8 s, sem anéis sobrepostos.
-- Aos 0,75 s da entrada do rio — 3 s antes da revelação completa do mar — o hero apresenta `Gianlucca Claudino` e as roles abaixo. O bloco fica centralizado verticalmente à esquerda, com texto alinhado ao início. O `AsciiSkeleton` original de [ascii-reveal](https://github.com/quanhoangindex/ascii-reveal), fixado em 0.3.0, usa blocos `dither` e shimmer em uma onda da esquerda para a direita: o placeholder entra em 450 ms e revela o novo texto na mesma direção nos 450 ms seguintes. O nome recebe o efeito uma vez; as roles ciclam entre `Creative Technologist` → `Frontend Specialist` → `Product Engineer`, com pausas de leitura de 3,2 s. A role é texto não interativo: clicar não pausa nem reinicia o ciclo. Movimento reduzido mantém o texto estático.
-- A água ocupa toda a tela em perspectiva inclinada, sem canal, margens ou horizonte desenhado. Cristas largas e suaves em `~`, encostas em `-`, vales em `.` e brilhos raros em `*` preservam o mar calmo. As ondas se comprimem e suavizam ao fundo e ficam mais amplas no primeiro plano; as frequências distantes são filtradas para evitar cintilação.
-- O vento aparece em listras ASCII longas, sem espirais, camadas ou ramificações. Uma nova passagem começa a cada 1,25 s e dura 12 s, permitindo até dez simultâneas. Opacidades base entre 0,20 e 0,38 variam suavemente com a distância, com pontas suaves e ondulação lenta. Traços de peso 500 mantêm espessura legível, sem a dupla compressão vertical que os tornava quase invisíveis. O comprimento acompanha a profundidade, até aproximadamente 560 px no desktop e 80% da largura no mobile. Os campos de pressão continuam afetando a água sem aumentar a altura das ondas.
-- Os pássaros usam silhuetas compactas de três linhas e cinco colunas ASCII, com bico, corpo e asas em três poses. Voam sozinhos, em pares ou em setas de cinco, com um líder e dois pares atrás. Cada bando nasce inteiro fora da tela, entra por uma borda lateral e sai pela oposta, sem fade no meio da cena. Um novo grupo surge a cada 5,5 s, com voos de 12 a 15 s e até três grupos simultâneos. O navio assusta o bando dentro de um raio que acompanha a profundidade; todos fogem para longe do casco, batendo as asas mais rápido. O cursor sozinho não assusta pássaros.
-- O navio antigo acompanha o ponteiro em vista oblíqua: casco e convés giram sobre o plano da água, enquanto os três mastros e as velas permanecem erguidos. O tamanho acompanha a distância. Ele começa a entrar assim que a shock wave toca o centro da borda inferior, com fade de 0,8 s. A bandeira continua tremulando com direção suavizada e as três velas enfunam fora de fase. Tudo usa o mesmo Canvas e relógio, sem novos loops.
-- A névoa se concentra ao fundo: um véu atmosférico reduz o contraste da água distante e bancos largos se deslocam devagar sobre o plano do mar, com textura ASCII e dispersão suave. O mesmo véu passa sobre as brisas e o navio, integrando o barco aos bancos de névoa; o primeiro plano permanece mais limpo. Insetos, poeira, pássaros e hero ficam à frente. Dois atlas pequenos são reutilizados, sem blur ou noise por pixel durante a animação.
-- Pássaros, brisas, névoa, insetos e poeira compartilham profundidade: escala, espaçamento, opacidade e velocidade aparente diminuem à distância. A espuma e a esteira permanecem ancoradas ao casco; o navio continua assustando os bandos.
-- Movimento reduzido: logo inicial e água estáticas, sem queda, onda, brisas, pássaros, insetos, poeira ou névoa. A animação pausa quando a aba fica oculta.
+- On each page load, one of 37 tte.js effects is randomly selected to reveal the official ASCII logo. The animation lasts between 1 and 2.75 s, followed by a final 0.25 s pause: a cycle of at most 3 s, with no looping. The intro remains monochrome.
+- The intro fades out and the header enters with the logo on the left and Projects / Contact on the right.
+- Header hover and focus interactions are preserved: a font wave on the logo, scrambling, a spectral underline, and magnetic attraction on the links.
+- After the intro, an ASCII drop falls into the center in 0.95 s. Its impact creates a wave in the surface itself, circular in the water plane and projected obliquely onto the screen. The crest and trough alter normals, reflections, and character positions; the wave reveals the sea across the viewport in 2.8 s, without overlaid rings.
+- At 0.75 s into the river entrance—3 s before the sea is fully revealed—the hero displays `Gianlucca Claudino` and the roles below. The block is vertically centered on the left, with start-aligned text. The original `AsciiSkeleton` from [ascii-reveal](https://github.com/quanhoangindex/ascii-reveal), pinned to 0.3.0, uses `dither` blocks and shimmer in a left-to-right wave: the placeholder enters over 450 ms and reveals the new text in the same direction over the next 450 ms. The name receives the effect once; the roles cycle through `Creative Technologist` → `Frontend Specialist` → `Product Engineer`, with 3.2 s reading pauses. The role is non-interactive text: clicking does not pause or restart the cycle. Reduced motion keeps the text static.
+- Water fills the screen in an angled perspective, without a channel, banks, or a drawn horizon. Broad, gentle crests in `~`, slopes in `-`, troughs in `.`, and rare highlights in `*` keep the sea calm. Waves become compressed and softer in the distance and broader in the foreground; distant frequencies are filtered to prevent flicker.
+- Wind appears as long ASCII streaks, without spirals, layers, or branches. A new pass starts every 1.25 s and lasts 12 s, allowing up to ten simultaneous streaks. Base opacities between 0.20 and 0.38 vary smoothly with distance, with soft tips and slow undulation. Weight-500 strokes remain legible, without the double vertical compression that previously made them almost invisible. Length follows depth, up to approximately 560 px on desktop and 80% of the width on mobile. Pressure fields still affect the water without increasing wave height.
+- Birds use compact three-line, five-column ASCII silhouettes, with a beak, body, and wings in three poses. They fly alone, in pairs, or in five-bird V formations, with a leader and two pairs behind. Each flock spawns entirely offscreen, enters through one side, and exits through the opposite side, without fading into the middle of the scene. A new group appears every 5.5 s, with flights lasting 12–15 s and up to three simultaneous groups. The ship scares flocks within a depth-dependent radius; all birds flee away from the hull, flapping faster. The cursor alone does not scare birds.
+- The old sailing ship follows the pointer in an oblique view: the hull and deck rotate on the water plane, while the three masts and sails remain upright. Its size follows distance. It begins entering as soon as the shock wave reaches the center of the bottom edge, with a 0.8 s fade. The flag keeps fluttering with a smoothed direction, and the three sails billow out of phase. Everything uses the same Canvas and clock, without additional loops.
+- Fog concentrates in the distance: an atmospheric veil reduces the contrast of distant water, and broad banks drift slowly across the sea plane, with ASCII texture and soft dispersion. The same veil passes over the breezes and ship, integrating the boat into the fog banks; the foreground remains clearer. Insects, dust, birds, and the hero sit in front. Two small atlases are reused, without blur or per-pixel noise during animation.
+- Birds, breezes, fog, insects, and dust share depth: scale, spacing, opacity, and apparent speed decrease with distance. Foam and the wake remain anchored to the hull; the ship continues to scare flocks.
+- Reduced motion: a static intro logo and water, without the drop, wave, breezes, birds, insects, dust, or fog. Animation pauses while the tab is hidden.
 
-React 19 + TypeScript + Vite; GSAP para a entrada do cabeçalho, Geist Mono local e [tte.js](https://github.com/flaviocopes/tte-js) para o efeito Canvas da abertura. A água usa um motor Canvas 2D local, com dois swells e seis ondas de vento direcionais, normais analíticas e reflexos suaves. A projeção inversa amostra o plano inclinado; as fases espaciais e os filtros por profundidade são pré-calculados. `AsciiPerspective` compartilha a escala de distância entre água e atores. Desenho limitado a 30 fps, sem atualizações React por frame, Three.js ou React Three Fiber. A dependência MIT tte.js está fixada na revisão `9b120c2f65d48f996a027ef061712bb87ad467bb`, com seus créditos e licenças originais.
+React 19 + TypeScript + Vite; GSAP for the header entrance, local Geist Mono, and [tte.js](https://github.com/flaviocopes/tte-js) for the intro's Canvas effect. Water uses a local Canvas 2D engine, with two swells and six directional wind waves, analytical normals, and soft reflections. Inverse projection samples the angled plane; spatial phases and depth filters are precomputed. `AsciiPerspective` shares distance scaling between water and actors. Rendering is capped at 30 fps, without per-frame React updates, Three.js, or React Three Fiber. The MIT-licensed tte.js dependency is pinned to revision `9b120c2f65d48f996a027ef061712bb87ad467bb`, with its original credits and licenses.
 
-Tipografia do hero: [Redaction 35](https://fonts.google.com/specimen/Redaction+35) Bold 700 no nome e Regular 400 nas roles. A família não tem Thin; a Regular é o peso mais leve disponível, escolhido para manter a mesma fonte nos dois textos. Geist Mono permanece no ASCII e no cabeçalho. Todas as fontes usadas permitem uso comercial sob SIL OFL 1.1; não há demos ou pesos sintetizados. Os arquivos WOFF2 são locais, com preload e espera do carregamento antes do reveal; a box das roles acompanha a largura real da maior frase.
+Hero typography: [Redaction 35](https://fonts.google.com/specimen/Redaction+35) Bold 700 for the name and Regular 400 for the roles. The family has no Thin weight; Regular is the lightest available, chosen to keep both texts in the same typeface. Geist Mono remains in the ASCII and header. All fonts used permit commercial use under SIL OFL 1.1; there are no demo fonts or synthesized weights. WOFF2 files are local, preloaded, and fully loaded before the reveal; the role box follows the actual width of the longest phrase.
 
-## Executar
+## Running locally
 
 Node.js 22.12+.
 
@@ -30,30 +30,30 @@ npm install
 npm run dev
 ```
 
-## Produção
+## Production
 
 ```sh
 npm run build
 npm run preview
 ```
 
-`npm run typecheck` executa apenas o TypeScript. `npm run glyphs` regenera a logo oficial e as variantes por letra usadas no hover do cabeçalho.
+`npm run typecheck` runs TypeScript only. `npm run glyphs` regenerates the official logo and the per-letter variants used in the header hover effect.
 
-`?intro=0` pula a abertura, a gota e a onda; exibe o cabeçalho e o rio diretamente. Os antigos parâmetros de cena (`debug`, `t`, `webgl`) foram removidos.
+`?intro=0` skips the intro, drop, and wave; it displays the header and river directly. The old scene parameters (`debug`, `t`, `webgl`) have been removed.
 
-Projects e Contact continuam links mock, sem seções de destino. Os arquivos independentes da capa do GitHub em `github-profile/` não foram alterados.
+Projects and Contact remain placeholder links, without destination sections. The standalone GitHub cover files in `github-profile/` have not been changed.
 
-## Verificação
+## Previous verification
 
-Build de produção concluído. Cena real exercitada no Chromium em 1440×900 e 390×844: queda central e impacto preservados, água e atores em movimento, um único Canvas, ausência de overflow, redimensionamento sem trocar o Canvas e `?intro=0`. Movimento reduzido mantém pixels estáticos e a retomada não repete a gota. Sem erros de execução.
+Production build completed. The actual scene was exercised in Chromium at 1440×900 and 390×844: central drop and impact preserved, water and actors in motion, a single Canvas, no overflow, resizing without replacing the Canvas, and `?intro=0`. Reduced motion keeps pixels static, and resuming does not repeat the drop. No runtime errors.
 
-A perspectiva foi conferida visualmente no Chromium em 1440×900 e 390×844, incluindo navegação do navio, entrada normal e retomada após movimento reduzido. O desenho nativo isolado verificou a contenção da revelação projetada e a estabilidade e dissipação da esteira em 1440×900, 390×844 e 844×390. Uma prancha de quatro rumos verificou a silhueta oblíqua com mastros erguidos. Movimento reduzido manteve os pixels estáticos. Sem erros de execução observados.
+Perspective was visually checked in Chromium at 1440×900 and 390×844, including ship navigation, normal entrance, and resuming after reduced motion. An isolated native-rendering check verified projected reveal containment and wake stability and dissipation at 1440×900, 390×844, and 844×390. A four-heading contact sheet verified the oblique silhouette with upright masts. Reduced motion kept pixels static. No runtime errors were observed.
 
-A rasterização em lote reduziu em aproximadamente 83% a mediana do custo de desenho no cenário isolado de 45 quadros em 1440×900. Isso mede o tempo da chamada de desenho, não FPS nem tempo de GPU. As máscaras preservaram a cobertura antialias da composição nativa, inclusive com sobreposição e recorte nas bordas (diferença máxima de um nível de alpha).
+Batch rasterization reduced the median drawing cost by approximately 83% in an isolated 45-frame scenario at 1440×900. This measures drawing-call time, not FPS or GPU time. Masks preserved the antialiased coverage of the native composition, including overlaps and edge clipping (a maximum difference of one alpha level).
 
-## Referências da água
+## Water references
 
-- [GPU Gems — Effective Water Simulation from Physical Models](https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models): soma de ondas, derivadas analíticas e filtragem.
-- [Ocean waves with WebGL — Matthias Volk](https://relint.de/waves.html): dispersão, normais e contribuição da reflexão para a leitura da água. A implementação local não utiliza FFT nem WebGL.
-- [Obsessed Waves — Ken Goyarola](https://kgaw.io/projects/obsessed-waves/): referência visual de continuidade e profundidade em ASCII; seu código, objetos e controles não foram incorporados.
+- [GPU Gems — Effective Water Simulation from Physical Models](https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models): wave summation, analytical derivatives, and filtering.
+- [Ocean waves with WebGL — Matthias Volk](https://relint.de/waves.html): dispersion, normals, and reflection's contribution to the appearance of water. The local implementation does not use FFT or WebGL.
+- [Obsessed Waves — Ken Goyarola](https://kgaw.io/projects/obsessed-waves/): visual reference for ASCII continuity and depth; its code, objects, and controls were not incorporated.
 
