@@ -382,7 +382,7 @@ export class AsciiRiver {
   }
 
   private glyph(index: number, x: number, y: number, alpha: number, row = this.rows - 1): void {
-    if (alpha < 0.025) return
+    if (alpha < 1 / 255) return
     const slot = this.glyphSlot[row]
     const width = this.glyphWidth[slot], height = this.glyphHeight[slot]
     const opacity = Math.min(1, alpha)
@@ -530,6 +530,7 @@ export class AsciiRiver {
     this.waterAge = age
     const impactStrength = age < REVEAL_TIME + 0.6 ? 1 / (1 + radius / this.reach * 0.7) : 0
     const ripple = this.ripple, cols = this.cols, rippling = this.rippleActive
+    const lipBlend = this.cellHeight * 2
     for (let i = 0; i < this.count; i++) {
       const row = Math.floor(i / cols)
       if (this.y[i] >= this.camera.lipY) continue
@@ -630,7 +631,8 @@ export class AsciiRiver {
       this.glyph(
         glyph,
         x, y,
-        alpha * reveal * (0.48 + depth * 0.52),
+        alpha * reveal * (0.48 + depth * 0.52)
+          * smoothstep(0, lipBlend, this.camera.lipY - this.y[i]),
         this.scrollProgress > 0 ? Math.round(clamp((depth - 0.3) / 0.8) * (this.rows - 1)) : row,
       )
     }

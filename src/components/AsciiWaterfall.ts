@@ -8,6 +8,8 @@ const THREAD = 13
 const TAU = Math.PI * 2
 const STREAMS = 512
 const SPRAY = 224
+const APPROACH_TIME = 1.1
+const FALL_TIME = 1.8
 
 type Plot = (glyph: number, x: number, y: number, alpha: number) => void
 const clamp = (value: number): number => Math.max(0, Math.min(1, value))
@@ -81,14 +83,14 @@ export class AsciiWaterfall {
     }
   }
 
-  private plotDrop(plot: Plot, glyph: number, x: number, y: number, alpha: number): void {
-    if (alpha < 0.025) return
+  private plotDrop(plot: Plot, glyph: number, x: number, y: number, alpha: number, detached = 1): void {
+    if (alpha < 1 / 255) return
     if (this.pressure > 0) {
       const dx = x - this.pointerX, dy = y - this.pointerY
       if (Math.abs(dx) < this.radius && Math.abs(dy) < this.radius) {
         const distance = (dx * dx + dy * dy) * this.inverseRadius
         if (distance < 1) {
-          const weight = this.pressure * (1 - distance) ** 2
+          const weight = this.pressure * detached * (1 - distance) ** 2
           const normal = 1 / Math.sqrt(dx * dx + dy * dy + 36)
           x += (dx * normal * 30 + this.dragX) * weight
           y += (dy * normal * 14 + this.dragY * 0.5) * weight
@@ -109,37 +111,64 @@ export class AsciiWaterfall {
     const scale = camera.edgeScale
     const foamDepth = height * 0.075
     const mistHeight = height * 0.16
-    const count = Math.min(STREAMS, Math.ceil(width / 4.5))
-    const knots = Math.max(8, Math.ceil(fallHeight / (cellHeight * 1.8)))
+    const count = Math.min(STREAMS, Math.ceil(width / (cellWidth * 0.75)))
+    // Fixed material samples: camera travel must not respawn or rephase the water.
+    const knots = Math.max(16, Math.ceil(height / cellHeight))
+    const lifetime = APPROACH_TIME + FALL_TIME
+    const spacing = lifetime / knots
     const span = width + 60
 
-    // Material points move down curved streamlines, instead of lighting a fixed vertical grid.
+    // One material path crosses a stationary brink, then accelerates under gravity.
+    // No animated edge geometry, cross-stream sine bands, or separate rollover particles.
     for (let i = 0; i < count; i++) {
       const slot = i * 6
       const source = (i + this.streams[slot] * 0.85) / count * span - 30
-      const phase = this.streams[slot + 1] * TAU
-      const speed = 0.12 + this.streams[slot + 2] * 0.055
+      const along = (source - width * 0.5) / scale
+      const edge = lip + (noise(along / 160, 0) - 0.5) * 2 * scale
+      const channel = noise(along / 95, 7)
+      const entrySpeed = height * (0.25 + channel * 0.08)
+      const projectedSpeed = entrySpeed * camera.tilt * scale
+      const fallCurve = (fallHeight - projectedSpeed * FALL_TIME) / (FALL_TIME * FALL_TIME)
       const drift = (this.streams[slot + 3] - 0.5) * 23 * scale
-      const bend = Math.sin(time * 0.22 + phase) * 0.8
-      const volume = 0.45 + 0.55 * noise(source / 180, time * 0.045)
-      const ink = (0.14 + this.streams[slot + 4] * 0.13) * volume
-      const edge = lip + Math.sin(source * 0.025) * 1.5 * scale
-      if (i % 3 === 0) plot(DASH, source, edge, 0.075 * volume)
+      const ink = 0.22 + this.streams[slot + 4] * 0.14
+      const phase = this.streams[slot + 5] * lifetime
       for (let j = 0; j < knots; j++) {
-        const u = (j / knots + time * speed + this.streams[slot + 5]) % 1
-        const v = 0.34 * u + 0.66 * u * u
-        const turn = Math.sin(v * 7.5 + phase + bend)
-        const x = source + turn * (2 + v * 9) * scale + drift * v * v
-        const y = edge + v * fallHeight
-        if (x < -cellWidth || x > width + cellWidth || y < 0 || y > height + cellHeight) continue
-        const envelope = soft(v / 0.06) * (1 - soft((v - 0.94) / 0.06))
-        const gleam = 0.65 + this.streams[(slot + j) % this.streams.length] * 0.35
-        const alpha = ink * envelope * gleam
-        const glyph = j % 7 === 0 ? THREAD : j % 5 === 0 ? DROP : j % 3 === 0 ? COMMA : COLON
-        this.plotDrop(plot, glyph, x, y, alpha)
-        // Short, translucent companion marks give each wisp thickness without a solid stripe.
-        if (this.streams[slot + 4] > 0.55) {
-          this.plotDrop(plot, DOT, x + turn * 2.5, y - cellHeight * 0.7, alpha * 0.55)
+        const age = (time + j * spacing + phase) % lifetime - APPROACH_TIME
+        const falling = Math.max(0, age)
+        const descent = falling / FALL_TIME
+        const turn = soft(falling / 0.45)
+        // Texture is attached to the emission time, not an oscillating screen-space stripe.
+        const emitted = time - age
+        const material = noise(along / 48, emitted * 0.7)
+        const detail = noise(along / 15 + material * 2, emitted * 1.6)
+        const sideways = (material - 0.5) * 12 * scale
+        const x = source + sideways * turn + drift * descent * descent
+        const y = edge + projectedSpeed * age + fallCurve * falling * falling
+        if (x < -cellWidth || x > width + cellWidth || y < -cellHeight || y > height + cellHeight) continue
+        const envelope = soft((age + APPROACH_TIME) / (APPROACH_TIME * 0.6))
+          * (1 - soft((descent - 0.92) / 0.08))
+        const sheen = 1 + 0.65 * Math.exp(-age * age / 0.24)
+        // Compensate overlapping samples at the slow brink instead of drawing a bright rim.
+        const coverage = Math.min(1, (projectedSpeed + 2 * fallCurve * falling) * spacing / cellHeight)
+        const alpha = ink * envelope * sheen * (0.5 + material * 0.5) * (0.7 + detail * 0.3) * coverage
+        let glyph = detail > 0.6 ? DASH : DOT
+        if (age < 0 && material > 0.72) glyph = TILDE
+        else if (turn > 0.25 + detail * 0.5) glyph = detail > 0.8 ? THREAD : detail > 0.4 ? COMMA : COLON
+        else if (age >= 0) glyph = COMMA
+        this.plotDrop(plot, glyph, x, y, alpha, turn)
+        // Short, fading trails keep the accelerating water filament-like, not isolated rain.
+        if (age > 0.25 && this.streams[slot + 4] > 0.45) {
+          for (let k = 1; k <= 2; k++) {
+            const trail = age - spacing * k * 0.22
+            const trailTurn = soft(trail / 0.45)
+            const trailDescent = trail / FALL_TIME
+            this.plotDrop(
+              plot, k === 1 ? COLON : DOT,
+              source + sideways * trailTurn + drift * trailDescent * trailDescent,
+              edge + projectedSpeed * trail + fallCurve * trail * trail,
+              alpha * (k === 1 ? 0.45 : 0.22), trailTurn,
+            )
+          }
         }
       }
     }
