@@ -142,7 +142,10 @@ export class AsciiWaterfall {
         const material = noise(along / 48, emitted * 0.7)
         const detail = noise(along / 15 + material * 2, emitted * 1.6)
         const sideways = (material - 0.5) * 12 * scale
-        const x = source + sideways * turn + drift * descent * descent
+        // Strong at the brink, then thinning and spreading into spray as it nears the pool.
+        const dissipation = soft((descent - 0.2) / 0.8)
+        const scatter = (detail - 0.5) * 34 * scale * dissipation
+        const x = source + sideways * turn + drift * descent * descent + scatter
         const y = edge + projectedSpeed * age + fallCurve * falling * falling
         if (x < -cellWidth || x > width + cellWidth || y < -cellHeight || y > height + cellHeight) continue
         const envelope = soft((age + APPROACH_TIME) / (APPROACH_TIME * 0.6))
@@ -151,10 +154,12 @@ export class AsciiWaterfall {
         // Compensate overlapping samples at the slow brink instead of drawing a bright rim.
         const coverage = Math.min(1, (projectedSpeed + 2 * fallCurve * falling) * spacing / cellHeight)
         const alpha = ink * envelope * sheen * (0.5 + material * 0.5) * (0.7 + detail * 0.3) * coverage
+          * (1 - 0.6 * dissipation)
         let glyph = detail > 0.6 ? DASH : DOT
         if (age < 0 && material > 0.72) glyph = TILDE
         else if (turn > 0.25 + detail * 0.5) glyph = detail > 0.8 ? THREAD : detail > 0.4 ? COMMA : COLON
         else if (age >= 0) glyph = COMMA
+        if (dissipation > 0.55 + detail * 0.4) glyph = detail > 0.7 ? MIST : DOT
         this.plotDrop(plot, glyph, x, y, alpha, turn)
         // Short, fading trails keep the accelerating water filament-like, not isolated rain.
         if (age > 0.25 && this.streams[slot + 4] > 0.45) {
@@ -162,11 +167,14 @@ export class AsciiWaterfall {
             const trail = age - spacing * k * 0.22
             const trailTurn = soft(trail / 0.45)
             const trailDescent = trail / FALL_TIME
+            // Streaks break up as the water dissipates; low in the fall only loose drops remain.
+            const trailSpread = 1 - soft((trailDescent - 0.25) / 0.6)
+            if (trailSpread <= 0) continue
             this.plotDrop(
               plot, k === 1 ? COLON : DOT,
-              source + sideways * trailTurn + drift * trailDescent * trailDescent,
+              source + sideways * trailTurn + drift * trailDescent * trailDescent + scatter,
               edge + projectedSpeed * trail + fallCurve * trail * trail,
-              alpha * (k === 1 ? 0.45 : 0.22), trailTurn,
+              alpha * trailSpread * (k === 1 ? 0.45 : 0.22), trailTurn,
             )
           }
         }
@@ -196,7 +204,8 @@ export class AsciiWaterfall {
         const detail = noise(nx * 3.4 + time * 0.12, relative * 3.5 - time * 0.6)
         const cloud = soft((billow - 0.18) / 0.64)
         const edge = Math.max(0, 1 - Math.abs(billow - 0.53) * 7)
-        let alpha = core * (0.19 + cloud * 0.31) + haze * cloud * 0.15
+        // The base reads as diffuse mist, softer than the water at the brink.
+        let alpha = core * (0.11 + cloud * 0.18) + haze * cloud * 0.13
         const grain = this.spray[(row * 7 + col * 13) % this.spray.length]
         let glyph = grain > 0.94 ? PLUS : grain > 0.68 ? COMMA : grain > 0.28 ? COLON : DOT
         if (edge > 0.7 && detail > 0.55 && core > 0.4 && grain > 0.94) {
