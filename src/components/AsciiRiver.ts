@@ -25,6 +25,8 @@ const RIPPLE_RADIUS = 2.2
 const RIPPLE_PUSH = 0.0424
 // The hull is broader than a fingertip; it pushes a little harder than the old pointer wake.
 const BOAT_PUSH = 1.15
+// A cannonball splash slaps the sea much harder than the gliding hull.
+const SHOT_PUSH = 4
 const RIPPLE_LEVEL = 0.7
 const RIPPLE_SLOPE = 2
 const RIPPLE_SHIFT = 15
@@ -67,6 +69,10 @@ function noise(x: number, y: number): number {
   return ((hash ^ (hash >>> 16)) >>> 0) / 4294967295
 }
 
+// Opaque grey pixel words indexed by level, built through bytes so they hold on any endianness.
+const GREY = new Uint32Array(new Uint8ClampedArray(
+  Array.from({ length: 256 }, (_, level) => [level, level, level, 255]).flat(),
+).buffer)
 
 type RiverState = 'waiting' | 'falling' | 'ripple' | 'flowing' | 'still'
 
@@ -75,12 +81,16 @@ export class AsciiRiver {
   private readonly canvas: HTMLCanvasElement
   private readonly ctx: CanvasRenderingContext2D
   private readonly atlas = document.createElement('canvas')
-  private readonly waterCanvas = document.createElement('canvas')
-  private readonly waterContext = this.waterCanvas.getContext('2d')!
   private readonly actorsCanvas = document.createElement('canvas')
   private readonly actorsContext = this.actorsCanvas.getContext('2d')!
+  // Water is the first layer over opaque black, so it is composited straight into
+  // final grey pixels and put onto the visible canvas with no intermediate copy.
   private waterPixels!: ImageData
+  private waterWords!: Uint32Array
   private readonly glyphMasks: Uint8Array[] = []
+  // Inked pixels only, as offsets into the scene buffer; built with the atlas.
+  private readonly glyphOffsets: Int32Array[] = []
+  private readonly glyphLevels: Uint8Array[] = []
   private readonly motion = matchMedia('(prefers-reduced-motion: reduce)')
   private readonly observer: ResizeObserver
   private readonly atmosphere = new AsciiAtmosphere()
@@ -156,6 +166,7 @@ export class AsciiRiver {
     document.addEventListener('visibilitychange', this.visibility)
     this.motion.addEventListener('change', this.motionChange)
     window.addEventListener('pointermove', this.pointer, { passive: true })
+    window.addEventListener('pointerdown', this.fire)
     window.addEventListener('pointerout', this.pointerGone, { passive: true })
     window.addEventListener('pointerup', this.pointerGone, { passive: true })
     window.addEventListener('pointercancel', this.pointerGone, { passive: true })
@@ -196,11 +207,10 @@ export class AsciiRiver {
     this.cellHeight = this.width < 640 ? 10 : 12
     this.canvas.width = Math.round(this.width * this.dpr)
     this.canvas.height = Math.round(this.height * this.dpr)
-    this.waterCanvas.width = this.canvas.width
-    this.waterCanvas.height = this.canvas.height
     this.actorsCanvas.width = this.canvas.width
     this.actorsCanvas.height = this.canvas.height
-    this.waterPixels = this.waterContext.createImageData(this.canvas.width, this.canvas.height)
+    this.waterPixels = this.ctx.createImageData(this.canvas.width, this.canvas.height)
+    this.waterWords = new Uint32Array(this.waterPixels.data.buffer)
     const farX = seaX(0, 0, this.width, this.height)
     const nearX = seaX(0, this.height, this.width, this.height)
     const farZ = seaZ(0, this.height), nearZ = seaZ(this.height, this.height)
@@ -366,17 +376,28 @@ export class AsciiRiver {
     // Read coverage only when rebuilding; frames never read back the visible canvas.
     const pixels = ctx.getImageData(0, 0, this.atlas.width, this.atlas.height).data
     this.glyphMasks.length = 0
+    this.glyphOffsets.length = 0
+    this.glyphLevels.length = 0
+    const stride = this.canvas.width
     for (let slot = 0; slot < sizes.size; slot++) {
       const width = this.glyphWidth[slot], height = this.glyphHeight[slot]
       for (let glyph = 0; glyph < GLYPHS.length; glyph++) {
         const mask = new Uint8Array(width * height)
+        const offsets: number[] = [], levels: number[] = []
         for (let y = 0; y < height; y++) {
           for (let x = 0; x < width; x++) {
             const pixel = ((slot * this.tileHeight + y) * this.atlas.width + glyph * this.tileWidth + x) * 4
-            mask[y * width + x] = pixels[pixel + 3]
+            const level = pixels[pixel + 3]
+            mask[y * width + x] = level
+            if (level) {
+              offsets.push(y * stride + x)
+              levels.push(level)
+            }
           }
         }
         this.glyphMasks.push(mask)
+        this.glyphOffsets.push(Int32Array.from(offsets))
+        this.glyphLevels.push(Uint8Array.from(levels))
       }
     }
   }
@@ -386,24 +407,35 @@ export class AsciiRiver {
     const slot = this.glyphSlot[row]
     const width = this.glyphWidth[slot], height = this.glyphHeight[slot]
     const opacity = Math.min(1, alpha)
-    const mask = this.glyphMasks[slot * GLYPHS.length + index]
+    const mask = slot * GLYPHS.length + index
     const left = Math.round(x * this.dpr - width / 2)
     const top = Math.round(y * this.dpr - height / 2)
-    const pixels = this.waterPixels.data
-    const stride = this.waterCanvas.width
-    const x0 = Math.max(0, -left), x1 = Math.min(width, stride - left)
-    const y0 = Math.max(0, -top), y1 = Math.min(height, this.waterCanvas.height - top)
-    for (let y = y0; y < y1; y++) {
-      let pixel = ((top + y) * stride + left + x0) * 4
-      for (let x = x0; x < x1; x++, pixel += 4) {
-        const a = Math.round(mask[y * width + x] * opacity)
+    const bytes = this.waterPixels.data, words = this.waterWords
+    const stride = this.waterPixels.width
+    // Source-over white on the grey below: the level is the accumulated coverage.
+    if (left >= 0 && top >= 0 && left + width <= stride && top + height <= this.waterPixels.height) {
+      // Interior glyphs touch only their inked pixels, a small share of each tile.
+      const offsets = this.glyphOffsets[mask], levels = this.glyphLevels[mask]
+      const origin = top * stride + left
+      for (let k = 0; k < offsets.length; k++) {
+        const a = Math.round(levels[k] * opacity)
         if (!a) continue
-        const oldAlpha = pixels[pixel + 3]
-        const outAlpha = a + oldAlpha * (1 - a / 255)
-        pixels[pixel] = 255
-        pixels[pixel + 1] = 255
-        pixels[pixel + 2] = 255
-        pixels[pixel + 3] = outAlpha
+        const pixel = origin + offsets[k]
+        const below = bytes[pixel << 2]
+        words[pixel] = GREY[Math.round(a + below * (1 - a / 255))]
+      }
+      return
+    }
+    const coverage = this.glyphMasks[mask]
+    const x0 = Math.max(0, -left), x1 = Math.min(width, stride - left)
+    const y0 = Math.max(0, -top), y1 = Math.min(height, this.waterPixels.height - top)
+    for (let y = y0; y < y1; y++) {
+      let pixel = (top + y) * stride + left + x0
+      for (let x = x0, m = y * width + x0; x < x1; x++, m++, pixel++) {
+        const a = Math.round(coverage[m] * opacity)
+        if (!a) continue
+        const below = bytes[pixel << 2]
+        words[pixel] = GREY[Math.round(a + below * (1 - a / 255))]
       }
     }
   }
@@ -429,6 +461,28 @@ export class AsciiRiver {
     // On the sea, the pointer steers the boat; only its hull makes wakes and startles birds.
     this.pointerX = event.clientX - box.left
     this.pointerY = event.clientY - box.top
+  }
+
+  private fire = (event: PointerEvent): void => {
+    if (event.button !== 0 || event.pointerType !== 'mouse') return
+    if (this.scrollProgress > 0.03 || (this.state !== 'ripple' && this.state !== 'flowing')) return
+    // Clicks on links, controls and the hero copy keep their own meaning.
+    const target = event.target
+    if (target instanceof Element
+      && target.closest('a, button, input, textarea, select, label, [role="button"], .hero__copy')) return
+    this.atmosphere.boat.fire()
+  }
+
+  private pushShots(): void {
+    const impacts = this.atmosphere.boat.impacts
+    if (this.scrollProgress === 0) {
+      for (const hit of impacts) {
+        const depth = sceneScale(hit.y, this.height) / DEPTH_CENTER
+        this.press(hit.x, hit.y, RIPPLE_PUSH * SHOT_PUSH * hit.strength * depth)
+        this.rippleActive = true
+      }
+    }
+    impacts.length = 0
   }
 
   private pushHull(): void {
@@ -674,8 +728,6 @@ export class AsciiRiver {
     const ctx = this.ctx
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
     ctx.globalAlpha = 1
-    ctx.fillStyle = '#000000'
-    ctx.fillRect(0, 0, this.width, this.height)
     if (this.projectedProgress !== this.scrollProgress) {
       this.camera.update(this.motion.matches ? (this.scrollProgress >= 0.5 ? 1 : 0) : this.scrollProgress, this.height)
       this.projectWater()
@@ -686,6 +738,8 @@ export class AsciiRiver {
     }
     if (this.elapsed < DROP_TIME) {
       this.setState('falling')
+      ctx.fillStyle = '#000000'
+      ctx.fillRect(0, 0, this.width, this.height)
       this.drawDrop()
     } else {
       const age = this.elapsed - DROP_TIME
@@ -699,7 +753,9 @@ export class AsciiRiver {
         this.scrollProgress > 0.03 ? Number.NaN : this.pointerX, this.pointerY,
       )
       if (this.scrollProgress === 0) this.pushHull()
-      this.waterPixels.data.fill(0)
+      this.pushShots()
+      // Opaque black under the water replaces a separate background fill.
+      this.waterWords.fill(GREY[0])
       this.drawWater(age, radius)
       this.drawSplash(age)
       this.waterfall.draw(
@@ -708,14 +764,14 @@ export class AsciiRiver {
         !this.motion.matches && this.scrollProgress >= 0.35 ? this.fallPointerX : Number.NaN,
         this.fallPointerY,
       )
-      this.waterContext.putImageData(this.waterPixels, 0, 0)
-      ctx.globalAlpha = 1
-      ctx.drawImage(this.waterCanvas, 0, 0, this.width, this.height)
+      ctx.putImageData(this.waterPixels, 0, 0)
       const actorFade = 1 - smoothstep(0.06, 0.5, this.scrollProgress)
       if (actorFade > 0) {
-        const actors = this.actorsContext
+        // Fully visible actors go straight onto the scene; only a fade needs its own layer.
+        const layered = actorFade < 1
+        const actors = layered ? this.actorsContext : ctx
         actors.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
-        actors.clearRect(0, 0, this.width, this.height)
+        if (layered) actors.clearRect(0, 0, this.width, this.height)
         actors.save()
         const zoom = this.camera.zoom
         const pitch = zoom * this.camera.tilt / SEA_TILT
@@ -723,8 +779,10 @@ export class AsciiRiver {
         actors.scale(zoom, pitch)
         this.atmosphere.draw(actors, this.camera)
         actors.restore()
-        ctx.globalAlpha = actorFade
-        ctx.drawImage(this.actorsCanvas, 0, 0, this.width, this.height)
+        if (layered) {
+          ctx.globalAlpha = actorFade
+          ctx.drawImage(this.actorsCanvas, 0, 0, this.width, this.height)
+        }
       }
     }
     ctx.globalAlpha = 1
@@ -804,6 +862,7 @@ export class AsciiRiver {
     document.removeEventListener('visibilitychange', this.visibility)
     this.motion.removeEventListener('change', this.motionChange)
     window.removeEventListener('pointermove', this.pointer)
+    window.removeEventListener('pointerdown', this.fire)
     window.removeEventListener('pointerout', this.pointerGone)
     window.removeEventListener('pointerup', this.pointerGone)
     window.removeEventListener('pointercancel', this.pointerGone)

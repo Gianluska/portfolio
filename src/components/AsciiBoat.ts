@@ -1,3 +1,4 @@
+import { AsciiBroadside } from './AsciiBroadside'
 import { DEPTH_FAR, DEPTH_RANGE, sceneScale, SEA_TILT } from './AsciiPerspective'
 
 // An upright, full-rigged ship above a turning, foreshortened waterline.
@@ -45,6 +46,9 @@ const PENNANT_STEP = 4.5
 const PENNANT_RESPONSE = 4
 // Wavelets lap at the hull while the ship lies still.
 const LAP_PERIOD = 2.6
+// Broadside recoil: a visual shove to starboard and a heel of the rig, never real motion.
+const KICK = 3.2
+const HEEL = 0.06
 
 const wrapAngle = (angle: number): number => Math.atan2(Math.sin(angle), Math.cos(angle))
 const clamp = (value: number, min = 0, max = 1): number => Math.max(min, Math.min(max, value))
@@ -79,6 +83,18 @@ export class AsciiBoat {
   private readonly foamBirth = new Float32Array(FOAM_POINTS).fill(-Infinity)
   private readonly foamStrength = new Float32Array(FOAM_POINTS)
   private readonly foamScale = new Float32Array(FOAM_POINTS)
+  private readonly broadside = new AsciiBroadside(WIND)
+
+  /** Water pushes from muzzle blasts and shot splashes, drained by the river. */
+  get impacts(): AsciiBroadside['impacts'] {
+    return this.broadside.impacts
+  }
+
+  /** Fires the port broadside if the guns are loaded. */
+  fire(): boolean {
+    if (!this.active || this.alpha < 0.9) return false
+    return this.broadside.trigger()
+  }
 
   /** 0..1 share of top speed, used by the river to scale the hull's push on the water. */
   get wake(): number {
@@ -188,6 +204,7 @@ export class AsciiBoat {
         this.foamStrength[slot] = clamp(this.speed / MAX_SPEED)
       }
     }
+    this.broadside.update(time, height, { x: this.x, y: this.y, heading: this.heading, scale: this.scale })
   }
 
   private spawn(time: number, width: number, height: number): void {
@@ -205,6 +222,7 @@ export class AsciiBoat {
     this.speed = MAX_SPEED * 0.6
     this.travelled = 0
     this.foamBirth.fill(-Infinity)
+    this.broadside.reset()
   }
 
   /** ASCII strokes are sampled in screen space, so no contour becomes a solid line. */
@@ -294,6 +312,7 @@ export class AsciiBoat {
 
   draw(ctx: CanvasRenderingContext2D): void {
     if (!this.active || this.alpha <= 0) return
+    this.broadside.draw(ctx, this.y, false, this.alpha)
     ctx.save()
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -328,9 +347,15 @@ export class AsciiBoat {
     this.projectionX = Math.cos(this.heading + rock)
     this.projectionY = Math.sin(this.heading + rock)
     const fx = this.projectionX, fy = this.projectionY
+    const kick = this.broadside.kick()
     const opacity = this.alpha * (0.65 + 0.35 * Math.min(1, this.scale / 1.1))
-    ctx.translate(this.x, this.y + Math.sin(this.time * 1.3) * 0.65 * calm * this.scale)
+    ctx.translate(
+      this.x - fy * KICK * kick * this.scale,
+      this.y + Math.sin(this.time * 1.3) * 0.65 * calm * this.scale + fx * SEA_TILT * KICK * kick * this.scale,
+    )
     ctx.scale(this.scale, this.scale)
+    // Shear the rig away from the guns: mastheads lean to starboard, then swing back.
+    ctx.transform(1, 0, fy * HEEL * kick, 1, 0, 0)
     ctx.font = '400 9px "Geist Mono", monospace'
 
     // Raised stern, broad deck and tapered bow: the black silhouette only hides water.
@@ -478,5 +503,9 @@ export class AsciiBoat {
       }
     }
     ctx.restore()
+    this.broadside.draw(ctx, this.y, true, this.alpha)
+    // The reload gauge sits just below whatever end of the hull faces the viewer.
+    const below = (Math.max(82 * fy, -58 * fy, 0) + 26 * Math.abs(fx)) * SEA_TILT + 12
+    this.broadside.drawReload(ctx, this.x, this.y + below * this.scale, this.scale, this.alpha)
   }
 }
