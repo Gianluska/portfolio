@@ -122,7 +122,11 @@ Reduced motion restores native scrolling throughout, switches between static sea
 
 ## Selected work, profile and contact
 
-[Hamish Williams](https://hamishw.com/) is the structural reference: immersive introduction, selected work in sequence, then a personal profile and a short path to contact. This portfolio keeps its existing top header, ASCII art and monochrome UI. Redaction 35 carries section titles and local Geist sets project names and body text. Numbered previews alternate image position on desktop and preserve text-first reading order on mobile. The calendar links to its published repository; the ASCII project is followed by a short in-page study, then About me and Get in touch. Project media uses the real calendar screenshot and a captured frame of the ASCII ocean.
+Selected work presents employment experience rather than personal projects. The monochrome MMORPG window pairs a framed ASCII portrait and company nameplate with a large Redaction 35 prompt and unboxed reply lines. The original reply starts checked. Choosing the other reply reveals a one-line comeback; the factual “What I did” note sits outside the dialogue frame.
 
-The title starts to enter as the last drops dim. Text follows, then the artwork rises slightly as it fades in. Case study, profile and contact reveal as they enter the viewport using a shared `IntersectionObserver`; revealed sections stay visible, while the first project's entrance replays after a new dive. Focused controls are never delayed by a reveal.
+Each quest fills the native horizontal scroll-snap viewport. The arrow controls and count sit below it; Left and Right work while the viewport is focused, and offscreen quest controls are inert. On narrow screens the portrait and stack sit above the dialogue. The window arrives with the waterfall handoff but never waits for the heading to enter the viewport. Profile and contact retain their viewport reveals.
+
+Pointer navigation glides on the native track and can be redirected from its current position. The scroll position animates only the ASCII ink at the seam; the logo, copy, and replies never change opacity or receive a mask. Frames share a baseline even when the factual notes wrap differently. Keyboard and reduced-motion navigation snap directly to the destination. Without scroll-driven CSS support, pointer navigation keeps the native glide without the ink pass.
+
+Company marks come from the official [Hyperlocal](https://hyperlocal.com.br/), [Grupo Boticário](https://www.grupoboticario.com.br/), and [GLS.AI](https://gls.ai/) headers, stored locally and rendered in white to match the portfolio.
 
