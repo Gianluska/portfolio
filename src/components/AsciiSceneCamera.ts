@@ -1,6 +1,13 @@
 import { DEPTH_CENTER, DEPTH_RANGE, SEA_TILT } from './AsciiPerspective'
 
-/** One ground plane and one fixed drop edge, viewed by a retreating, pitching camera. */
+const WATERFALL_ANGLE = 0.55
+
+function smooth(value: number): number {
+  const t = Math.min(1, Math.max(0, value))
+  return t * t * (3 - 2 * t)
+}
+
+/** The camera pitches toward the brink, then follows the same water down the shaft. */
 export class AsciiSceneCamera {
   zoom = 1
   tilt = SEA_TILT
@@ -10,12 +17,18 @@ export class AsciiSceneCamera {
   lipY = 0
   impactY = 0
   edgeScale = 1
+  endless = false
+  waterLight = 1
 
-  update(progress: number, height: number): void {
-    const t = progress * progress * (3 - 2 * progress)
+  update(progress: number, height: number, endless: boolean): void {
+    this.endless = endless
+    const t = smooth(endless ? progress / WATERFALL_ANGLE : progress)
+    // Start descending before the pitch finishes so the shot never stops at the brink.
+    const descent = endless ? smooth((progress - 0.49) / 0.51) : 0
+    this.waterLight = endless ? 1 - smooth((progress - 0.60) / 0.40) : 1
     this.zoom = 1 - 0.42 * t
     this.tilt = SEA_TILT + (0.1 - SEA_TILT) * t
-    this.centerY = height * (0.5 - 0.515 * t)
+    this.centerY = height * (0.5 - 0.515 * t - 1.68 * descent)
     this.perspective = DEPTH_RANGE * this.tilt / DEPTH_CENTER * this.zoom
     this.edgeZ = height * 0.92
     this.edgeScale = this.scale(this.edgeZ, height)

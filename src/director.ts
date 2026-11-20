@@ -4,23 +4,22 @@ import { env, wait } from './lib/env'
 import { AsciiLogo } from './components/AsciiLogo'
 import { AsciiRiver } from './components/AsciiRiver'
 import { AsciiHero } from './components/AsciiHero'
-import { NavLink } from './components/NavLink'
 import { SceneNavigation } from './components/SceneNavigation'
 
 type Phase = 'boot' | 'animating' | 'reveal' | 'idle'
 
 interface DirectorRefs {
+  root: HTMLElement
   loader: HTMLElement
   loaderLogo: HTMLElement
   river: HTMLCanvasElement
+  portfolio: HTMLElement
   hero: HTMLElement
   projects: HTMLElement
   ui: HTMLElement
   header: HTMLElement
-  headerLink: HTMLElement
+  home: HTMLElement
   headerLogo: HTMLElement
-  links: HTMLElement[]
-  navItems: HTMLElement[]
 }
 
 /** Abertura ASCII, entrada do cabeçalho e impacto que revela o rio. */
@@ -29,22 +28,20 @@ export class Director {
   private refs: DirectorRefs
   private destroyed = false
   private transition: gsap.core.Timeline | null = null
-  private navigation: SceneNavigation
   private intro: TextEffect | null = null
   private headerLogo: AsciiLogo
   private river: AsciiRiver
   private hero: AsciiHero
-  private links: NavLink[]
+  private navigation: SceneNavigation
 
   constructor(refs: DirectorRefs) {
     this.refs = refs
     this.headerLogo = new AsciiLogo(refs.headerLogo)
     this.hero = new AsciiHero(refs.hero)
     this.river = new AsciiRiver(refs.river, () => { void this.hero.start() }, refs.hero, refs.projects)
-    this.links = refs.links.map((el) => new NavLink(el))
-    refs.headerLink.addEventListener('pointerenter', this.onLogoEnter)
-    refs.headerLink.addEventListener('focus', this.onLogoEnter)
-    this.navigation = new SceneNavigation(refs.projects, refs.ui)
+    this.navigation = new SceneNavigation(refs, (covered) => this.river.setCovered(covered))
+    refs.home.addEventListener('pointerenter', this.onLogoEnter)
+    refs.home.addEventListener('focus', this.onLogoEnter)
   }
 
   private onLogoEnter = (): void => {
@@ -61,7 +58,7 @@ export class Director {
   async run(): Promise<void> {
     await Promise.race([document.fonts.load('400 16px "Geist Mono"'), wait(900)])
     if (this.destroyed) return
-    if (env.skipIntro) return this.showHeader()
+    if (env.skipIntro || window.scrollY > 0) return this.showHeader()
 
     if (env.reducedMotion) {
       this.refs.loader.classList.add('is-on')
@@ -101,7 +98,6 @@ export class Director {
     if (env.reducedMotion) return this.showHeader()
     const { refs } = this
     this.setPhase('reveal')
-    gsap.set(refs.navItems, { opacity: 0, y: -12 })
     gsap.set(refs.headerLogo, { clipPath: 'inset(0% 0% 100% 0%)' })
     this.transition = gsap.timeline({ onComplete: () => this.setPhase('idle') })
       .to(refs.loader, { opacity: 0, duration: 0.32, ease: 'bloom' })
@@ -116,20 +112,17 @@ export class Director {
         refs.header.classList.add('is-veiled')
       })
       .to(refs.headerLogo, { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.44, ease: 'steps(4)' }, 0.32)
-      .to(refs.navItems, { opacity: 1, y: 0, duration: 0.9, ease: 'rise', stagger: 0.09 }, 0.4)
-      .add(() => this.links.forEach((link, i) => link.scramble(i * 90)), 0.4)
   }
 
   destroy(): void {
     this.destroyed = true
     this.transition?.kill()
     this.navigation.destroy()
-    this.refs.headerLink.removeEventListener('pointerenter', this.onLogoEnter)
-    this.refs.headerLink.removeEventListener('focus', this.onLogoEnter)
+    this.refs.home.removeEventListener('pointerenter', this.onLogoEnter)
+    this.refs.home.removeEventListener('focus', this.onLogoEnter)
     this.intro?.destroy()
     this.river.destroy()
     this.hero.destroy()
     this.headerLogo.destroy()
-    this.links.forEach((link) => link.destroy())
   }
 }

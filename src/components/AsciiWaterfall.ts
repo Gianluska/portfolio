@@ -38,83 +38,30 @@ function soft(value: number): number {
 export class AsciiWaterfall {
   private readonly streams = new Float32Array(STREAMS * 6)
   private readonly spray = new Float32Array(SPRAY * 6)
-  private pointerX = Number.NaN
-  private pointerY = 0
-  private pressure = 0
-  private dragX = 0
-  private dragY = 0
-  private lastTime = Number.NaN
-  private radius = 130
-  private inverseRadius = 1 / (130 * 130)
 
   constructor() {
     for (let i = 0; i < this.streams.length; i++) this.streams[i] = seed(i + 71)
     for (let i = 0; i < this.spray.length; i++) this.spray[i] = seed(i + 5219)
   }
 
-  private updatePointer(time: number, width: number, visible: boolean, x: number, y: number): void {
-    const delta = Number.isFinite(this.lastTime) ? Math.max(0, Math.min(0.05, time - this.lastTime)) : 0
-    if (!visible || time < this.lastTime) {
-      this.pressure = 0
-      this.pointerX = Number.NaN
-      this.dragX = this.dragY = 0
-    }
-    this.lastTime = time
-    if (!visible) return
-    this.radius = Math.min(130, width * 0.22)
-    this.inverseRadius = 1 / (this.radius * this.radius)
-    const active = Number.isFinite(x) && Number.isFinite(y)
-    const blend = -Math.expm1(-12 * delta)
-    if (active && !Number.isFinite(this.pointerX)) {
-      this.pointerX = x
-      this.pointerY = y
-    }
-    const dx = active ? x - this.pointerX : 0, dy = active ? y - this.pointerY : 0
-    this.dragX += (Math.max(-14, Math.min(14, dx * 0.4)) - this.dragX) * blend
-    this.dragY += (Math.max(-14, Math.min(14, dy * 0.4)) - this.dragY) * blend
-    if (active) {
-      this.pointerX += dx * blend
-      this.pointerY += dy * blend
-    }
-    this.pressure += ((active ? 1 : 0) - this.pressure) * -Math.expm1(-9 * delta)
-    if (!active && this.pressure < 0.001) {
-      this.pressure = 0
-      this.pointerX = Number.NaN
-    }
-  }
-
-  private plotDrop(plot: Plot, glyph: number, x: number, y: number, alpha: number, detached = 1): void {
-    if (alpha < 1 / 255) return
-    if (this.pressure > 0) {
-      const dx = x - this.pointerX, dy = y - this.pointerY
-      if (Math.abs(dx) < this.radius && Math.abs(dy) < this.radius) {
-        const distance = (dx * dx + dy * dy) * this.inverseRadius
-        if (distance < 1) {
-          const weight = this.pressure * detached * (1 - distance) ** 2
-          const normal = 1 / Math.sqrt(dx * dx + dy * dy + 36)
-          x += (dx * normal * 30 + this.dragX) * weight
-          y += (dy * normal * 14 + this.dragY * 0.5) * weight
-        }
-      }
-    }
-    plot(glyph, x, y, alpha)
-  }
-
   draw(
     time: number, width: number, height: number, cellWidth: number, cellHeight: number,
-    camera: AsciiSceneCamera, plot: Plot, pointerX = Number.NaN, pointerY = Number.NaN,
+    camera: AsciiSceneCamera, plot: Plot,
   ): void {
     const lip = camera.lipY, impact = camera.impactY
-    this.updatePointer(time, width, lip <= height + cellHeight, pointerX, pointerY)
-    if (lip > height + cellHeight) return
+    const light = camera.waterLight
+    if (lip > height + cellHeight || light <= 0) return
     const fallHeight = impact - lip
     const scale = camera.edgeScale
     const foamDepth = height * 0.075
     const mistHeight = height * 0.16
     const count = Math.min(STREAMS, Math.ceil(width / (cellWidth * 0.75)))
-    // Fixed material samples: camera travel must not respawn or rephase the water.
-    const knots = Math.max(16, Math.ceil(height / cellHeight))
-    const lifetime = APPROACH_TIME + FALL_TIME
+    // Extend the same ballistic path past the visible shaft, keeping the sampling cadence.
+    const endless = camera.endless
+    const fallTime = endless ? 2.1 * FALL_TIME : FALL_TIME
+    const spreadDepth = endless ? 1.65 : 0.8
+    const lifetime = APPROACH_TIME + fallTime
+    const knots = Math.max(16, Math.ceil(height / cellHeight * lifetime / (APPROACH_TIME + FALL_TIME)))
     const spacing = lifetime / knots
     const span = width + 60
 
@@ -135,6 +82,8 @@ export class AsciiWaterfall {
       for (let j = 0; j < knots; j++) {
         const age = (time + j * spacing + phase) % lifetime - APPROACH_TIME
         const falling = Math.max(0, age)
+        const y = edge + projectedSpeed * age + fallCurve * falling * falling
+        if (y < -cellHeight || y > height + cellHeight) continue
         const descent = falling / FALL_TIME
         const turn = soft(falling / 0.45)
         // Texture is attached to the emission time, not an oscillating screen-space stripe.
@@ -142,25 +91,24 @@ export class AsciiWaterfall {
         const material = noise(along / 48, emitted * 0.7)
         const detail = noise(along / 15 + material * 2, emitted * 1.6)
         const sideways = (material - 0.5) * 12 * scale
-        // Strong at the brink, then thinning and spreading into spray as it nears the pool.
-        const dissipation = soft((descent - 0.2) / 0.8)
+        // In the deeper shot the spray disperses over a longer stretch of the shaft.
+        const dissipation = soft((descent - 0.2) / spreadDepth)
         const scatter = (detail - 0.5) * 34 * scale * dissipation
         const x = source + sideways * turn + drift * descent * descent + scatter
-        const y = edge + projectedSpeed * age + fallCurve * falling * falling
-        if (x < -cellWidth || x > width + cellWidth || y < -cellHeight || y > height + cellHeight) continue
+        if (x < -cellWidth || x > width + cellWidth) continue
         const envelope = soft((age + APPROACH_TIME) / (APPROACH_TIME * 0.6))
-          * (1 - soft((descent - 0.92) / 0.08))
+          * (1 - soft((falling / fallTime - 0.92) / 0.08))
         const sheen = 1 + 0.65 * Math.exp(-age * age / 0.24)
         // Compensate overlapping samples at the slow brink instead of drawing a bright rim.
         const coverage = Math.min(1, (projectedSpeed + 2 * fallCurve * falling) * spacing / cellHeight)
         const alpha = ink * envelope * sheen * (0.5 + material * 0.5) * (0.7 + detail * 0.3) * coverage
-          * (1 - 0.6 * dissipation)
+          * (1 - 0.6 * dissipation) * light
         let glyph = detail > 0.6 ? DASH : DOT
         if (age < 0 && material > 0.72) glyph = TILDE
         else if (turn > 0.25 + detail * 0.5) glyph = detail > 0.8 ? THREAD : detail > 0.4 ? COMMA : COLON
         else if (age >= 0) glyph = COMMA
         if (dissipation > 0.55 + detail * 0.4) glyph = detail > 0.7 ? MIST : DOT
-        this.plotDrop(plot, glyph, x, y, alpha, turn)
+        plot(glyph, x, y, alpha)
         // Short, fading trails keep the accelerating water filament-like, not isolated rain.
         if (age > 0.25 && this.streams[slot + 4] > 0.45) {
           for (let k = 1; k <= 2; k++) {
@@ -170,18 +118,18 @@ export class AsciiWaterfall {
             // Streaks break up as the water dissipates; low in the fall only loose drops remain.
             const trailSpread = 1 - soft((trailDescent - 0.25) / 0.6)
             if (trailSpread <= 0) continue
-            this.plotDrop(
-              plot, k === 1 ? COLON : DOT,
+            plot(
+              k === 1 ? COLON : DOT,
               source + sideways * trailTurn + drift * trailDescent * trailDescent + scatter,
               edge + projectedSpeed * trail + fallCurve * trail * trail,
-              alpha * trailSpread * (k === 1 ? 0.45 : 0.22), trailTurn,
+              alpha * trailSpread * (k === 1 ? 0.45 : 0.22),
             )
           }
         }
       }
     }
 
-    if (impact > height + mistHeight) return
+    if (endless || impact > height + mistHeight) return
     const stepX = cellWidth * 0.9, stepY = cellHeight * 0.67
     const top = Math.max(lip, impact - mistHeight)
     const rows = Math.ceil((height - top) / stepY)
@@ -237,14 +185,14 @@ export class AsciiWaterfall {
       const y = impact - 4 * lift * phase * (1 - phase)
       const fade = Math.sin(phase * Math.PI)
       const alpha = fade * (0.14 + this.spray[slot + 5] * 0.27)
-      this.plotDrop(plot, phase < 0.45 ? DROP : COMMA, x, y, alpha)
+      plot(phase < 0.45 ? DROP : COMMA, x, y, alpha)
       if (phase < 0.6 && this.spray[slot + 5] > 0.65) {
         const trail = Math.max(0, phase - 0.035)
-        this.plotDrop(plot, DOT, origin + side * trail, impact - 4 * lift * trail * (1 - trail), alpha * 0.45)
+        plot(DOT, origin + side * trail, impact - 4 * lift * trail * (1 - trail), alpha * 0.45)
       }
       const rise = (phase + 0.45) % 1
       const mistX = origin + Math.sin(rise * 3 + this.spray[slot + 3] * TAU) * 14 + side * rise * 0.4
-      this.plotDrop(plot, MIST, mistX, impact - rise * mistHeight, Math.sin(rise * Math.PI) * 0.075)
+      plot(MIST, mistX, impact - rise * mistHeight, Math.sin(rise * Math.PI) * 0.075)
     }
   }
 }

@@ -97,6 +97,7 @@ export class AsciiRiver {
   private readonly camera = new AsciiSceneCamera()
   private readonly waterfall = new AsciiWaterfall()
   private scrollProgress = 0
+  private covered = false
   private scrollEnd = 1
   private projectedProgress = -1
   private state: RiverState = 'waiting'
@@ -148,8 +149,6 @@ export class AsciiRiver {
   private rippleClock = 0
   private pointerX = Number.NaN
   private pointerY = 0
-  private fallPointerX = Number.NaN
-  private fallPointerY = 0
   private hullX = Number.NaN
   private hullY = 0
   private bottomContact = 1
@@ -189,6 +188,14 @@ export class AsciiRiver {
     this.resume()
   }
 
+  setCovered(covered: boolean): void {
+    if (this.covered === covered) return
+    this.covered = covered
+    if (covered) this.stop()
+    else if (this.started && this.motion.matches && !document.hidden) this.draw()
+    else this.resume()
+  }
+
   private setState(state: RiverState): void {
     if (this.state === state) return
     this.state = state
@@ -199,9 +206,9 @@ export class AsciiRiver {
     const box = this.canvas.getBoundingClientRect()
     this.width = Math.max(1, box.width)
     this.height = Math.max(1, box.height)
-    this.scrollEnd = Math.max(1, this.projects.getBoundingClientRect().top + window.scrollY)
+    this.scrollEnd = Math.max(1, Math.round(this.projects.getBoundingClientRect().top + window.scrollY))
     this.scrollProgress = clamp(window.scrollY / this.scrollEnd)
-    this.camera.update(this.motion.matches ? (this.scrollProgress >= 0.5 ? 1 : 0) : this.scrollProgress, this.height)
+    this.updateCamera()
     this.dpr = Math.min(1.5, window.devicePixelRatio || 1)
     this.cellWidth = this.width < 640 ? 7 : 8
     this.cellHeight = this.width < 640 ? 10 : 12
@@ -331,6 +338,11 @@ export class AsciiRiver {
     if (this.started && this.motion.matches && !document.hidden) this.draw()
   }
 
+  private updateCamera(): void {
+    const still = this.motion.matches
+    this.camera.update(still ? Number(this.scrollProgress >= 0.5) : this.scrollProgress, this.height, !still)
+  }
+
   private readonly plotFall = (glyph: number, x: number, y: number, alpha: number): void => {
     this.glyph(glyph, x, y, alpha)
   }
@@ -441,24 +453,18 @@ export class AsciiRiver {
   }
 
   private pointerGone = (event: PointerEvent): void => {
-    // Leaving the window or lifting a finger releases both scene-specific pointer targets.
     const gone = event.type === 'pointerout' ? event.relatedTarget === null : event.pointerType !== 'mouse'
-    if (gone) {
-      this.pointerX = Number.NaN
-      this.fallPointerX = Number.NaN
-    }
+    if (gone) this.pointerX = Number.NaN
   }
 
   private pointer = (event: PointerEvent): void => {
-    const box = this.canvas.getBoundingClientRect()
-    this.fallPointerX = event.pointerType === 'mouse' && !this.motion.matches
-      ? event.clientX - box.left : Number.NaN
-    this.fallPointerY = event.clientY - box.top
+    if (this.covered) return
     if (this.scrollProgress > 0.03 || (this.state !== 'ripple' && this.state !== 'flowing')) {
       this.pointerX = Number.NaN
       return
     }
     // On the sea, the pointer steers the boat; only its hull makes wakes and startles birds.
+    const box = this.canvas.getBoundingClientRect()
     this.pointerX = event.clientX - box.left
     this.pointerY = event.clientY - box.top
   }
@@ -725,12 +731,14 @@ export class AsciiRiver {
   }
 
   private draw(): void {
+    if (this.covered) return
     const ctx = this.ctx
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
     ctx.globalAlpha = 1
     if (this.projectedProgress !== this.scrollProgress) {
-      this.camera.update(this.motion.matches ? (this.scrollProgress >= 0.5 ? 1 : 0) : this.scrollProgress, this.height)
-      this.projectWater()
+      this.updateCamera()
+      if (this.camera.lipY > 0) this.projectWater()
+      else this.projectedProgress = this.scrollProgress
     }
     if (!this.heroStarted && this.elapsed >= HERO_START) {
       this.heroStarted = true
@@ -756,13 +764,11 @@ export class AsciiRiver {
       this.pushShots()
       // Opaque black under the water replaces a separate background fill.
       this.waterWords.fill(GREY[0])
-      this.drawWater(age, radius)
+      if (this.camera.lipY > 0) this.drawWater(age, radius)
       this.drawSplash(age)
       this.waterfall.draw(
         this.motion.matches ? 0 : age, this.width, this.height, this.cellWidth, this.cellHeight,
         this.camera, this.plotFall,
-        !this.motion.matches && this.scrollProgress >= 0.35 ? this.fallPointerX : Number.NaN,
-        this.fallPointerY,
       )
       ctx.putImageData(this.waterPixels, 0, 0)
       const actorFade = 1 - smoothstep(0.06, 0.5, this.scrollProgress)
@@ -821,7 +827,7 @@ export class AsciiRiver {
   }
 
   private resume(): void {
-    if (this.started && !this.destroyed && !this.raf && !document.hidden && !this.motion.matches) {
+    if (this.started && !this.destroyed && !this.covered && !this.raf && !document.hidden && !this.motion.matches) {
       this.raf = requestAnimationFrame(this.frame)
     }
   }
@@ -841,7 +847,6 @@ export class AsciiRiver {
     this.rippleActive = false
     this.projectedProgress = -1
     this.hullX = Number.NaN
-    this.fallPointerX = Number.NaN
     this.draw()
     this.resume()
   }

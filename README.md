@@ -1,12 +1,12 @@
 # Gianlucca Claudino — portfolio
 
-Portfolio with an ASCII intro, header, typographic hero, and a full-screen sea that becomes a waterfall as you scroll toward Projects. No card deck or 3D scene.
+Portfolio with an ASCII intro, a full-screen sea that becomes a waterfall on scroll, two featured projects, an in-page case study, and profile and contact sections.
 
 ## Current experience
 
 - On each page load, one of 37 tte.js effects is randomly selected to reveal the official ASCII logo. The animation lasts between 1 and 2.75 s, followed by a final 0.25 s pause: a cycle of at most 3 s, with no looping. The intro remains monochrome.
-- The intro fades out and the header enters with the logo on the left and Projects / Contact on the right.
-- Header hover and focus interactions are preserved: a font wave on the logo, scrambling, a spectral underline, and magnetic attraction on the links.
+- The intro fades out and the header enters with the `lvsk` logo on the left. There are no section links for now.
+- Hovering or focusing the logo plays its font wave; activating it returns to the sea.
 - After the intro, an ASCII drop falls into the center in 0.95 s. Its impact creates a wave in the surface itself, circular in the water plane and projected obliquely onto the screen. The crest and trough alter normals, reflections, and character positions; the wave reveals the sea across the viewport in 2.8 s, without overlaid rings.
 - At 0.75 s into the river entrance—3 s before the sea is fully revealed—the hero displays `Gianlucca Claudino` and the roles below. The block is vertically centered on the left, with start-aligned text. The original `AsciiSkeleton` from [ascii-reveal](https://github.com/quanhoangindex/ascii-reveal), pinned to 0.3.0, uses `dither` blocks and shimmer in a left-to-right wave: the placeholder enters over 450 ms and reveals the new text in the same direction over the next 450 ms. The name receives the effect once; the roles cycle through `Creative Technologist` → `Frontend Specialist` → `Product Engineer`, with 3.2 s reading pauses. The role is non-interactive text: clicking does not pause or restart the cycle. Reduced motion keeps the text static.
 - Water fills the screen in an angled perspective, without a channel, banks, or a drawn horizon. Broad, gentle crests in `~`, slopes in `-`, troughs in `.`, and rare highlights in `*` keep the sea calm. Waves become compressed and softer in the distance and broader in the foreground; distant frequencies are filtered to prevent flicker.
@@ -23,19 +23,20 @@ Hero typography: [Redaction 35](https://fonts.google.com/specimen/Redaction+35) 
 
 ## Scroll to Projects
 
-`SceneNavigation` uses GSAP Observer for virtual, scene-based scrolling. One vertical wheel/trackpad gesture or touch swipe animates the complete journey between the hero and waterfall, snapping to the destination rather than leaving the camera between scenes. The full journey lasts 3.2 seconds with a sine ease-in-out. Further gesture input is absorbed during travel instead of queuing or restarting transitions. The Projects menu button and navigation keys use the same controller; Escape settles at the nearest scene. Browser zoom, editable controls, and horizontal gestures are preserved. Reduced motion disables gesture interception and restores native scrolling with instant scene selection.
+One wheel gesture or touch swipe runs a continuous four-second camera move. Over the first `220svh`, the camera pitches from sea to waterfall, then follows the same falling water down the shaft without stopping at the brink. Water loses light with depth and Selected work begins fading in at 3.15 seconds while the camera is still descending. Normal scroll resumes at four seconds. Scrolling above Projects, pressing Home, or activating the `lvsk` logo reverses the four-second move: content fades out as the camera climbs back to the sea.
 
-Scene selection lives only in memory: menu clicks and gestures do not change the URL or create browser history entries. Every page entry, reload, and browser return starts at the hero. Legacy fragments such as `#projects` and `#contact` are removed while preserving the path and query string. Automatic scroll restoration is disabled so it cannot reopen the waterfall after a reload.
+Sections have no `id` anchors and the header has no section links, so URLs such as `#projects` always open at the sea. The only way into the content is the descent, and the only shortcut back is the logo or Home. Reduced motion uses native scrolling and static scene compositions without camera travel or section animation.
 
-The document retains its 220-viewport-height transition as the camera's progress source, while the scrollbar is hidden in virtual mode. The name and role fade out during the first 28%; the invisible hero becomes inert so it cannot receive keyboard focus. Resizing realigns the selected scene. Teardown kills the Observer and tween and removes listeners.
+Selected work presents `lvsk-calendar` and the ASCII portfolio in alternating text-and-image sections. The calendar preview is the screenshot from its public repository; the ASCII preview is a frame from the local Canvas. A short ASCII case study follows the second project and documents the challenge, approach and result.
+The title, copy and artwork enter in staggered fades; the case study, profile and contact reveal as they enter the viewport. The waterfall renderer pauses when the editorial surface has arrived.
 
 `AsciiSceneCamera` pulls back and lowers the viewing angle over the same water plane. A fixed drop edge enters from below and rises toward the top of the viewport, revealing a full-width waterfall. The ship and atmospheric layers recede and fade as the camera leaves the sea. The depth veil is inverse-projected to remain full-bleed during camera retreat, preventing rectangular color seams at the viewport edges; individual mist banks still follow the actor projection. Scrolling back restores the original camera and hero without replaying the intro.
 
 `AsciiWaterfall` moves translucent, curved ASCII filaments down the fall instead of illuminating a rigid grid of vertical columns. Material points accelerate downward, with staggered highlights and short companion droplets. The impact uses softly blended, advected density fields for rounded foam, sparse bubble contours, low mist, ballistic spray with fine trails, and broken outward ripples. The old chevron lip and sharply peaked foam boundary are gone. Seed buffers, glyph masks, and the river's 30 fps clock are reused; there are no per-frame buffer allocations, new dependencies, or animation loops.
 
-The river-to-fall transition follows a single continuous material path over a stationary brink: upstream flow becomes an accelerating fall, with emission-time texture and short fading trails. The former oscillating edge, periodic highlight bands, folded shoulder, and crest bursts have been removed. Overlap-aware opacity keeps the slow lip from becoming a bright stripe; low-coverage glyphs remain visible. Pointer influence increases gradually below the edge. Reduced motion freezes the entire composition. Visual references and their use are recorded in `DESIGN.md`.
+The river-to-fall transition follows a single continuous material path over a stationary brink: upstream flow becomes an accelerating fall, with emission-time texture and short fading trails. Overlap-aware opacity keeps the slow lip from becoming a bright stripe. Reduced motion freezes the entire composition. Visual references and their use are recorded in `DESIGN.md`.
 
-Mouse movement gently parts nearby waterfall droplets and carries them slightly in the pointer's direction. A damped local field eases in and out, returning drops to their undisturbed trajectories when the pointer leaves. Only filaments, spray, and fine mist respond; foam and pooled water remain unchanged. The waterfall target is separate from ship steering. Touch gestures do not activate hover forces, and reduced motion keeps the scene static. The interaction shares the existing render clock without per-particle allocations or additional listeners.
+Waterfall drops, trails, spray, and mist do not react to the pointer. The pointer still steers the ship at sea.
 
 ## Running locally
 
@@ -57,11 +58,11 @@ npm run preview
 
 `?intro=0` skips the intro, drop, and wave; it displays the header and river directly. The old scene parameters (`debug`, `t`, `webgl`) have been removed.
 
-Projects is an in-page scene button; Contact is disabled because it has no destination yet. Neither adds URL fragments. The standalone GitHub cover files in `github-profile/` have not been changed.
+Contact links to Gianlucca's publicly listed email, LinkedIn, and GitHub. The standalone GitHub cover files in `github-profile/` have not been changed.
 
 ## Previous verification
 
-The scroll transition passed a production build and browser checks at 1440×900, 390×844, and after resizing to 844×390. Checks covered hero opacity and focus exclusion, reverse scrolling, the Projects anchor, finite camera projection, no horizontal overflow, and a single visible scene Canvas once the hero reveal settles. Reduced motion produced identical pixels across frames. No runtime errors were observed.
+The editorial layout and native navigation passed a production build and browser checks at 1365×768 and 390×844. Checks covered scrolling into the transition, direct project links, case study and contact navigation, browser history, and returning to the sea.
 
 Production build completed. The actual scene was exercised in Chromium at 1440×900 and 390×844: central drop and impact preserved, water and actors in motion, a single Canvas, no overflow, resizing without replacing the Canvas, and `?intro=0`. Reduced motion keeps pixels static, and resuming does not repeat the drop. No runtime errors.
 
