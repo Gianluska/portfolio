@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="m-0 h-full overflow-x-clip bg-black text-white data-scene-scroll:overflow-y-hidden data-scene-scroll:overscroll-y-none">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,59 +9,9 @@
     <link rel="preload" href="/fonts/geist-mono.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/redaction-35-700-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/redaction-35-400-normal.woff2" as="font" type="font/woff2" crossorigin />
-    <style>
-      /* Crítico: preto e grão desde o primeiro quadro, antes de qualquer JS. */
-      @font-face {
-        font-family: 'Geist Mono';
-        src: url('/fonts/geist-mono.woff2') format('woff2');
-        font-weight: 100 900;
-        font-display: block;
-      }
-      @font-face {
-        font-family: 'Redaction 35';
-        src: url('/fonts/redaction-35-700-normal.woff2') format('woff2');
-        font-weight: 700;
-        font-display: block;
-      }
-      @font-face {
-        font-family: 'Redaction 35';
-        src: url('/fonts/redaction-35-400-normal.woff2') format('woff2');
-        font-weight: 400;
-        font-display: block;
-      }
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-        background: #000;
-        color: #fff;
-        overflow-x: clip;
-      }
-      .loader::after {
-        content: '';
-        position: fixed;
-        inset: -50%;
-        z-index: 10;
-        pointer-events: none;
-        opacity: 0.075;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.6 0 0 0 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-        animation: grain 0.9s steps(6) infinite;
-      }
-      @keyframes grain {
-        0% { transform: translate(0, 0); }
-        17% { transform: translate(-7%, 4%); }
-        33% { transform: translate(5%, -6%); }
-        50% { transform: translate(-3%, -9%); }
-        67% { transform: translate(8%, 6%); }
-        83% { transform: translate(-9%, -2%); }
-        100% { transform: translate(3%, 8%); }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .loader::after { animation: none; }
-      }
-    </style>
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
-  <body>
+  <body class="m-0 h-full overflow-x-clip bg-black font-mono text-white antialiased [text-rendering:optimizeLegibility]">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

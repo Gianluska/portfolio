@@ -8,6 +8,10 @@ const LINK_STEP = 90
 // used to know when the block has settled.
 const LONGEST = 1500
 
+const wordBase = 'motion-safe:reveal-ready:inline-block motion-safe:reveal-pending:opacity-0 motion-safe:reveal-resting:[transition:none]'
+const displayWord = `${wordBase} motion-safe:reveal-ready:origin-bottom-left motion-safe:reveal-ready:reveal-title-motion motion-safe:reveal-pending:[translate:0_140%] motion-safe:reveal-pending:rotate-6 motion-safe:reveal-pending:[text-shadow:-0.14em_0_var(--s0),0.14em_0_var(--s4)]`
+const bodyWord = `${wordBase} motion-safe:reveal-ready:reveal-word-motion motion-safe:reveal-pending:[translate:0_0.6em] motion-safe:reveal-pending:blur-[10px] motion-safe:reveal-pending:[color:var(--hue)]`
+
 /** Wraps every word under `block` and returns how long (ms) the whole entrance takes. */
 export function splitReveal(block: HTMLElement): number {
   if (block.dataset.split) return Number(block.dataset.split)
@@ -30,7 +34,6 @@ export function splitReveal(block: HTMLElement): number {
     }
     // One inline run per text node: inside flex parents (links) the words stay a single item.
     const run = document.createElement('span')
-    run.className = 'rv-run'
     for (const part of text.data.split(/(\s+)/)) {
       if (!part) continue
       if (/^\s+$/.test(part)) {
@@ -38,14 +41,14 @@ export function splitReveal(block: HTMLElement): number {
         continue
       }
       const word = document.createElement('span')
-      word.className = display ? 'rv-display' : 'rv-word'
+      word.className = display ? displayWord : bodyWord
       word.textContent = part
       word.style.setProperty('--d', `${delay}ms`)
       word.style.setProperty('--hue', `var(--s${hue++ % 6})`)
       delay += display ? DISPLAY_STEP : BODY_STEP
       if (display) {
         const mask = document.createElement('span')
-        mask.className = 'rv-mask'
+        mask.className = 'motion-safe:reveal-ready:inline-block motion-safe:reveal-ready:pb-[0.25em] motion-safe:reveal-ready:mb-[-0.25em] motion-safe:reveal-ready:[clip-path:inset(-1em_-0.5em_0_-0.5em)]'
         mask.append(word)
         run.append(mask)
       } else run.append(word)

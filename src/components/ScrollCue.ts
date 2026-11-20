@@ -45,21 +45,23 @@ export class ScrollCue {
   constructor(private readonly el: HTMLElement) {
     el.replaceChildren()
     const label = document.createElement('span')
-    label.className = 'cue__label'
+    label.className = 'flex font-mono text-[11px]/[1] font-medium text-white uppercase [margin-inline-end:calc(-0.28em_-_var(--p)*0.3em)] [letter-spacing:calc(0.28em_+_var(--p)*0.3em)] [opacity:calc(0.82_+_var(--p)*0.18)] [text-shadow:0_0_6px_#000,0_0_2px_#000]'
     for (const [i, letter] of [...LABEL].entries()) {
       const span = document.createElement('span')
+      span.className = 'inline-block [translate:0_calc(var(--p)*var(--i)*0.9px)] [transition:translate_500ms_var(--spring,var(--ease-scene))] group-data-charging/cue:[transition-duration:120ms] group-data-spill/cue:animate-cue-letter-fall'
       span.textContent = letter
       span.style.setProperty('--i', String(i))
       label.append(span)
     }
     const fall = document.createElement('span')
-    fall.className = 'cue__fall'
+    fall.className = 'grid font-mono text-[14px]/[10px] font-medium whitespace-pre text-white [text-shadow:0_0_4px_#000]'
     for (let r = 0; r < ROWS; r++) {
       const row = document.createElement('span')
-      row.className = 'cue__row'
+      row.className = 'flex group-data-spill/cue:animate-cue-row-fall'
       row.style.setProperty('--r', String(r))
       for (let c = 0; c < COLS; c++) {
         const cell = document.createElement('span')
+        cell.className = 'w-[1ch] text-center opacity-0 data-[l=1]:opacity-[0.38] data-[l=2]:opacity-70 data-[l=3]:opacity-100 data-[l=3]:cue-chroma'
         cell.textContent = ' '
         row.append(cell)
         this.cells.push(cell)

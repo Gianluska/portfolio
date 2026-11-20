@@ -58,7 +58,7 @@ export class AsciiHero {
     this.name.addEventListener('focus', this.nicknameFocus)
     this.name.addEventListener('blur', this.nicknameBlur)
     this.hover.addEventListener('change', this.nicknameLeave)
-    this.roleSizer.className = 'hero__role-sizer'
+    this.roleSizer.className = 'invisible grid whitespace-nowrap [grid-area:1/1] *:[grid-area:1/1]'
     this.roleSizer.setAttribute('aria-hidden', 'true')
     for (const label of ROLES) {
       const option = document.createElement('span')

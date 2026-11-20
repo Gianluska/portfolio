@@ -1,932 +1,55 @@
-:root {
-  --mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-  --fg: #fff;
-  --muted: #a3a3a3;
-  --pad: clamp(18px, 2.4vw, 40px);
-  /* curvas próprias: nenhuma transição usa os eases padrão */
-  --out: cubic-bezier(0.14, 0.9, 0.22, 1);
-  --s0: #ff2e43;
-  --s1: #ff8a1e;
-  --s2: #ffdf1c;
-  --s3: #3fdc62;
-  --s4: #2ba4ff;
-  --s5: #8f5cff;
-}
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-
-body {
-  font-family: var(--mono);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-.scene-content {
-  padding-block-start: 220svh;
-}
-
-html[data-scene-scroll] {
-  overflow-y: hidden;
-  overscroll-behavior-y: none;
-}
-
-html[data-scene-scroll] .app:not([data-scene-handoff]) .portfolio {
-  visibility: hidden;
-}
-
-@font-face {
-  font-family: Geist;
-  src: url('/fonts/geist.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-}
-
-.portfolio {
-  --gutter: clamp(1.25rem, 6vw, 7rem);
-  position: relative;
-  z-index: 2;
-  background: linear-gradient(#000, #0c0c0c 24rem);
-  font-family: Geist, sans-serif;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  [data-reveal-ready] {
-    /* mola subamortecida (ζ≈0.55): ~12% de overshoot e assentamento suave */
-    --spring: linear(0, 0.027 2.5%, 0.098 5%, 0.199 7.5%, 0.318 10%, 0.444 12.5%, 0.569 15%, 0.687 17.5%, 0.794 20%, 0.886 22.5%, 0.963 25%, 1.023 27.5%, 1.068 30%, 1.099 32.5%, 1.117 35%, 1.126 37.5%, 1.125 40%, 1.119 42.5%, 1.107 45%, 1.093 47.5%, 1.077 50%, 1.061 52.5%, 1.046 55%, 1.032 57.5%, 1.019 60%, 1.009 62.5%, 1 65%, 0.994 67.5%, 0.989 70%, 0.986 72.5%, 0.984 75%, 0.984 77.5%, 0.985 80%, 0.987 85%, 0.991 90%, 0.995 95%, 1);
+/* Keep native element defaults: this site does not load Tailwind Preflight. */
+@layer base {
+  *, ::before, ::after {
+    @apply box-border;
   }
 
-  /* Títulos: cada palavra sobe de dentro de uma máscara, torta, com franja de espectro. */
-  [data-reveal-ready] .rv-mask {
-    display: inline-block;
-    padding-block-end: 0.25em;
-    margin-block-end: -0.25em;
-    clip-path: inset(-1em -0.5em 0 -0.5em);
+  @font-face {
+    font-family: 'Geist Mono';
+    src: url('/fonts/geist-mono.woff2') format('woff2');
+    font-weight: 100 900;
+    font-display: block;
   }
 
-  [data-reveal-ready] .rv-display {
-    --at: calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
-    display: inline-block;
-    transform-origin: 0 100%;
-    text-shadow: 0 0 rgb(255 46 67 / 0), 0 0 rgb(43 164 255 / 0);
-    transition:
-      translate 1200ms var(--spring) var(--at),
-      rotate 1200ms var(--spring) var(--at),
-      opacity 260ms linear var(--at),
-      text-shadow 1000ms var(--out) calc(var(--at) + 180ms);
+  @font-face {
+    font-family: Geist;
+    src: url('/fonts/geist.woff2') format('woff2');
+    font-weight: 100 900;
+    font-display: swap;
   }
 
-  [data-reveal-ready] [data-reveal]:not([data-entered], :focus-within) .rv-display {
-    opacity: 0;
-    translate: 0 140%;
-    rotate: 6deg;
-    text-shadow: -0.14em 0 var(--s0), 0.14em 0 var(--s4);
+  @font-face {
+    font-family: 'Redaction 35';
+    src: url('/fonts/redaction-35-400-normal.woff2') format('woff2');
+    font-weight: 400;
+    font-display: block;
   }
 
-  /* Texto corrido: as palavras saem do desfoque numa onda que passa pelo espectro. */
-  [data-reveal-ready] .rv-word {
-    --at: calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
-    display: inline-block;
-    transition:
-      opacity 600ms var(--out) var(--at),
-      translate 1000ms var(--spring) var(--at),
-      filter 800ms var(--out) var(--at),
-      color 1100ms var(--out) calc(var(--at) + 200ms);
-  }
-
-  [data-reveal-ready] [data-reveal]:not([data-entered], :focus-within) .rv-word {
-    opacity: 0;
-    translate: 0 0.6em;
-    filter: blur(10px);
-    color: var(--hue);
-  }
-
-  /* Links: a moldura se desenha da esquerda e a seta desliza depois. */
-  [data-reveal-ready] .portfolio__link {
-    clip-path: inset(-8px);
-    transition: clip-path 900ms var(--out) calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
-  }
-
-  [data-reveal-ready] .portfolio__arrow {
-    transition:
-      translate 900ms var(--spring) calc(var(--reveal-delay, 0ms) + var(--d, 0ms) + 260ms),
-      opacity 400ms var(--out) calc(var(--reveal-delay, 0ms) + var(--d, 0ms) + 260ms);
-  }
-
-  /* o link pode ser o próprio bloco ("View source") ou estar dentro dele */
-  [data-reveal-ready] .portfolio__link:is([data-reveal]:not([data-entered], :focus-within), [data-reveal]:not([data-entered], :focus-within) *) {
-    clip-path: inset(0 100% 0 0);
-  }
-
-  [data-reveal-ready] [data-reveal]:not([data-entered], :focus-within) .portfolio__arrow {
-    opacity: 0;
-    translate: -0.9rem 0;
-  }
-
-  /* Depois da entrada (ou com foco), nada herda as transições longas: hover responde na hora. */
-  [data-reveal-ready] :is([data-settled], [data-reveal]:focus-within) :is(.rv-display, .rv-word, .portfolio__link, .portfolio__arrow),
-  [data-reveal-ready] .portfolio__link:is([data-settled], [data-reveal]:focus-within) {
-    transition: none;
-  }
-
-  .profile p[data-reveal],
-  .contact__links[data-reveal] { --reveal-delay: 70ms; }
-}
-
-.portfolio__inner {
-  max-width: 90rem;
-  margin-inline: auto;
-  padding-inline: var(--gutter);
-}
-
-.projects {
-  padding-block-start: clamp(7.5rem, 17svh, 11rem);
-  padding-block-end: clamp(4rem, 8vw, 7rem);
-}
-
-.portfolio__title {
-  margin: 0;
-  font: 700 clamp(2.75rem, 6.4vw, 5.75rem)/0.98 'Redaction 35', serif;
-  letter-spacing: -0.025em;
-  text-wrap: balance;
-}
-
-.projects__intro p {
-  margin: 1.25rem 0 0;
-}
-
-.portfolio p {
-  max-width: 62ch;
-  color: #bababa;
-  font-size: clamp(1rem, 1.5vw, 1.1875rem);
-  line-height: 1.6;
-  text-wrap: pretty;
-}
-
-.quest-log {
-  --quest-rule: #434343;
-  --quest-inset: clamp(1.125rem, 3.5vw, 3.25rem);
-  margin-block-start: clamp(1.75rem, 4vw, 3rem);
-  max-inline-size: 74rem;
-}
-
-.quest-log__nav {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.375rem;
-  color: var(--muted);
-  font: 500 0.75rem/1.4 var(--mono);
-}
-
-.quest-log__count {
-  white-space: nowrap;
-}
-
-.quest-log__count strong {
-  color: var(--fg);
-  font-weight: 600;
-}
-
-.quest-log__nav button {
-  display: grid;
-  inline-size: 2.75rem;
-  block-size: 2.75rem;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-}
-
-.quest-log__nav button[aria-disabled='true'] {
-  color: #757575;
-  cursor: default;
-}
-
-.quest-log__nav button:not([aria-disabled='true']):hover {
-  background: #191919;
-}
-
-.quest-log__prev .portfolio__arrow {
-  rotate: 180deg;
-}
-
-.quest-log :is(button, .quest-log__viewport):focus-visible {
-  z-index: 1;
-  outline: 2px solid var(--fg);
-  outline-offset: -3px;
-}
-
-.quest-log__viewport {
-  position: relative;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 100%;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-}
-
-.quest {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  min-width: 0;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-}
-
-/* Keep the frame edges aligned even when the notes wrap to different heights. */
-@supports (grid-template-rows: subgrid) {
-  .quest-log__viewport {
-    grid-template-rows: auto auto;
-  }
-
-  .quest {
-    grid-row: span 2;
-    grid-template-rows: subgrid;
+  @font-face {
+    font-family: 'Redaction 35';
+    src: url('/fonts/redaction-35-700-normal.woff2') format('woff2');
+    font-weight: 700;
+    font-display: block;
   }
 }
 
-.quest__scene {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(10rem, 0.31fr) minmax(0, 1fr);
-  align-items: start;
-  gap: clamp(2rem, 5vw, 5rem);
-  padding: var(--quest-inset);
-  border: 1px solid #6b6b6b;
-  background: #111;
-  box-shadow: inset 0 0 0 4px #111, inset 0 0 0 5px var(--quest-rule);
-}
-
-.quest__scene::before {
-  position: absolute;
-  inset: -1px;
-  content: '';
-  pointer-events: none;
-  background:
-    conic-gradient(from 90deg at 3px 3px, transparent 90deg, #bdbdbd 0) top left,
-    conic-gradient(from 180deg at calc(100% - 3px) 3px, transparent 90deg, #bdbdbd 0) top right,
-    conic-gradient(from 0deg at 3px calc(100% - 3px), transparent 90deg, #bdbdbd 0) bottom left,
-    conic-gradient(from 270deg at calc(100% - 3px) calc(100% - 3px), transparent 90deg, #bdbdbd 0) bottom right;
-  background-size: 1rem 1rem;
-  background-repeat: no-repeat;
-}
-
-.quest__company {
-  min-width: 0;
-  max-inline-size: 13rem;
-  text-align: center;
-}
-
-.quest__portrait {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 8.5rem;
-  border: 1px solid #565656;
-  outline: 1px solid #292929;
-  outline-offset: -5px;
-  background: #090909;
-  isolation: isolate;
-  overflow: hidden;
-}
-
-.quest__portrait pre {
-  position: absolute;
-  inset: 50% auto auto 50%;
-  translate: -50% -50%;
-  margin: 0;
-  color: #515151;
-  font: 400 0.625rem/0.65rem var(--mono);
-  user-select: none;
-}
-
-.quest__portrait img {
-  width: 84%;
-  height: 3.75rem;
-  object-fit: contain;
-  filter: brightness(0) invert(1) drop-shadow(0 2px 8px #000);
-}
-
-.quest__identity h3 {
-  position: relative;
-  width: fit-content;
-  max-inline-size: 100%;
-  margin: -0.75rem auto 0;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid #565656;
-  background: #161616;
-  color: #eee;
-  font: 700 clamp(1.125rem, 1.75vw, 1.5rem)/1.15 'Redaction 35', serif;
-  text-wrap: balance;
-}
-
-.quest__stack {
-  margin: 0.875rem 0 0;
-  color: var(--muted);
-  font: 400 0.75rem/1.5 var(--mono);
-  text-wrap: pretty;
-}
-
-.quest__stack dd,
-.quest__work dd {
-  margin: 0;
-}
-
-.quest__dialogue blockquote {
-  max-inline-size: 31ch;
-  margin: 0 0 clamp(1.125rem, 2.75vw, 2rem);
-  font: 400 clamp(2rem, 4.25vw, 3.625rem)/1.05 'Redaction 35', serif;
-  letter-spacing: -0.025em;
-  text-wrap: pretty;
-}
-
-.quest__replies {
-  display: grid;
-  max-inline-size: 27rem;
-}
-
-.quest__reply {
-  display: grid;
-  grid-template-columns: 0.875rem minmax(0, 1fr);
-  align-items: center;
-  gap: 0.75rem;
-  min-block-size: 2.75rem;
-  padding: 0.375rem 0.75rem;
-  border: 0;
-  background: transparent;
-  color: #bdbdbd;
-  font: 500 1rem/1.3 Geist, sans-serif;
-  text-align: start;
-  cursor: pointer;
-}
-
-.quest__reply:hover {
-  color: var(--fg);
-  background: #1b1b1b;
-}
-
-.quest__reply[aria-pressed='true'] {
-  background: linear-gradient(90deg, #2c2c2c, transparent);
-  color: var(--fg);
-}
-
-.quest__reply-mark {
-  display: grid;
-  place-items: center;
-}
-
-.quest__reply-mark::before {
-  content: '';
-  inline-size: 0.375rem;
-  aspect-ratio: 1;
-  border: solid currentColor;
-  border-width: 1px 1px 0 0;
-  rotate: 45deg;
-}
-
-.quest__reply[aria-pressed='true'] .quest__reply-mark::before {
-  inline-size: 0.625rem;
-  block-size: 0.375rem;
-  border-width: 0 0 2px 2px;
-  rotate: -45deg;
-}
-
-.quest__echo {
-  color: #c6c6c6;
-  font-size: 0.875rem;
-  line-height: 1.4;
-}
-
-.quest__echo:not(:empty) {
-  margin: 0.5rem 0 0 0.75rem;
-  padding-inline-start: 0.75rem;
-  border-inline-start: 1px solid #777;
-}
-
-.quest__work {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem 1rem;
-  margin: 0;
-  padding: 1rem 0 0.25rem;
-  color: #c6c6c6;
-  font-size: 0.9375rem;
-  line-height: 1.5;
-}
-
-.quest__work dt {
-  color: var(--muted);
-  font: 500 0.75rem/1.3 var(--mono);
-}
-
-.quest__seam {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-/* Animate only the ink at the shared seam, never the readable slide contents. */
-@media (prefers-reduced-motion: no-preference) {
-  @supports (view-timeline-axis: inline) and (animation-timeline: --quest-page) {
-    .quest {
-      view-timeline: --quest-page inline;
-    }
-
-    .quest__seam::before,
-    .quest__seam::after {
-      animation-timeline: --quest-page;
-      animation-duration: auto;
-      animation-fill-mode: both;
-      animation-timing-function: linear;
-    }
-
-    .quest__seam::before,
-    .quest__seam::after {
-      position: absolute;
-      z-index: 1;
-      inset-block: 0;
-      display: grid;
-      align-content: center;
-      padding-inline: clamp(0.25rem, 1vw, 0.75rem);
-      content: '.\A  :.\A :+\A  +:\A .==\A  +:\A :+\A  :.\A .\A  .:\A +:\A  :=\A .++\A  +.\A :\A  .';
-      color: #e4e4e4;
-      font: 500 0.6875rem/0.78 var(--mono);
-      white-space: pre;
-      pointer-events: none;
-      user-select: none;
-    }
-
-    .quest__seam::before {
-      inset-inline-start: 0;
-      animation-name: quest-leading-ink;
-    }
-
-    .quest__seam::after {
-      inset-inline-end: 0;
-      animation-name: quest-trailing-ink;
-    }
-
-    @keyframes quest-leading-ink {
-      0% { transform: translateX(-0.3rem); opacity: 0; }
-      22% { opacity: 0.9; }
-      42%, 100% { transform: translateX(0.3rem); opacity: 0; }
-    }
-
-    @keyframes quest-trailing-ink {
-      0%, 58% { transform: translateX(-0.3rem); opacity: 0; }
-      78% { opacity: 0.9; }
-      100% { transform: translateX(0.3rem); opacity: 0; }
-    }
-  }
-}
-
-.portfolio__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 1rem;
-  min-height: 2.75rem;
-  padding-inline: 0.875rem;
-  border: 1px solid #5c5c5c;
-  font-weight: 600;
-}
-
-.portfolio__link:hover {
-  color: #0c0c0c;
-  background: var(--fg);
-  border-color: var(--fg);
-}
-
-.portfolio__link:focus-visible {
-  outline: 2px solid var(--fg);
-  outline-offset: 4px;
-}
-
-.portfolio__arrow {
-  position: relative;
-  width: 0.95rem;
-  border-block-start: 1px solid currentColor;
-}
-
-.portfolio__arrow::after {
-  position: absolute;
-  inset: -0.25rem 0 auto auto;
-  content: '';
-  width: 0.45rem;
-  aspect-ratio: 1;
-  border: solid currentColor;
-  border-width: 1px 1px 0 0;
-  rotate: 45deg;
-}
-
-.profile,
-.contact {
-  padding-block: clamp(3rem, 8vw, 7rem);
-}
-
-.profile,
-.contact {
-  border-block-start: 1px solid #343434;
-}
-
-.profile p {
-  margin: 1.5rem 0 0;
-}
-
-.contact__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 1.5rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-@media (max-width: 48rem) {
-  .projects {
-    padding-block-start: clamp(5rem, 12svh, 7.5rem);
-  }
-
-  .quest__scene {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.5rem;
-  }
-
-  .quest__company {
-    display: flex;
-    align-items: center;
-    gap: clamp(0.75rem, 4vw, 1.5rem);
-    max-inline-size: none;
-    text-align: start;
-  }
-
-  .quest__identity {
-    flex: 0 0 clamp(6.75rem, 40%, 9rem);
-  }
-
-  .quest__identity h3 {
-    padding-inline: 0.4rem;
-    text-align: center;
-  }
-
-  .quest__portrait {
-    min-height: 4.25rem;
-  }
-
-  .quest__portrait pre {
-    font-size: 0.4375rem;
-    line-height: 0.3125rem;
-  }
-
-  .quest__portrait img {
-    height: 2.125rem;
-  }
-
-  .quest__stack {
-    margin: 0 0 0.5rem;
-  }
-}
-
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-
-/* ---------- ASCII ---------- */
-
-.ascii {
-  display: inline-flex;
-  align-items: flex-start;
-  font-family: var(--mono);
-  font-weight: 400;
-  line-height: 1.1;
-  letter-spacing: 0;
-  font-variant-ligatures: none;
-  font-kerning: none;
-  user-select: none;
-}
-
-.ascii__cell {
-  display: block;
-  margin: 0;
-  white-space: pre;
-  overflow: visible;
-}
-
-
-.ascii__cell.is-chroma {
-  text-shadow:
-    -0.14em 0 0 rgb(255 46 67 / 0.85),
-    0.14em 0 0 rgb(43 164 255 / 0.85);
-}
-
-.ascii__cell.is-locked {
-  animation: lock 0.6s var(--out) both;
-}
-
-@keyframes lock {
-  0% {
-    color: #fff;
-    transform: translateY(-0.22em);
-    text-shadow:
-      0 0 0.7em rgb(255 255 255 / 0.9),
-      -0.2em 0 0 var(--s0),
-      0.2em 0 0 var(--s4);
-  }
-  35% {
-    transform: translateY(0.04em);
-    text-shadow:
-      -0.06em 0 0 var(--s0),
-      0.06em 0 0 var(--s4);
-  }
-  100% {
-    transform: none;
-    text-shadow: none;
-  }
-}
-
-/* ---------- loader ---------- */
-
-.loader {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  background: #000;
-}
-
-.loader[hidden] {
-  display: none;
-}
-
-.loader__logo {
-  margin: 0;
-  visibility: hidden;
-  color: var(--fg);
-  font-family: var(--mono);
-  font-size: clamp(9px, 1.5vw, 24px);
-  font-weight: 400;
-  line-height: 1.1;
-  font-variant-ligatures: none;
-  font-kerning: none;
-  white-space: pre;
-  user-select: none;
-}
-
-.loader.is-on .loader__logo {
-  visibility: visible;
-}
-
-/* Alguns efeitos têm cores próprias; a abertura permanece monocromática. */
-.loader canvas {
-  filter: grayscale(1);
-}
-
-/* ---------- rio ASCII ---------- */
-
-.river {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  filter: brightness(1.56);
-  pointer-events: none;
-}
-
-.river[data-state='waiting'] {
-  visibility: hidden;
-}
-
-
-/* ---------- interface ---------- */
-
-
-.ui {
-  position: fixed;
-  inset: 0;
-  z-index: 3;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-/* ---------- hero ---------- */
-
-.hero {
-  position: fixed;
-  top: clamp(56px, 12svh, 144px);
-  right: var(--pad);
-  left: var(--pad);
-  display: grid;
-  justify-items: center;
-  text-align: center;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.hero[hidden] {
-  display: none;
-}
-
-.hero__copy {
-  --ascii-font: "Geist Mono", monospace;
-  --ascii-skeleton: currentColor;
-  font-synthesis: none;
-  position: relative;
-  width: fit-content;
-  max-width: 100%;
-  pointer-events: auto;
-}
-
-.hero__name {
-  margin: 0;
-  color: var(--fg);
-  font-family: 'Redaction 35', serif;
-  font-size: clamp(40px, 6.8vw, 96px);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.01em;
-  white-space: normal;
-}
-
-.hero__name:focus-visible {
-  outline: 1px solid var(--muted);
-  outline-offset: 8px;
-}
-
-.hero__nickname {
-  display: inline-grid;
-  grid-template-columns: 0fr;
-  vertical-align: baseline;
-  font: inherit;
-  font-size: 0.9em;
-  color: #d4d4d4;
-  transition: grid-template-columns 400ms var(--out);
-}
-
-.hero__name.is-nickname-open .hero__nickname {
-  grid-template-columns: 1fr;
-}
-
-.hero__nickname-clip {
-  min-width: 0;
-  overflow: hidden;
-}
-
-.hero__nickname-content {
-  position: relative;
-  display: block;
-  width: max-content;
-  margin-inline-end: 0.25em;
-  opacity: 0;
-  transform: translateY(3px) scale(0.96);
-  transform-origin: left center;
-  transition: opacity 200ms var(--out), transform 400ms var(--out);
-}
-
-.hero__name.is-nickname-open .hero__nickname-content {
-  opacity: 1;
-  transform: none;
-}
-
-
-.hero__nickname-noise {
-  --ars-radius: 0px;
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  clip-path: inset(0 100% 0 0);
-  font: 400 10px/1 "Geist Mono", monospace;
-  text-align: left;
-}
-
-.hero__nickname-noise .ars,
-.hero__nickname-noise .ars-block {
-  width: 100%;
-  height: 100%;
-}
-
-.hero__line {
-  position: relative;
-  display: block;
-  width: 100%;
-}
-
-.hero__text {
-  display: block;
-}
-
-
-.hero__skeleton {
-  --ars-radius: 0px;
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  clip-path: inset(0 100% 0 0);
-  font: 400 12px/1 "Geist Mono", monospace;
-  letter-spacing: normal;
-  text-align: left;
-}
-
-.hero__skeleton[hidden] {
-  display: none;
-}
-
-.hero__skeleton .ars,
-.hero__skeleton .ars-block {
-  width: 100%;
-  height: 100%;
-}
-
-.hero__role .hero__skeleton {
-  font-size: 10px;
-}
-
-.hero__roles {
-  margin: clamp(8px, 0.8vw, 12px) 0 0;
-}
-
-.hero__role {
-  display: inline-grid;
-  place-items: center;
-  min-height: 44px;
-  padding: 6px 0;
-  color: #c3c3c3;
-  font: inherit;
-  font-family: 'Redaction 35', serif;
-  font-size: clamp(24px, 2.2vw, 32px);
-  line-height: 1.35;
-  text-align: center;
-}
-
-.hero__role > .hero__line,
-.hero__role-sizer {
-  grid-area: 1 / 1;
-}
-
-.hero__role-sizer {
-  display: grid;
-  visibility: hidden;
-  white-space: nowrap;
-}
-
-.hero__role-sizer > span {
-  grid-area: 1 / 1;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* ---------- header ---------- */
-
-.header {
-  position: absolute;
-  inset: 0 0 auto;
-  isolation: isolate;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  padding: var(--pad);
-}
-
-/* Véu preservado do cabeçalho; sobre preto não acrescenta conteúdo ao fundo. */
-.header::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: -1;
-  height: calc(100% + clamp(48px, 8vh, 120px));
-  pointer-events: none;
-  /* paradas suavizadas para evitar banding */
-  /* entra descendo do topo da tela junto com o reveal (classe .is-veiled) */
-  transform: translateY(-100%);
-  opacity: 0;
-  transition:
-    transform 1.2s var(--out),
-    opacity 0.9s var(--out);
-  background: linear-gradient(
+@theme {
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --font-ascii: 'Geist Mono', monospace;
+  --font-sans: Geist, sans-serif;
+  --font-display: 'Redaction 35', serif;
+  --color-muted: #a3a3a3;
+  --spacing-page: clamp(18px, 2.4vw, 40px);
+  --spacing-editorial: clamp(1.25rem, 6vw, 7rem);
+  --ease-scene: cubic-bezier(0.14, 0.9, 0.22, 1);
+  /* Mola subamortecida (ζ≈0.55): ~12% de overshoot. */
+  --ease-reveal: linear(0, 0.027 2.5%, 0.098 5%, 0.199 7.5%, 0.318 10%, 0.444 12.5%, 0.569 15%, 0.687 17.5%, 0.794 20%, 0.886 22.5%, 0.963 25%, 1.023 27.5%, 1.068 30%, 1.099 32.5%, 1.117 35%, 1.126 37.5%, 1.125 40%, 1.119 42.5%, 1.107 45%, 1.093 47.5%, 1.077 50%, 1.061 52.5%, 1.046 55%, 1.032 57.5%, 1.019 60%, 1.009 62.5%, 1 65%, 0.994 67.5%, 0.989 70%, 0.986 72.5%, 0.984 75%, 0.984 77.5%, 0.985 80%, 0.987 85%, 0.991 90%, 0.995 95%, 1);
+  --background-image-loader-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.6 0 0 0 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --background-image-header-veil: linear-gradient(
     to bottom,
     rgb(0 0 0 / 0.85) 0%,
     rgb(0 0 0 / 0.72) 22%,
@@ -936,127 +59,34 @@ a {
     rgb(0 0 0 / 0.03) 93%,
     transparent 100%
   );
+  --background-image-cue-veil: radial-gradient(closest-side, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.5) 45%, rgb(0 0 0 / 0.16) 75%, transparent);
+  --animate-grain: grain 0.9s steps(6) infinite;
+
+  @keyframes grain {
+    0% { transform: translate(0, 0); }
+    17% { transform: translate(-7%, 4%); }
+    33% { transform: translate(5%, -6%); }
+    50% { transform: translate(-3%, -9%); }
+    67% { transform: translate(8%, 6%); }
+    83% { transform: translate(-9%, -2%); }
+    100% { transform: translate(3%, 8%); }
+  }
 }
 
-.header.is-veiled::before {
-  transform: none;
-  opacity: 1;
-}
-
-/* ---------- scroll cue ---------- */
-
-/* Uma cachoeira em miniatura, nos mesmos glifos do mar: a água corre até a borda e cai num poço.
-   O gesto engrossa a queda e inclina a palavra sobre a borda; a carga cheia esvazia tudo para baixo. */
-.cue {
-  --p: 0;
-  position: absolute;
-  bottom: max(clamp(16px, 3.5svh, 32px), env(safe-area-inset-bottom));
-  left: 50%;
-  isolation: isolate;
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  translate: -50% 14px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 500ms var(--out), translate 900ms var(--out);
-}
-
-/* Véu escuro: separa o indicador da água iluminada sem desenhar caixa. */
-.cue::before {
-  content: '';
-  position: absolute;
-  inset: -36px -64px -20px;
-  z-index: -1;
-  background: radial-gradient(closest-side, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.5) 45%, rgb(0 0 0 / 0.16) 75%, transparent);
-}
-
-.cue[data-on] {
-  translate: -50% 0;
-  opacity: 1;
-  transition-duration: 900ms, 1200ms;
-}
-
-.cue[data-spill] {
-  transition: opacity 420ms var(--out) 560ms;
-}
-
-.cue__label {
-  display: flex;
-  margin-inline-end: calc(-0.28em - var(--p) * 0.3em);
-  color: var(--fg);
-  font: 500 11px/1 var(--mono);
-  letter-spacing: calc(0.28em + var(--p) * 0.3em);
-  text-transform: uppercase;
-  opacity: calc(0.82 + var(--p) * 0.18);
-  text-shadow: 0 0 6px #000, 0 0 2px #000;
-}
-
-/* A palavra se debruça sobre a borda: cada letra desce um pouco mais que a anterior. */
-.cue__label span {
-  display: inline-block;
-  translate: 0 calc(var(--p) * var(--i) * 0.9px);
-  transition: translate 500ms var(--spring, var(--out));
-}
-
-.cue[data-charging] .cue__label span {
-  transition-duration: 120ms;
-}
-
-.cue__fall {
-  display: grid;
-  color: var(--fg);
-  font: 500 14px/10px var(--mono);
-  white-space: pre;
-  text-shadow: 0 0 4px #000;
-}
-
-.cue__row {
-  display: flex;
-}
-
-.cue__row span {
-  width: 1ch;
-  text-align: center;
-  opacity: 0;
-}
-
-.cue__row [data-l='1'] {
-  opacity: 0.38;
-}
-
-.cue__row [data-l='2'] {
-  opacity: 0.7;
-}
-
-/* Cabeças das gotas: franja de espectro cresce com a carga. */
-.cue__row [data-l='3'] {
-  opacity: 1;
-  text-shadow:
-    calc(var(--p) * -1.5px) 0 rgb(255 46 67 / calc(var(--p) * 0.9)),
-    calc(var(--p) * 1.5px) 0 rgb(43 164 255 / calc(var(--p) * 0.9)),
-    0 0 4px #000;
-}
-
-/* Transborda: as letras despencam em sequência e a cachoeira escorre linha a linha para fora. */
-.cue[data-spill] .cue__label span {
+@utility animate-cue-letter-fall {
   animation: cue-letter-fall 640ms cubic-bezier(0.55, 0, 0.9, 0.45) calc(var(--i) * 45ms) forwards;
 }
 
-.cue[data-spill] .cue__row {
+@utility animate-cue-row-fall {
   animation: cue-row-fall 560ms cubic-bezier(0.55, 0, 0.9, 0.45) calc(240ms + (7 - var(--r)) * 30ms) forwards;
 }
 
 @keyframes cue-letter-fall {
-  0% {
-    text-shadow: 0 0 6px #000;
-  }
-
+  0% { text-shadow: 0 0 6px #000; }
   25% {
     translate: 0 -3px;
     text-shadow: -2px 0 var(--s0), 2px 0 var(--s4), 0 0 6px #000;
   }
-
   100% {
     translate: 0 64px;
     scale: 0.7 1.8;
@@ -1073,31 +103,83 @@ a {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .scene-content {
-    padding-block-start: 100svh;
-  }
+@theme static {
+  /* splitReveal assigns these names dynamically. */
+  --s0: #ff2e43;
+  --s1: #ff8a1e;
+  --s2: #ffdf1c;
+  --s3: #3fdc62;
+  --s4: #2ba4ff;
+  --s5: #8f5cff;
+}
 
-  .hero__nickname,
-  .hero__nickname-content {
-    transition: none;
-    transform: none;
-  }
+@custom-variant compact (@media (max-width: 48rem));
+@custom-variant scene-veiled (html[data-scene-scroll] .app:not([data-scene-handoff]) &);
+@custom-variant reveal-ready ([data-reveal-ready] &);
+@custom-variant reveal-pending ([data-reveal-ready] [data-reveal]:not([data-entered], :focus-within) &);
+@custom-variant reveal-resting ([data-reveal-ready] :is([data-settled], [data-reveal]:focus-within) &);
+@custom-variant quest-ink (@supports (view-timeline-axis: inline) and (animation-timeline: --quest-page));
 
-  .hero__nickname-noise {
-    display: none;
-  }
+/* Per-property choreography for the entrance of titles, copy and links. */
+@utility reveal-title-motion {
+  --at: calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
+  text-shadow: 0 0 rgb(255 46 67 / 0), 0 0 rgb(43 164 255 / 0);
+  transition:
+    translate 1200ms var(--spring) var(--at),
+    rotate 1200ms var(--spring) var(--at),
+    opacity 260ms linear var(--at),
+    text-shadow 1000ms var(--ease-scene) calc(var(--at) + 180ms);
+}
 
-  .ascii__cell.is-locked {
-    animation-duration: 0.01s;
-  }
+@utility reveal-word-motion {
+  --at: calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
+  transition:
+    opacity 600ms var(--ease-scene) var(--at),
+    translate 1000ms var(--spring) var(--at),
+    filter 800ms var(--ease-scene) var(--at),
+    color 1100ms var(--ease-scene) calc(var(--at) + 200ms);
+}
 
-  .header::before {
-    transition-duration: 0.01s;
-  }
+@utility reveal-link-motion {
+  clip-path: inset(-8px);
+  transition: clip-path 900ms var(--ease-scene) calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
+}
 
-  .cue {
-    display: none;
-  }
+@utility quest-corners {
+  background:
+    conic-gradient(from 90deg at 3px 3px, transparent 90deg, #bdbdbd 0) top left,
+    conic-gradient(from 180deg at calc(100% - 3px) 3px, transparent 90deg, #bdbdbd 0) top right,
+    conic-gradient(from 0deg at 3px calc(100% - 3px), transparent 90deg, #bdbdbd 0) bottom left,
+    conic-gradient(from 270deg at calc(100% - 3px) calc(100% - 3px), transparent 90deg, #bdbdbd 0) bottom right;
+  background-size: 1rem 1rem;
+  background-repeat: no-repeat;
+}
 
+/* Both pseudo-elements share the texture, but follow opposite ends of the timeline. */
+@utility quest-seam-ink {
+  @apply pointer-events-none absolute inset-y-0 z-1 grid content-center px-[clamp(0.25rem,1vw,0.75rem)] font-mono text-[0.6875rem]/[0.78] font-medium whitespace-pre text-[#e4e4e4] select-none;
+  content: '.\A  :.\A :+\A  +:\A .==\A  +:\A :+\A  :.\A .\A  .:\A +:\A  :=\A .++\A  +.\A :\A  .';
+  animation-timeline: --quest-page;
+  animation-duration: auto;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+}
+
+@keyframes quest-leading-ink {
+  0% { transform: translateX(-0.3rem); opacity: 0; }
+  22% { opacity: 0.9; }
+  42%, 100% { transform: translateX(0.3rem); opacity: 0; }
+}
+
+@keyframes quest-trailing-ink {
+  0%, 58% { transform: translateX(-0.3rem); opacity: 0; }
+  78% { opacity: 0.9; }
+  100% { transform: translateX(0.3rem); opacity: 0; }
+}
+
+@utility cue-chroma {
+  text-shadow:
+    calc(var(--p) * -1.5px) 0 rgb(255 46 67 / calc(var(--p) * 0.9)),
+    calc(var(--p) * 1.5px) 0 rgb(43 164 255 / calc(var(--p) * 0.9)),
+    0 0 4px #000;
 }
