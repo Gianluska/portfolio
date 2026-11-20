@@ -56,23 +56,113 @@ html[data-scene-scroll] .app:not([data-scene-handoff]) .portfolio {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  [data-reveal-ready] [data-reveal] {
+  [data-reveal-ready] {
+    /* mola subamortecida (ζ≈0.55): ~12% de overshoot e assentamento suave */
+    --spring: linear(0, 0.027 2.5%, 0.098 5%, 0.199 7.5%, 0.318 10%, 0.444 12.5%, 0.569 15%, 0.687 17.5%, 0.794 20%, 0.886 22.5%, 0.963 25%, 1.023 27.5%, 1.068 30%, 1.099 32.5%, 1.117 35%, 1.126 37.5%, 1.125 40%, 1.119 42.5%, 1.107 45%, 1.093 47.5%, 1.077 50%, 1.061 52.5%, 1.046 55%, 1.032 57.5%, 1.019 60%, 1.009 62.5%, 1 65%, 0.994 67.5%, 0.989 70%, 0.986 72.5%, 0.984 75%, 0.984 77.5%, 0.985 80%, 0.987 85%, 0.991 90%, 0.995 95%, 1);
+  }
+
+  /* Títulos: cada palavra sobe de dentro de uma máscara, torta, com franja de espectro. */
+  [data-reveal-ready] .rv-mask {
+    display: inline-block;
+    padding-block-end: 0.25em;
+    margin-block-end: -0.25em;
+    clip-path: inset(-1em -0.5em 0 -0.5em);
+  }
+
+  [data-reveal-ready] .rv-display {
+    --at: calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
+    display: inline-block;
+    transform-origin: 0 100%;
+    text-shadow: 0 0 rgb(255 46 67 / 0), 0 0 rgb(43 164 255 / 0);
     transition:
-      opacity 620ms var(--out) var(--reveal-delay, 0ms),
-      translate 700ms var(--out) var(--reveal-delay, 0ms);
+      translate 1200ms var(--spring) var(--at),
+      rotate 1200ms var(--spring) var(--at),
+      opacity 260ms linear var(--at),
+      text-shadow 1000ms var(--out) calc(var(--at) + 180ms);
   }
 
-  [data-reveal-ready] [data-reveal]:not([data-entered], :focus-within) {
+  [data-reveal-ready] [data-reveal]:not([data-entered], :focus-within) .rv-display {
     opacity: 0;
-    translate: 0 var(--reveal-distance, 0.8rem);
+    translate: 0 140%;
+    rotate: 6deg;
+    text-shadow: -0.14em 0 var(--s0), 0.14em 0 var(--s4);
   }
 
-  [data-reveal-ready] [data-reveal]:focus-within {
+  /* Texto corrido: as palavras saem do desfoque numa onda que passa pelo espectro. */
+  [data-reveal-ready] .rv-word {
+    --at: calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
+    display: inline-block;
+    transition:
+      opacity 600ms var(--out) var(--at),
+      translate 1000ms var(--spring) var(--at),
+      filter 800ms var(--out) var(--at),
+      color 1100ms var(--out) calc(var(--at) + 200ms);
+  }
+
+  [data-reveal-ready] [data-reveal]:not([data-entered], :focus-within) .rv-word {
+    opacity: 0;
+    translate: 0 0.6em;
+    filter: blur(10px);
+    color: var(--hue);
+  }
+
+  /* Links: a moldura se desenha da esquerda e a seta desliza depois. */
+  [data-reveal-ready] .portfolio__link {
+    clip-path: inset(-8px);
+    transition: clip-path 900ms var(--out) calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
+  }
+
+  [data-reveal-ready] .portfolio__arrow {
+    transition:
+      translate 900ms var(--spring) calc(var(--reveal-delay, 0ms) + var(--d, 0ms) + 260ms),
+      opacity 400ms var(--out) calc(var(--reveal-delay, 0ms) + var(--d, 0ms) + 260ms);
+  }
+
+  /* o link pode ser o próprio bloco ("View source") ou estar dentro dele */
+  [data-reveal-ready] .portfolio__link:is([data-reveal]:not([data-entered], :focus-within), [data-reveal]:not([data-entered], :focus-within) *) {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  [data-reveal-ready] [data-reveal]:not([data-entered], :focus-within) .portfolio__arrow {
+    opacity: 0;
+    translate: -0.9rem 0;
+  }
+
+  [data-reveal-ready] .project__number::before {
+    transform-origin: left;
+    transition: scale 900ms var(--out) var(--reveal-delay, 0ms);
+  }
+
+  [data-reveal-ready] [data-reveal]:not([data-entered], :focus-within) .project__number::before {
+    scale: 0 1;
+  }
+
+  /* Imagens: abrem de baixo para cima enquanto a foto assenta. */
+  [data-reveal-ready] .project__media[data-reveal] {
+    clip-path: inset(0);
+    transition: clip-path 1300ms var(--out) var(--reveal-delay, 0ms);
+  }
+
+  [data-reveal-ready] .project__media[data-reveal] img {
+    transition: scale 1700ms var(--out) var(--reveal-delay, 0ms);
+  }
+
+  [data-reveal-ready] .project__media[data-reveal]:not([data-entered], :focus-within) {
+    clip-path: inset(100% 0 0 0);
+  }
+
+  [data-reveal-ready] .project__media[data-reveal]:not([data-entered], :focus-within) img {
+    scale: 1.2;
+  }
+
+  /* Depois da entrada (ou com foco), nada herda as transições longas: hover responde na hora. */
+  [data-reveal-ready] :is([data-settled], [data-reveal]:focus-within) :is(.rv-display, .rv-word, .portfolio__link, .portfolio__arrow),
+  [data-reveal-ready] .portfolio__link:is([data-settled], [data-reveal]:focus-within) {
     transition: none;
   }
 
   .project__copy[data-reveal] { --reveal-delay: 75ms; }
-  .project__media[data-reveal] { --reveal-delay: 145ms; --reveal-distance: 1.5rem; }
+  .project__media[data-reveal] { --reveal-delay: 145ms; }
   .case-study__steps > :nth-child(2) { --reveal-delay: 70ms; }
   .case-study__steps > :nth-child(3) { --reveal-delay: 140ms; }
   .profile p[data-reveal],
@@ -393,13 +483,12 @@ a {
 
 .hero {
   position: fixed;
-  top: 50%;
+  top: clamp(56px, 12svh, 144px);
   right: var(--pad);
   left: var(--pad);
-  transform: translateY(-50%);
   display: grid;
-  justify-items: start;
-  text-align: start;
+  justify-items: center;
+  text-align: center;
   z-index: 3;
   pointer-events: none;
 }
@@ -528,7 +617,7 @@ a {
 
 .hero__role {
   display: inline-grid;
-  place-items: center start;
+  place-items: center;
   min-height: 44px;
   padding: 6px 0;
   color: #c3c3c3;
@@ -536,7 +625,7 @@ a {
   font-family: 'Redaction 35', serif;
   font-size: clamp(24px, 2.2vw, 32px);
   line-height: 1.35;
-  text-align: start;
+  text-align: center;
 }
 
 .hero__role > .hero__line,
@@ -609,35 +698,134 @@ a {
   opacity: 1;
 }
 
-.header__home {
-  pointer-events: auto;
-  appearance: none;
-  border: 0;
-  background: none;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  display: block;
-  padding: 6px;
-  margin: -6px;
-  border-radius: 4px;
-  outline-offset: 4px;
+/* ---------- scroll cue ---------- */
+
+/* Uma cachoeira em miniatura, nos mesmos glifos do mar: a água corre até a borda e cai num poço.
+   O gesto engrossa a queda e inclina a palavra sobre a borda; a carga cheia esvazia tudo para baixo. */
+.cue {
+  --p: 0;
+  position: absolute;
+  bottom: max(clamp(16px, 3.5svh, 32px), env(safe-area-inset-bottom));
+  left: 50%;
+  isolation: isolate;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  translate: -50% 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms var(--out), translate 900ms var(--out);
 }
 
-.header__logo {
-  font-size: clamp(7px, 0.6vw, 10px);
-  transform: translateY(-4px) scale(0.9);
-  transform-origin: top left;
-  transition: filter 0.5s var(--out);
+/* Véu escuro: separa o indicador da água iluminada sem desenhar caixa. */
+.cue::before {
+  content: '';
+  position: absolute;
+  inset: -36px -64px -20px;
+  z-index: -1;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.5) 45%, rgb(0 0 0 / 0.16) 75%, transparent);
 }
 
-.header__home:hover .header__logo,
-.header__home:focus-visible .header__logo {
-  filter: drop-shadow(0 0 0.6em rgb(255 255 255 / 0.35));
+.cue[data-on] {
+  translate: -50% 0;
+  opacity: 1;
+  transition-duration: 900ms, 1200ms;
 }
 
-.header__home:focus-visible {
-  outline: 1px solid rgb(255 255 255 / 0.5);
+.cue[data-spill] {
+  transition: opacity 420ms var(--out) 560ms;
+}
+
+.cue__label {
+  display: flex;
+  margin-inline-end: calc(-0.28em - var(--p) * 0.3em);
+  color: var(--fg);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: calc(0.28em + var(--p) * 0.3em);
+  text-transform: uppercase;
+  opacity: calc(0.82 + var(--p) * 0.18);
+  text-shadow: 0 0 6px #000, 0 0 2px #000;
+}
+
+/* A palavra se debruça sobre a borda: cada letra desce um pouco mais que a anterior. */
+.cue__label span {
+  display: inline-block;
+  translate: 0 calc(var(--p) * var(--i) * 0.9px);
+  transition: translate 500ms var(--spring, var(--out));
+}
+
+.cue[data-charging] .cue__label span {
+  transition-duration: 120ms;
+}
+
+.cue__fall {
+  display: grid;
+  color: var(--fg);
+  font: 500 14px/10px var(--mono);
+  white-space: pre;
+  text-shadow: 0 0 4px #000;
+}
+
+.cue__row {
+  display: flex;
+}
+
+.cue__row span {
+  width: 1ch;
+  text-align: center;
+  opacity: 0;
+}
+
+.cue__row [data-l='1'] {
+  opacity: 0.38;
+}
+
+.cue__row [data-l='2'] {
+  opacity: 0.7;
+}
+
+/* Cabeças das gotas: franja de espectro cresce com a carga. */
+.cue__row [data-l='3'] {
+  opacity: 1;
+  text-shadow:
+    calc(var(--p) * -1.5px) 0 rgb(255 46 67 / calc(var(--p) * 0.9)),
+    calc(var(--p) * 1.5px) 0 rgb(43 164 255 / calc(var(--p) * 0.9)),
+    0 0 4px #000;
+}
+
+/* Transborda: as letras despencam em sequência e a cachoeira escorre linha a linha para fora. */
+.cue[data-spill] .cue__label span {
+  animation: cue-letter-fall 640ms cubic-bezier(0.55, 0, 0.9, 0.45) calc(var(--i) * 45ms) forwards;
+}
+
+.cue[data-spill] .cue__row {
+  animation: cue-row-fall 560ms cubic-bezier(0.55, 0, 0.9, 0.45) calc(240ms + (7 - var(--r)) * 30ms) forwards;
+}
+
+@keyframes cue-letter-fall {
+  0% {
+    text-shadow: 0 0 6px #000;
+  }
+
+  25% {
+    translate: 0 -3px;
+    text-shadow: -2px 0 var(--s0), 2px 0 var(--s4), 0 0 6px #000;
+  }
+
+  100% {
+    translate: 0 64px;
+    scale: 0.7 1.8;
+    opacity: 0;
+    text-shadow: -3px 0 var(--s0), 3px 0 var(--s4);
+  }
+}
+
+@keyframes cue-row-fall {
+  to {
+    translate: 0 48px;
+    scale: 1 2;
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -661,6 +849,10 @@ a {
 
   .header::before {
     transition-duration: 0.01s;
+  }
+
+  .cue {
+    display: none;
   }
 
 }

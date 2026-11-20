@@ -1,7 +1,6 @@
 import { gsap } from './lib/ease'
 import { createTextEffect, effectNames, type TextEffect } from 'tte.js'
 import { env, wait } from './lib/env'
-import { AsciiLogo } from './components/AsciiLogo'
 import { AsciiRiver } from './components/AsciiRiver'
 import { AsciiHero } from './components/AsciiHero'
 import { SceneNavigation } from './components/SceneNavigation'
@@ -18,39 +17,28 @@ interface DirectorRefs {
   projects: HTMLElement
   ui: HTMLElement
   header: HTMLElement
-  home: HTMLElement
-  headerLogo: HTMLElement
+  cue: HTMLElement
 }
 
 /** Abertura ASCII, entrada do cabeçalho e impacto que revela o rio. */
 export class Director {
-  private phase: Phase = 'boot'
   private refs: DirectorRefs
   private destroyed = false
   private transition: gsap.core.Timeline | null = null
   private intro: TextEffect | null = null
-  private headerLogo: AsciiLogo
   private river: AsciiRiver
   private hero: AsciiHero
   private navigation: SceneNavigation
 
   constructor(refs: DirectorRefs) {
     this.refs = refs
-    this.headerLogo = new AsciiLogo(refs.headerLogo)
     this.hero = new AsciiHero(refs.hero)
-    this.river = new AsciiRiver(refs.river, () => { void this.hero.start() }, refs.hero, refs.projects)
+    this.river = new AsciiRiver(refs.river, () => { void this.hero.start() },
+      (progress) => this.hero.setExit(progress), refs.projects)
     this.navigation = new SceneNavigation(refs, (covered) => this.river.setCovered(covered))
-    refs.home.addEventListener('pointerenter', this.onLogoEnter)
-    refs.home.addEventListener('focus', this.onLogoEnter)
   }
-
-  private onLogoEnter = (): void => {
-    if (this.phase === 'idle' && !env.reducedMotion) this.headerLogo.wave()
-  }
-
 
   private setPhase(phase: Phase): void {
-    this.phase = phase
     document.documentElement.dataset.phase = phase
     if (phase === 'idle') this.navigation.start()
   }
@@ -98,7 +86,6 @@ export class Director {
     if (env.reducedMotion) return this.showHeader()
     const { refs } = this
     this.setPhase('reveal')
-    gsap.set(refs.headerLogo, { clipPath: 'inset(0% 0% 100% 0%)' })
     this.transition = gsap.timeline({ onComplete: () => this.setPhase('idle') })
       .to(refs.loader, { opacity: 0, duration: 0.32, ease: 'bloom' })
       .add(() => {
@@ -111,18 +98,14 @@ export class Director {
         refs.ui.style.visibility = 'visible'
         refs.header.classList.add('is-veiled')
       })
-      .to(refs.headerLogo, { clipPath: 'inset(0% 0% 0% 0%)', duration: 0.44, ease: 'steps(4)' }, 0.32)
   }
 
   destroy(): void {
     this.destroyed = true
     this.transition?.kill()
     this.navigation.destroy()
-    this.refs.home.removeEventListener('pointerenter', this.onLogoEnter)
-    this.refs.home.removeEventListener('focus', this.onLogoEnter)
     this.intro?.destroy()
     this.river.destroy()
     this.hero.destroy()
-    this.headerLogo.destroy()
   }
 }

@@ -155,7 +155,7 @@ export class AsciiRiver {
 
   constructor(
     canvas: HTMLCanvasElement, private readonly onHeroReady: () => void,
-    private readonly hero: HTMLElement, private readonly projects: HTMLElement,
+    private readonly onScrollCopy: (progress: number) => void, private readonly projects: HTMLElement,
   ) {
     this.canvas = canvas
     const ctx = canvas.getContext('2d', { alpha: false })
@@ -324,9 +324,7 @@ export class AsciiRiver {
   }
 
   private updateScrollCopy(): void {
-    const opacity = 1 - smoothstep(0, 0.28, this.scrollProgress)
-    this.hero.style.opacity = String(opacity)
-    this.hero.inert = opacity === 0
+    this.onScrollCopy(this.scrollProgress)
     this.canvas.dataset.scene = this.scrollProgress === 0 ? 'sea'
       : this.scrollProgress === 1 ? 'waterfall' : 'transition'
   }
@@ -872,8 +870,6 @@ export class AsciiRiver {
     window.removeEventListener('pointerup', this.pointerGone)
     window.removeEventListener('pointercancel', this.pointerGone)
     window.removeEventListener('scroll', this.scroll)
-    this.hero.style.removeProperty('opacity')
-    this.hero.inert = false
     this.setState('waiting')
   }
 }

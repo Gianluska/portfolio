@@ -1,5 +1,7 @@
 import { Observer } from 'gsap/Observer'
 import { gsap } from '../lib/ease'
+import { splitReveal } from '../lib/splitReveal'
+import { ScrollCue } from './ScrollCue'
 
 gsap.registerPlugin(Observer)
 
@@ -10,10 +12,14 @@ const EDITABLE = 'input, textarea, select, [contenteditable]:not([contenteditabl
 const DOWN: Record<string, true | undefined> = { ArrowDown: true, PageDown: true, End: true, ' ': true }
 const UP: Record<string, true | undefined> = { ArrowUp: true, PageUp: true }
 // Gesture distance (px) that must build up before the camera crosses the waterfall.
-const WHEEL_INTENT = 600
-const TOUCH_INTENT = 240
-// Without new input for this long (ms), an unfinished gesture springs back and starts over.
-const BOUNCE_DELAY = 220
+const WHEEL_INTENT = 390
+const TOUCH_INTENT = 182
+// Once input pauses, charge holds (s), then drains with gathering speed so separate strokes add up.
+const HOLD = 0.6
+const DRAIN_RAMP = 0.8
+const DRAIN_RATE = 0.55
+// Response of the displayed charge to new input (1/s).
+const FOLLOW = 14
 // Rubber-band preview at full intent: share of the camera journey, and lift of the content (px).
 const PREVIEW_DOWN = 0.09
 const PREVIEW_UP = 96
@@ -21,27 +27,55 @@ const PREVIEW_UP = 96
 /** Eases accumulated intent into preview distance: quick to respond, resisting near the threshold. */
 const rubber = (ratio: number): number => 1 - (1 - Math.min(1, ratio)) ** 2
 
-/** Accumulates gesture distance toward a transition; a reversal starts over. */
-class Intent {
-  private total = 0
+/**
+ * Gesture distance building toward a transition, as a share of its threshold. Reversals drain it;
+ * after a pause it lingers, then fades out instead of snapping back to zero.
+ */
+class Charge {
+  private target = 0
+  private shown = 0
+  private idle = 0
+  private running = false
+
+  constructor(private readonly render: (ratio: number) => void) {}
 
   get value(): number {
-    return this.total
+    return this.target
   }
 
-  push(amount: number, threshold: number): boolean {
-    if (amount <= 0) {
-      this.total = 0
-      return false
+  /** Adds a share of the threshold (negative drains); true once it fills. */
+  push(amount: number): boolean {
+    this.target = Math.min(1, Math.max(0, this.target + amount))
+    this.idle = 0
+    if (this.target >= 1) return true
+    if (!this.running && (this.target > 0 || this.shown > 0)) {
+      this.running = true
+      gsap.ticker.add(this.tick)
     }
-    this.total += amount
-    if (this.total < threshold) return false
-    this.total = 0
-    return true
+    return false
   }
 
+  /** Drops the charge without rendering; the caller owns what happens next. */
   reset(): void {
-    this.total = 0
+    gsap.ticker.remove(this.tick)
+    this.running = false
+    this.target = this.shown = this.idle = 0
+  }
+
+  private tick = (_time: number, deltaMs: number): void => {
+    const dt = Math.min(deltaMs, 100) / 1000
+    this.idle += dt
+    if (this.idle > HOLD) {
+      const speed = DRAIN_RATE * Math.min(1, (this.idle - HOLD) / DRAIN_RAMP)
+      this.target = Math.max(0, this.target - speed * dt)
+    }
+    this.shown += (this.target - this.shown) * (1 - Math.exp(-FOLLOW * dt))
+    if (this.target === 0 && this.shown < 0.002) {
+      this.shown = 0
+      gsap.ticker.remove(this.tick)
+      this.running = false
+    }
+    this.render(this.shown)
   }
 }
 
@@ -53,8 +87,8 @@ type Passage = 'sea' | 'outbound' | 'work' | 'inbound' | 'native'
 interface SceneRefs {
   root: HTMLElement
   projects: HTMLElement
-  home: HTMLElement
   portfolio: HTMLElement
+  cue: HTMLElement
 }
 
 /** One camera journey, with native scrolling once the editorial surface arrives. */
@@ -66,21 +100,37 @@ export class SceneNavigation {
   private timeline: gsap.core.Timeline | null = null
   private passage: Passage = 'native'
   private end = 1
-  private readonly downIntent = new Intent()
-  private readonly upIntent = new Intent()
+  private readonly cue: ScrollCue
+  private readonly down = new Charge((ratio) => {
+    window.scrollTo(0, rubber(ratio) * PREVIEW_DOWN * this.end)
+    this.cue.set(ratio)
+  })
+  // The content sinks and dims as upward intent builds at its top edge.
+  private readonly up = new Charge((ratio) => {
+    const pull = rubber(ratio)
+    if (pull === 0) gsap.set(this.refs.portfolio, { clearProps: 'opacity,transform' })
+    else gsap.set(this.refs.portfolio, { y: pull * PREVIEW_UP, opacity: 1 - pull * 0.2 })
+  })
   private touchX = 0
   private touchY = 0
-  private readonly drag = { scroll: 0 }
-  private preview: gsap.core.Tween | null = null
-  private bounceTimer = 0
+  private readonly settleTimers = new Map<Element, number>()
 
   constructor(private readonly refs: SceneRefs, private readonly cover: (covered: boolean) => void) {
+    this.cue = new ScrollCue(refs.cue)
     this.blocks = refs.root.querySelectorAll('[data-reveal]')
+    const durations = new Map<Element, number>()
+    for (const block of this.blocks) durations.set(block, splitReveal(block))
     this.reveal = new IntersectionObserver((entries, observer) => {
       for (const { target, isIntersecting } of entries) {
         if (!isIntersecting) continue
         target.setAttribute('data-entered', '')
         observer.unobserve(target)
+        // Once every word has landed, drop the entrance transitions so hovers respond instantly.
+        clearTimeout(this.settleTimers.get(target))
+        this.settleTimers.set(target, window.setTimeout(() => {
+          target.setAttribute('data-settled', '')
+          this.settleTimers.delete(target)
+        }, durations.get(target) ?? 0))
       }
     }, { rootMargin: '0px 0px -48px', threshold: 0 })
 
@@ -102,11 +152,7 @@ export class SceneNavigation {
       onChangeY: (self) => {
         if (this.passage !== 'sea') return
         const threshold = self.event?.type === 'wheel' ? WHEEL_INTENT : TOUCH_INTENT
-        if (this.downIntent.push(-self.deltaY, threshold)) {
-          this.stopPreview()
-          this.descend()
-        } else if (this.downIntent.value > 0) this.previewDown(this.downIntent.value / threshold)
-        else this.bounceBack()
+        if (this.down.push(-self.deltaY / threshold)) this.descend()
       },
     })
     this.observer.disable()
@@ -115,22 +161,22 @@ export class SceneNavigation {
   start(): void {
     this.resize()
     this.settle()
-    this.refs.home.addEventListener('click', this.returnHome)
     window.addEventListener('keydown', this.key)
     window.addEventListener('scroll', this.scroll, { passive: true })
     window.addEventListener('wheel', this.wheel, { passive: false })
     window.addEventListener('touchstart', this.touchStart, { passive: true })
     window.addEventListener('touchmove', this.touchMove, { passive: false })
-    window.addEventListener('touchend', this.bounceBack, { passive: true })
-    window.addEventListener('touchcancel', this.bounceBack, { passive: true })
     window.addEventListener('resize', this.resize)
     this.motion.addEventListener('change', this.preference)
   }
 
   private setPassage(passage: Passage): void {
     this.passage = passage
-    this.downIntent.reset()
-    this.upIntent.reset()
+    this.down.reset()
+    this.up.reset()
+    if (passage === 'sea') this.cue.show()
+    else if (passage === 'outbound') this.cue.spill()
+    else this.cue.hide()
     const locked = passage !== 'work' && passage !== 'native'
     document.documentElement.toggleAttribute('data-scene-scroll', locked)
     this.refs.portfolio.inert = locked
@@ -151,7 +197,8 @@ export class SceneNavigation {
   }
 
   private cancel(): void {
-    this.stopPreview()
+    this.down.reset()
+    this.up.reset()
     this.timeline?.kill()
     this.timeline = null
     this.clearHandoff()
@@ -167,6 +214,8 @@ export class SceneNavigation {
     const { root } = this.refs
     const reduced = this.motion.matches
     const atWork = window.scrollY >= this.end - 2
+    // A half-built lean has no charge left to drain, so the sea starts level.
+    if (!reduced && !atWork) window.scrollTo(0, 0)
     root.toggleAttribute('data-reveal-ready', !reduced)
     this.cover(atWork)
     this.setPassage(reduced ? 'native' : atWork ? 'work' : 'sea')
@@ -180,62 +229,16 @@ export class SceneNavigation {
     }, 0)
   }
 
-  private stopPreview(): void {
-    this.preview?.kill()
-    this.preview = null
-    clearTimeout(this.bounceTimer)
-  }
-
-  private armBounce(): void {
-    clearTimeout(this.bounceTimer)
-    this.bounceTimer = window.setTimeout(this.bounceBack, BOUNCE_DELAY)
-  }
-
-  /** The camera leans toward the waterfall as downward intent builds at the sea. */
-  private previewDown(ratio: number): void {
-    this.preview?.kill()
-    this.drag.scroll = window.scrollY
-    this.preview = gsap.to(this.drag, {
-      scroll: rubber(ratio) * PREVIEW_DOWN * this.end, duration: 0.3, ease: 'power2.out',
-      onUpdate: () => window.scrollTo(0, this.drag.scroll),
-    })
-    this.armBounce()
-  }
-
-  /** The content sinks and dims as upward intent builds at its top edge. */
-  private previewUp(ratio: number): void {
-    this.preview?.kill()
-    const pull = rubber(ratio)
-    this.preview = gsap.to(this.refs.portfolio, {
-      y: pull * PREVIEW_UP, opacity: 1 - pull * 0.2, duration: 0.3, ease: 'power2.out',
-    })
-    this.armBounce()
-  }
-
-  /** An unfinished gesture springs back to rest. */
-  private bounceBack = (): void => {
-    this.stopPreview()
-    this.downIntent.reset()
-    this.upIntent.reset()
-    if (this.passage === 'sea' && window.scrollY > 0) {
-      this.drag.scroll = window.scrollY
-      this.preview = gsap.to(this.drag, {
-        scroll: 0, duration: 0.65, ease: 'power3.out',
-        onUpdate: () => window.scrollTo(0, this.drag.scroll),
-      })
-    } else if (this.passage === 'work' && gsap.getProperty(this.refs.portfolio, 'y') !== 0) {
-      this.preview = gsap.to(this.refs.portfolio, {
-        y: 0, opacity: 1, duration: 0.7, ease: 'back.out(2.2)', clearProps: 'opacity,transform',
-      })
-    }
-  }
-
   private descend(): void {
     if (this.passage !== 'sea') return
-    this.stopPreview()
+    this.down.reset()
     const { root, portfolio } = this.refs
     for (const block of this.blocks) {
-      if (block.dataset.reveal === 'arrival') block.removeAttribute('data-entered')
+      if (block.dataset.reveal !== 'arrival') continue
+      clearTimeout(this.settleTimers.get(block))
+      this.settleTimers.delete(block)
+      block.removeAttribute('data-entered')
+      block.removeAttribute('data-settled')
     }
     this.setPassage('outbound')
     const timeline = gsap.timeline({ onComplete: () => {
@@ -290,14 +293,11 @@ export class SceneNavigation {
     if (this.passage !== 'work' || event.ctrlKey || event.metaKey || this.ignored(event)
       || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return
     const delta = wheelPixels(event)
-    if (delta >= 0) {
-      if (this.upIntent.value > 0) this.bounceBack()
-      return
-    }
-    if (!this.atBrink()) return
+    // Scrolling back down drains a built-up pull before the page moves again.
+    if (delta >= 0 && this.up.value === 0) return
+    if (delta < 0 && !this.atBrink()) return
     event.preventDefault()
-    if (this.upIntent.push(-delta, WHEEL_INTENT)) this.ascend()
-    else this.previewUp(this.upIntent.value / WHEEL_INTENT)
+    if (this.up.push(-delta / WHEEL_INTENT)) this.ascend()
   }
 
   private touchStart = (event: TouchEvent): void => {
@@ -315,14 +315,9 @@ export class SceneNavigation {
     this.touchX = touch.clientX
     this.touchY = touch.clientY
     if (Math.abs(dx) > Math.abs(dy)) return
-    if (dy <= 0) {
-      if (this.upIntent.value > 0) this.bounceBack()
-      return
-    }
-    if (!this.atBrink()) return
+    if ((dy <= 0 && this.up.value === 0) || (dy > 0 && !this.atBrink())) return
     if (event.cancelable) event.preventDefault()
-    if (this.upIntent.push(dy, TOUCH_INTENT)) this.ascend()
-    else this.previewUp(this.upIntent.value / TOUCH_INTENT)
+    if (this.up.push(dy / TOUCH_INTENT)) this.ascend()
   }
 
   private scroll = (): void => {
@@ -344,15 +339,6 @@ export class SceneNavigation {
     if (this.passage === 'outbound') window.scrollTo(0, this.end)
     else if (this.passage === 'inbound') window.scrollTo(0, 0)
     this.settle()
-  }
-
-  private returnHome = (): void => {
-    if (this.passage === 'work') this.ascend()
-    else if (this.passage === 'native') window.scrollTo(0, 0)
-    else if (this.passage === 'outbound') {
-      window.scrollTo(0, 0)
-      this.settle()
-    }
   }
 
   private key = (event: KeyboardEvent): void => {
@@ -379,18 +365,18 @@ export class SceneNavigation {
 
   destroy(): void {
     this.cancel()
+    this.cue.destroy()
     this.observer.kill()
     this.refs.portfolio.inert = false
     this.refs.root.removeAttribute('data-reveal-ready')
     this.reveal.disconnect()
-    this.refs.home.removeEventListener('click', this.returnHome)
+    for (const timer of this.settleTimers.values()) clearTimeout(timer)
+    this.settleTimers.clear()
     window.removeEventListener('keydown', this.key)
     window.removeEventListener('scroll', this.scroll)
     window.removeEventListener('wheel', this.wheel)
     window.removeEventListener('touchstart', this.touchStart)
     window.removeEventListener('touchmove', this.touchMove)
-    window.removeEventListener('touchend', this.bounceBack)
-    window.removeEventListener('touchcancel', this.bounceBack)
     window.removeEventListener('resize', this.resize)
     this.motion.removeEventListener('change', this.preference)
     document.documentElement.removeAttribute('data-scene-scroll')

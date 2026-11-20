@@ -19,8 +19,7 @@ export default function App() {
         projects: $('.projects'),
         ui: $('.ui'),
         header: $('.header'),
-        home: $('.header__home'),
-        headerLogo: $('.header__logo'),
+        cue: $('.cue'),
       },
     )
     director.run()
@@ -38,11 +37,8 @@ export default function App() {
 
 
       <div className="ui">
-        <header className="header">
-          <button className="header__home" type="button" aria-label="lvsk, back to top">
-            <span className="header__logo" />
-          </button>
-        </header>
+        <header className="header" />
+        <div className="cue" aria-hidden="true" />
       </div>
 
       <main className="scene-content">
