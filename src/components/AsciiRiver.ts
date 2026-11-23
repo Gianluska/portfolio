@@ -671,7 +671,7 @@ export class AsciiRiver {
       const body = smoothstep(-0.6, 0.6, level * WAVE_HEIGHT + impactHeight * heightNorm * 0.5
         + rippleHeight * 0.4)
       let glyph = level > 0.55 ? TILDE : level > 0.1 ? DASH : DOT
-      let alpha = (0.17 + body * 0.42) * (0.65 + luminance * 0.4)
+      let alpha = (0.21 + body * 0.46) * (0.65 + luminance * 0.4)
       // Wake crests catch a little extra light so the rings read over the wind sea.
       if (rippleHeight > 0) alpha += smoothstep(0.05, 0.6, rippleHeight) * 0.08
       // Sun glitter brightens the crest itself; only the hottest facets sparkle.
