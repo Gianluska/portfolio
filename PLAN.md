@@ -27,7 +27,7 @@ Escopo: abertura ASCII, cabeçalho e gota que revela água mais clara, vista de 
 | `src/components/NavLink.ts` | Scramble, sublinhado e atração magnética |
 | `src/lib/spring.ts` | Mola dos links |
 | `src/lib/env.ts` | Movimento reduzido e opção de pular a intro |
-| `src/style.css` | Camadas do loader, rio e cabeçalho |
+| `src/tailwind.css` | Entrada do Tailwind, fontes, tema e animações |
 | `src/types/tte-js.d.ts` | Tipos da API tte.js utilizada na abertura |
 | `scripts/build-glyphs.ts` | Geração das variantes FIGlet por letra |
 

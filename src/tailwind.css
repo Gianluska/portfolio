@@ -16,13 +16,6 @@
   }
 
   @font-face {
-    font-family: Geist;
-    src: url('/fonts/geist.woff2') format('woff2');
-    font-weight: 100 900;
-    font-display: swap;
-  }
-
-  @font-face {
     font-family: 'Redaction 35';
     src: url('/fonts/redaction-35-400-normal.woff2') format('woff2');
     font-weight: 400;
@@ -40,11 +33,8 @@
 @theme {
   --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   --font-ascii: 'Geist Mono', monospace;
-  --font-sans: Geist, sans-serif;
   --font-display: 'Redaction 35', serif;
-  --color-muted: #a3a3a3;
   --spacing-page: clamp(18px, 2.4vw, 40px);
-  --spacing-editorial: clamp(1.25rem, 6vw, 7rem);
   --ease-scene: cubic-bezier(0.14, 0.9, 0.22, 1);
   /* Mola subamortecida (ζ≈0.55): ~12% de overshoot. */
   --ease-reveal: linear(0, 0.027 2.5%, 0.098 5%, 0.199 7.5%, 0.318 10%, 0.444 12.5%, 0.569 15%, 0.687 17.5%, 0.794 20%, 0.886 22.5%, 0.963 25%, 1.023 27.5%, 1.068 30%, 1.099 32.5%, 1.117 35%, 1.126 37.5%, 1.125 40%, 1.119 42.5%, 1.107 45%, 1.093 47.5%, 1.077 50%, 1.061 52.5%, 1.046 55%, 1.032 57.5%, 1.019 60%, 1.009 62.5%, 1 65%, 0.994 67.5%, 0.989 70%, 0.986 72.5%, 0.984 75%, 0.984 77.5%, 0.985 80%, 0.987 85%, 0.991 90%, 0.995 95%, 1);
@@ -104,79 +94,11 @@
 }
 
 @theme static {
-  /* splitReveal assigns these names dynamically. */
   --s0: #ff2e43;
-  --s1: #ff8a1e;
-  --s2: #ffdf1c;
-  --s3: #3fdc62;
   --s4: #2ba4ff;
-  --s5: #8f5cff;
 }
 
-@custom-variant compact (@media (max-width: 48rem));
 @custom-variant scene-veiled (html[data-scene-scroll] .app:not([data-scene-handoff]) &);
-@custom-variant reveal-ready ([data-reveal-ready] &);
-@custom-variant reveal-pending ([data-reveal-ready] [data-reveal]:not([data-entered], :focus-within) &);
-@custom-variant reveal-resting ([data-reveal-ready] :is([data-settled], [data-reveal]:focus-within) &);
-@custom-variant quest-ink (@supports (view-timeline-axis: inline) and (animation-timeline: --quest-page));
-
-/* Per-property choreography for the entrance of titles, copy and links. */
-@utility reveal-title-motion {
-  --at: calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
-  text-shadow: 0 0 rgb(255 46 67 / 0), 0 0 rgb(43 164 255 / 0);
-  transition:
-    translate 1200ms var(--spring) var(--at),
-    rotate 1200ms var(--spring) var(--at),
-    opacity 260ms linear var(--at),
-    text-shadow 1000ms var(--ease-scene) calc(var(--at) + 180ms);
-}
-
-@utility reveal-word-motion {
-  --at: calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
-  transition:
-    opacity 600ms var(--ease-scene) var(--at),
-    translate 1000ms var(--spring) var(--at),
-    filter 800ms var(--ease-scene) var(--at),
-    color 1100ms var(--ease-scene) calc(var(--at) + 200ms);
-}
-
-@utility reveal-link-motion {
-  clip-path: inset(-8px);
-  transition: clip-path 900ms var(--ease-scene) calc(var(--reveal-delay, 0ms) + var(--d, 0ms));
-}
-
-@utility quest-corners {
-  background:
-    conic-gradient(from 90deg at 3px 3px, transparent 90deg, #bdbdbd 0) top left,
-    conic-gradient(from 180deg at calc(100% - 3px) 3px, transparent 90deg, #bdbdbd 0) top right,
-    conic-gradient(from 0deg at 3px calc(100% - 3px), transparent 90deg, #bdbdbd 0) bottom left,
-    conic-gradient(from 270deg at calc(100% - 3px) calc(100% - 3px), transparent 90deg, #bdbdbd 0) bottom right;
-  background-size: 1rem 1rem;
-  background-repeat: no-repeat;
-}
-
-/* Both pseudo-elements share the texture, but follow opposite ends of the timeline. */
-@utility quest-seam-ink {
-  @apply pointer-events-none absolute inset-y-0 z-1 grid content-center px-[clamp(0.25rem,1vw,0.75rem)] font-mono text-[0.6875rem]/[0.78] font-medium whitespace-pre text-[#e4e4e4] select-none;
-  content: '.\A  :.\A :+\A  +:\A .==\A  +:\A :+\A  :.\A .\A  .:\A +:\A  :=\A .++\A  +.\A :\A  .';
-  animation-timeline: --quest-page;
-  animation-duration: auto;
-  animation-fill-mode: both;
-  animation-timing-function: linear;
-}
-
-@keyframes quest-leading-ink {
-  0% { transform: translateX(-0.3rem); opacity: 0; }
-  22% { opacity: 0.9; }
-  42%, 100% { transform: translateX(0.3rem); opacity: 0; }
-}
-
-@keyframes quest-trailing-ink {
-  0%, 58% { transform: translateX(-0.3rem); opacity: 0; }
-  78% { opacity: 0.9; }
-  100% { transform: translateX(0.3rem); opacity: 0; }
-}
-
 @utility cue-chroma {
   text-shadow:
     calc(var(--p) * -1.5px) 0 rgb(255 46 67 / calc(var(--p) * 0.9)),
