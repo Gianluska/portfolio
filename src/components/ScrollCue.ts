@@ -44,7 +44,7 @@ export class ScrollCue {
   constructor(private readonly el: HTMLElement) {
     el.replaceChildren()
     const label = document.createElement('span')
-    label.className = 'flex font-mono text-[11px]/[1] font-medium text-white uppercase [margin-inline-end:calc(-0.28em_-_var(--p)*0.3em)] [letter-spacing:calc(0.28em_+_var(--p)*0.3em)] [opacity:calc(0.82_+_var(--p)*0.18)] [text-shadow:0_0_6px_#000,0_0_2px_#000]'
+    label.className = 'flex font-mono text-[11px]/[1] font-medium text-scene-ink uppercase [margin-inline-end:calc(-0.28em_-_var(--p)*0.3em)] [letter-spacing:calc(0.28em_+_var(--p)*0.3em)] [opacity:calc(0.82_+_var(--p)*0.18)] [text-shadow:0_0_6px_var(--color-scene),0_0_2px_var(--color-scene)]'
     for (const [i, letter] of [...LABEL].entries()) {
       const span = document.createElement('span')
       span.className = 'inline-block [translate:0_calc(var(--p)*var(--i)*0.9px)] [transition:translate_500ms_var(--spring,var(--ease-scene))] group-data-charging/cue:[transition-duration:120ms] group-data-spill/cue:animate-cue-letter-fall'
@@ -53,7 +53,7 @@ export class ScrollCue {
       label.append(span)
     }
     const fall = document.createElement('span')
-    fall.className = 'grid font-mono text-[14px]/[10px] font-medium whitespace-pre text-white [text-shadow:0_0_4px_#000]'
+    fall.className = 'grid font-mono text-[14px]/[10px] font-medium whitespace-pre text-scene-ink [text-shadow:0_0_4px_var(--color-scene)]'
     for (let r = 0; r < ROWS; r++) {
       const row = document.createElement('span')
       row.className = 'flex group-data-spill/cue:animate-cue-row-fall'

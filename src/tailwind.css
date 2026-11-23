@@ -8,6 +8,28 @@
     @apply box-border;
   }
 
+  :root {
+    color-scheme: dark;
+    --scene-rgb: 0 0 0;
+    --scene-ink: #fff;
+    --scene-soft: #d4d4d4;
+    --scene-muted: #c3c3c3;
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --scene-rgb: 242 242 242;
+    --scene-ink: #141414;
+    --scene-soft: #383838;
+    --scene-muted: #4b4b4b;
+    --scene-light-filter: invert(1) brightness(0.95);
+  }
+
+  ::selection {
+    color: rgb(var(--scene-rgb));
+    background-color: var(--scene-ink);
+  }
+
   @font-face {
     font-family: 'Geist Mono';
     src: url('/fonts/geist-mono.woff2') format('woff2');
@@ -30,6 +52,20 @@
   }
 }
 
+@theme inline {
+  --color-scene: rgb(var(--scene-rgb));
+  --color-scene-ink: var(--scene-ink);
+  --color-scene-soft: var(--scene-soft);
+  --color-scene-muted: var(--scene-muted);
+}
+
+@layer components {
+  /* Recolor the finished ASCII artwork, not the simulation or its actors. */
+  .river { filter: brightness(1.56) var(--scene-light-filter,); }
+  .loader canvas { filter: grayscale(1) var(--scene-light-filter,); }
+  .loader::after { filter: var(--scene-light-filter, none); }
+}
+
 @theme {
   --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   --font-ascii: 'Geist Mono', monospace;
@@ -41,15 +77,15 @@
   --background-image-loader-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.6 0 0 0 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --background-image-header-veil: linear-gradient(
     to bottom,
-    rgb(0 0 0 / 0.85) 0%,
-    rgb(0 0 0 / 0.72) 22%,
-    rgb(0 0 0 / 0.5) 45%,
-    rgb(0 0 0 / 0.28) 65%,
-    rgb(0 0 0 / 0.12) 82%,
-    rgb(0 0 0 / 0.03) 93%,
+    rgb(var(--scene-rgb) / 0.85) 0%,
+    rgb(var(--scene-rgb) / 0.72) 22%,
+    rgb(var(--scene-rgb) / 0.5) 45%,
+    rgb(var(--scene-rgb) / 0.28) 65%,
+    rgb(var(--scene-rgb) / 0.12) 82%,
+    rgb(var(--scene-rgb) / 0.03) 93%,
     transparent 100%
   );
-  --background-image-cue-veil: radial-gradient(closest-side, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.5) 45%, rgb(0 0 0 / 0.16) 75%, transparent);
+  --background-image-cue-veil: radial-gradient(closest-side, rgb(var(--scene-rgb) / 0.78), rgb(var(--scene-rgb) / 0.5) 45%, rgb(var(--scene-rgb) / 0.16) 75%, transparent);
   --animate-grain: grain 0.9s steps(6) infinite;
 
   @keyframes grain {
@@ -72,10 +108,10 @@
 }
 
 @keyframes cue-letter-fall {
-  0% { text-shadow: 0 0 6px #000; }
+  0% { text-shadow: 0 0 6px rgb(var(--scene-rgb)); }
   25% {
     translate: 0 -3px;
-    text-shadow: -2px 0 var(--s0), 2px 0 var(--s4), 0 0 6px #000;
+    text-shadow: -2px 0 var(--s0), 2px 0 var(--s4), 0 0 6px rgb(var(--scene-rgb));
   }
   100% {
     translate: 0 64px;
@@ -103,5 +139,5 @@
   text-shadow:
     calc(var(--p) * -1.5px) 0 rgb(255 46 67 / calc(var(--p) * 0.9)),
     calc(var(--p) * 1.5px) 0 rgb(43 164 255 / calc(var(--p) * 0.9)),
-    0 0 4px #000;
+    0 0 4px rgb(var(--scene-rgb));
 }
