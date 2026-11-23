@@ -1,19 +1,9 @@
 <!doctype html>
-<html lang="en" data-theme="dark" data-scene-scroll class="m-0 h-full overflow-x-clip bg-scene text-scene-ink motion-safe:data-scene-scroll:overflow-y-hidden motion-safe:data-scene-scroll:overscroll-y-none">
+<html lang="en" data-scene-scroll class="m-0 h-full overflow-x-clip bg-scene text-scene-ink motion-safe:data-scene-scroll:overflow-y-hidden motion-safe:data-scene-scroll:overscroll-y-none">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#000000" />
-    <script>
-      try {
-        if (localStorage.getItem('theme') === 'light') {
-          document.documentElement.dataset.theme = 'light'
-          document.querySelector('meta[name="theme-color"]').content = '#f2f2f2'
-        }
-      } catch {
-        // Storage may be blocked; keep the dark default.
-      }
-    </script>
+    <meta name="theme-color" content="#e9eee0" />
     <meta name="description" content="Gianlucca “lvsk” Claudino — Creative Technologist, Frontend Specialist, Product Engineer." />
     <title>Gianlucca “lvsk” Claudino</title>
     <link rel="preload" href="/fonts/geist-mono.woff2" as="font" type="font/woff2" crossorigin />
@@ -22,6 +12,18 @@
     <link rel="stylesheet" href="/src/tailwind.css" />
   </head>
   <body class="m-0 h-full overflow-x-clip font-mono antialiased [text-rendering:optimizeLegibility]">
+    <svg class="absolute" width="0" height="0" aria-hidden="true">
+      <defs>
+        <!-- Grayscale artwork: black maps to the sage backdrop, white to fern ink. -->
+        <filter id="ascii-palette" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <feComponentTransfer>
+            <feFuncR type="table" tableValues="0.914 0.184" />
+            <feFuncG type="table" tableValues="0.933 0.325" />
+            <feFuncB type="table" tableValues="0.878 0.255" />
+          </feComponentTransfer>
+        </filter>
+      </defs>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

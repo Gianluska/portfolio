@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Director } from './director'
 import { glyphs } from './data/glyphs'
 
@@ -8,20 +8,6 @@ const heroSkeleton = `hero__skeleton ${skeletonOverlay} tracking-normal [&[hidde
 
 export default function App() {
   const root = useRef<HTMLDivElement>(null)
-  const [light, setLight] = useState(() => document.documentElement.dataset.theme === 'light')
-  const nextTheme = light ? 'dark' : 'light'
-
-  function toggleTheme() {
-    const html = document.documentElement
-    html.dataset.theme = nextTheme
-    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')!.content = getComputedStyle(html).backgroundColor
-    setLight(!light)
-    try {
-      localStorage.setItem('theme', nextTheme)
-    } catch {
-      // The toggle still works when storage is blocked.
-    }
-  }
 
   useEffect(() => {
     const el = root.current!
@@ -57,23 +43,11 @@ export default function App() {
 
 
       <div className="ui pointer-events-none invisible fixed inset-0 z-3">
-        <header className="header absolute inset-x-0 top-0 isolate z-1 flex items-center p-page
+        <header className="header absolute inset-x-0 top-0 isolate z-1 p-page
           before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:-z-1
           before:h-[calc(100%+clamp(48px,8vh,120px))] before:bg-header-veil before:opacity-0 before:[transform:translateY(-100%)]
           before:[transition:transform_1.2s_var(--ease-scene),opacity_0.9s_var(--ease-scene)]
-          [&.is-veiled]:before:opacity-100 [&.is-veiled]:before:[transform:none] motion-reduce:before:[transition-duration:0.01s]">
-          <button type="button" onClick={toggleTheme} aria-label={`Switch to ${nextTheme} theme`}
-            className="pointer-events-auto ml-auto inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-sm
-              border border-solid border-scene-ink/35 bg-scene px-3 font-mono text-xs tracking-wide text-scene-ink
-              hover:bg-scene-ink/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-scene-ink">
-            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              {light
-                ? <path d="M20.9 13.35A9 9 0 0 1 10.65 3.1 9 9 0 1 0 20.9 13.35Z" />
-                : <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42m0-14.14-1.42 1.42m-11.3 11.3-1.42 1.42" /></>}
-            </svg>
-            <span className="capitalize">{nextTheme}</span>
-          </button>
-        </header>
+          [&.is-veiled]:before:opacity-100 [&.is-veiled]:before:[transform:none] motion-reduce:before:[transition-duration:0.01s]" />
         <div className="cue group/cue pointer-events-none absolute bottom-[max(clamp(16px,3.5svh,32px),env(safe-area-inset-bottom))] left-1/2
           isolate grid justify-items-center gap-1.5 opacity-0 [--p:0] [translate:-50%_14px]
           [transition:opacity_500ms_var(--ease-scene),translate_900ms_var(--ease-scene)]

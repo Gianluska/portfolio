@@ -1,11 +1,11 @@
 # Gianlucca Claudino — portfolio
 
-Portfolio with an ASCII intro and a full-screen sea hero. The sea becomes a waterfall on the descent, then gives way to a plain backdrop in the active theme.
+Portfolio with an ASCII intro and a full-screen sea hero. The sea becomes a waterfall on the descent, then gives way to a plain sage backdrop.
 
 ## Current experience
 
 - On each page load, one of 37 tte.js effects is randomly selected to reveal the official ASCII logo. The animation lasts between 1 and 2.75 s, followed by a final 0.25 s pause: a cycle of at most 3 s, with no looping. The intro remains monochrome.
-- The intro fades out and the header reveals a Light/Dark toggle in the top-right corner. New visits default to Dark regardless of the system setting. The browser remembers explicit choices and applies them before the intro; the theme covers the intro, the sea, the waterfall, and the final backdrop.
+- The intro, sea, waterfall, and final backdrop share one palette: a pastel sage surface (`#e9eee0`) with deep green type and fern-green ASCII artwork. There is no theme switcher, and the palette is independent of the system setting.
 - After the intro, an ASCII drop falls into the center in 0.95 s. Its impact creates a wave in the surface itself, circular in the water plane and projected obliquely onto the screen. The crest and trough alter normals, reflections, and character positions; the wave reveals the sea across the viewport in 2.8 s, without overlaid rings.
 - At 0.75 s into the river entrance—3 s before the sea is fully revealed—the hero displays `Gianlucca Claudino` and the roles below. The block is horizontally centered and anchored near the top of the viewport (`clamp(56px, 12svh, 144px)`), with centered text. The original `AsciiSkeleton` from [ascii-reveal](https://github.com/quanhoangindex/ascii-reveal), pinned to 0.3.0, uses `dither` blocks and shimmer in a left-to-right wave: the placeholder enters over 450 ms and reveals the new text in the same direction over the next 450 ms. The name receives the effect once; the roles cycle through `Creative Technologist` → `Frontend Specialist` → `Product Engineer`, with 3.2 s reading pauses. The role is non-interactive text: clicking does not pause or restart the cycle. Reduced motion keeps the text static.
 - Water fills the screen in an angled perspective, without a channel, banks, or a drawn horizon. Broad, gentle crests in `~`, slopes in `-`, troughs in `.`, and rare highlights in `*` keep the sea calm. Waves become compressed and softer in the distance and broader in the foreground; distant frequencies are filtered to prevent flicker.
@@ -18,15 +18,15 @@ Portfolio with an ASCII intro and a full-screen sea hero. The sea becomes a wate
 
 React 19 + TypeScript + Vite; GSAP for the header entrance, local Geist Mono, and [tte.js](https://github.com/flaviocopes/tte-js) for the intro's Canvas effect. Water uses a local Canvas 2D engine, with two swells and six directional wind waves, analytical normals, and soft reflections. Inverse projection samples the angled plane; spatial phases and depth filters are precomputed. `AsciiPerspective` shares distance scaling between water and actors. Rendering is capped at 30 fps, without per-frame React updates, Three.js, or React Three Fiber. The MIT-licensed tte.js dependency is pinned to revision `9b120c2f65d48f996a027ef061712bb87ad467bb`, with its original credits and licenses.
 
-Tailwind CSS 4 is compiled by the Vite plugin. Layout and state styles live in utilities alongside the React markup and DOM controllers. `src/tailwind.css` defines local fonts, theme tokens, custom variants, and the multi-property animation utilities. The stylesheet loads from `index.html` so the selected palette is available before React mounts. Preflight is disabled to preserve native element defaults; the `ascii-reveal` package still supplies its own skeleton styles.
+Tailwind CSS 4 is compiled by the Vite plugin. Layout and state styles live in utilities alongside the React markup and DOM controllers. `src/tailwind.css` defines local fonts, palette tokens, custom variants, and the multi-property animation utilities. The stylesheet loads from `index.html` so the sage backdrop is available before React mounts. Preflight is disabled to preserve native element defaults; the `ascii-reveal` package still supplies its own skeleton styles.
 
 Hero typography: [Redaction 35](https://fonts.google.com/specimen/Redaction+35) Bold 700 for the name and Regular 400 for the roles. The family has no Thin weight; Regular is the lightest available, chosen to keep both texts in the same typeface. Geist Mono remains in the ASCII and header. All fonts used permit commercial use under SIL OFL 1.1; there are no demo fonts or synthesized weights. WOFF2 files are local, preloaded, and fully loaded before the reveal; the role box follows the actual width of the longest phrase.
 
-## Descent to black
+## Descent through the waterfall
 
 The page stays at the top during the intro and until the miniature ASCII waterfall cue finishes entering. Wheel or touch strokes then build charge in the cue without moving the page. The charge lingers briefly and then drains, so several strokes add up. At full charge, the cue spills over the edge; the camera waits until its last animated row finishes.
 
-The camera makes a continuous four-second move over the first `220svh`: it pitches from sea to waterfall and follows the falling water without stopping at the brink. The hero's name and role leave through the same dither skeleton as their entrance. At 3.15 seconds the viewport starts fading to the theme's backdrop, black in Dark and pale gray in Light. The theme toggle remains available and the waterfall renderer pauses.
+The camera makes a continuous four-second move over the first `220svh`: it pitches from sea to waterfall and follows the falling water without stopping at the brink. The hero's name and role leave through the same dither skeleton as their entrance. At 3.15 seconds the viewport starts fading to a plain sage backdrop, and the waterfall renderer pauses once it is fully covered.
 
 Pulling upward or pressing Home reverses the descent. Reduced motion uses native scrolling and static scene compositions without camera travel.
 

@@ -19,7 +19,7 @@ const DRAIN_RAMP = 0.8
 const DRAIN_RATE = 0.55
 // Response of the displayed charge to new input (1/s).
 const FOLLOW = 14
-// Lift of the black screen (px) at full return intent.
+// Lift of the final backdrop (px) at full return intent.
 const PREVIEW_UP = 96
 
 /** Eases accumulated return intent into preview distance. */
@@ -88,7 +88,7 @@ interface SceneRefs {
   cue: HTMLElement
 }
 
-/** Runs the camera journey between the sea and the black screen. */
+/** Runs the camera journey between the sea and the final backdrop. */
 export class SceneNavigation {
   private readonly motion = matchMedia('(prefers-reduced-motion: reduce)')
   private readonly observer: Observer
@@ -174,7 +174,7 @@ export class SceneNavigation {
     this.cancel()
     const reduced = this.motion.matches
     const atLanding = window.scrollY >= this.end - 2
-    // Resume the sea unless the restored scroll position is already at the black screen.
+    // Resume the sea unless the restored scroll position is already at the final backdrop.
     if (!reduced && !atLanding) window.scrollTo(0, 0)
     this.cover(atLanding)
     this.setPassage(reduced ? 'native' : atLanding ? 'landing' : 'sea')
@@ -230,7 +230,7 @@ export class SceneNavigation {
       .call(() => this.clearHandoff(), [], FADE_DURATION)
   }
 
-  /** Upward gestures from the black screen build return intent. */
+  /** Upward gestures from the final backdrop build return intent. */
   private atBrink(): boolean {
     return this.passage === 'landing' && window.scrollY <= this.end + 1
   }
