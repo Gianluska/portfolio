@@ -58,36 +58,33 @@ function QuestCard({ quest, index, active }: { quest: Quest; index: number; acti
       supports-[grid-template-rows:subgrid]:[grid-row:span_2] supports-[grid-template-rows:subgrid]:grid-rows-subgrid
       motion-safe:quest-ink:[view-timeline:--quest-page_inline]" role="group" aria-roledescription="slide"
       aria-label={`${index + 1} of ${quests.length}`} inert={!active}>
-      <div className="relative grid grid-cols-[minmax(10rem,0.31fr)_minmax(0,1fr)] items-start gap-[clamp(2rem,5vw,5rem)]
-        border border-[#6b6b6b] bg-[#111] p-[clamp(1.125rem,3.5vw,3.25rem)]
-        [box-shadow:inset_0_0_0_4px_#111,inset_0_0_0_5px_#434343]
-        before:pointer-events-none before:absolute before:-inset-px before:quest-corners
-        compact:grid-cols-[minmax(0,1fr)] compact:gap-6">
+      <div className="relative grid grid-cols-[minmax(10rem,0.28fr)_minmax(0,1fr)] items-start gap-[clamp(2rem,5vw,5rem)]
+        border-y border-[#343434] py-[clamp(1.5rem,3.5vw,3rem)]
+        compact:grid-cols-[minmax(0,1fr)] compact:gap-5">
         <span className="pointer-events-none absolute inset-0
           motion-safe:quest-ink:before:quest-seam-ink motion-safe:quest-ink:before:start-0 motion-safe:quest-ink:before:[animation-name:quest-leading-ink]
           motion-safe:quest-ink:after:quest-seam-ink motion-safe:quest-ink:after:end-0 motion-safe:quest-ink:after:[animation-name:quest-trailing-ink]" aria-hidden="true" />
-        <div className="min-w-0 max-w-[13rem] text-center compact:flex compact:max-w-none compact:items-center compact:gap-[clamp(0.75rem,4vw,1.5rem)] compact:text-start">
-          <div className="compact:flex-[0_0_clamp(6.75rem,40%,9rem)]">
-            <div className="relative isolate grid min-h-[8.5rem] place-items-center overflow-hidden border border-[#565656] bg-[#090909] outline-1 outline-offset-[-5px] outline-[#292929] compact:min-h-[4.25rem]" aria-hidden="true">
-              <pre className="absolute top-1/2 left-1/2 m-0 [translate:-50%_-50%] font-mono text-[0.625rem]/[0.65rem] font-normal text-[#515151] select-none compact:text-[0.4375rem]/[0.3125rem]">{portraitTexture}</pre>
-              <img className="h-15 w-[84%] object-contain [filter:brightness(0)_invert(1)_drop-shadow(0_2px_8px_#000)] compact:h-[2.125rem]" src={quest.logo} alt="" width="176" height="80" />
-            </div>
-            <h3 className="relative mx-auto mt-[-0.75rem] mb-0 w-fit max-w-full border border-[#565656] bg-[#161616] px-[0.7rem] py-[0.3rem]
-              font-display text-[clamp(1.125rem,1.75vw,1.5rem)]/[1.15] font-bold text-balance text-[#eee] compact:px-[0.4rem] compact:text-center">{quest.company}</h3>
+        <div className="grid min-w-0 content-start gap-2 compact:grid-cols-[clamp(4rem,21vw,7rem)_minmax(0,1fr)] compact:items-center compact:gap-3">
+          <div className="relative isolate grid h-20 max-w-40 place-items-center overflow-hidden compact:h-12" aria-hidden="true">
+            <pre className="absolute top-1/2 left-1/2 -z-1 m-0 [translate:-50%_-50%] font-mono text-[0.5625rem]/[0.5rem] font-normal text-[#444] select-none compact:text-[0.375rem]/[0.3125rem]">{portraitTexture}</pre>
+            <img className="h-10 w-[80%] object-contain brightness-0 invert compact:h-7" src={quest.logo} alt="" width="176" height="80" />
           </div>
-          <dl className="m-0 mt-3.5 font-mono text-xs/[1.5] font-normal text-pretty text-muted compact:mt-0 compact:mb-2">
-            <dt className="sr-only">Tech stack</dt>
-            <dd className="m-0">{quest.stack.join(' · ')}</dd>
-          </dl>
+          <div className="min-w-0">
+            <h3 className="m-0 font-display text-[clamp(1.375rem,2vw,1.75rem)]/[1.15] font-bold text-balance">{quest.company}</h3>
+            <dl className="m-0 mt-1.5 font-mono text-xs/[1.5] text-pretty text-muted">
+              <dt className="sr-only">Tech stack</dt>
+              <dd className="m-0">{quest.stack.join(' · ')}</dd>
+            </dl>
+          </div>
         </div>
 
         <div>
-          <blockquote className="m-0 mb-[clamp(1.125rem,2.75vw,2rem)] max-w-[31ch] font-display text-[clamp(2rem,4.25vw,3.625rem)]/[1.05] font-normal tracking-[-0.025em] text-pretty">“{quest.prompt}”</blockquote>
+          <blockquote className="m-0 mb-[clamp(0.75rem,2vw,1.5rem)] max-w-[33ch] font-display text-[clamp(1.75rem,3.6vw,3.25rem)]/[1.1] font-normal tracking-[-0.025em] text-balance">“{quest.prompt}”</blockquote>
           <div className="grid max-w-[27rem]" role="group" aria-label="Dialogue choices">
             {quest.replies.map((text, choice) => (
               <button key={text} type="button" className={`${questFocus} group/reply grid min-h-11 cursor-pointer grid-cols-[0.875rem_minmax(0,1fr)]
-                items-center gap-3 border-0 bg-transparent px-3 py-1.5 text-start font-sans text-base/[1.3] font-medium text-[#bdbdbd]
-                [&:not([aria-pressed=true]):hover]:bg-[#1b1b1b] [&:hover]:text-white aria-pressed:bg-[linear-gradient(90deg,#2c2c2c,transparent)] aria-pressed:text-white`}
+                items-center gap-2.5 border-0 bg-transparent px-2 py-1.5 text-start font-sans text-base/[1.3] font-medium text-[#bdbdbd]
+                hover:bg-[#191919] hover:text-white aria-pressed:font-semibold aria-pressed:text-white`}
                 aria-pressed={reply === choice} onClick={() => setReply(choice)}>
                 <span className="grid place-items-center before:aspect-square before:w-1.5 before:rotate-45 before:border-current before:border-solid
                   before:[border-width:1px_1px_0_0] group-aria-pressed/reply:before:h-1.5 group-aria-pressed/reply:before:w-2.5
@@ -102,7 +99,7 @@ function QuestCard({ quest, index, active }: { quest: Quest; index: number; acti
         </div>
       </div>
 
-      <dl className="m-0 flex flex-wrap items-baseline gap-x-4 gap-y-1 pt-4 pb-1 text-[0.9375rem]/[1.5] text-[#c6c6c6]">
+      <dl className="m-0 flex flex-wrap items-baseline gap-x-4 gap-y-1 pt-4 pb-1 text-[0.9375rem]/[1.5] text-[#c6c6c6] compact:grid compact:content-start">
         <dt className="font-mono text-xs/[1.3] font-medium text-muted">What I did</dt>
         <dd className="m-0">{quest.work}</dd>
       </dl>
@@ -146,7 +143,7 @@ export function QuestLog() {
   }
 
   return (
-    <div className="mt-[clamp(1.75rem,4vw,3rem)] max-w-[74rem]" role="group" aria-roledescription="carousel" aria-label="Company experiences">
+    <div className="mt-[clamp(1.75rem,4vw,3rem)]" role="group" aria-roledescription="carousel" aria-label="Company experiences">
       <span className="sr-only" role="status">Quest {active + 1} of {quests.length}: {quests[active].company}</span>
       <div className={`${questFocus} relative grid snap-x snap-mandatory auto-cols-[100%] grid-flow-col overflow-x-auto overscroll-x-contain
         [scrollbar-width:none] supports-[grid-template-rows:subgrid]:grid-rows-[auto_auto]`} id="quest-slides" ref={viewport} tabIndex={0}

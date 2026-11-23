@@ -30,11 +30,11 @@ The camera then makes a continuous four-second move over the first `220svh`: it 
 
 Sections have no `id` anchors and the header has no section links, so URLs such as `#projects` always open at the sea. The only way into the content is the descent, and the only shortcut back is Home. Reduced motion uses native scrolling and static scene compositions without camera travel or section animation.
 
-Selected work presents Hyperlocal, Grupo Boticário, and GLS.AI as MMORPG dialogue boxes. Each pairs a company portrait, nameplate, and stack with a fictional prompt, a checked original reply, and a replayable alternative. The account of the actual work sits below the frame. Use the arrow buttons below the slide, Left/Right while the slide area is focused, or swipe horizontally.
+Selected work presents Hyperlocal, Grupo Boticário, and GLS.AI through RPG dialogue on the same editorial grid as the rest of the portfolio. Each quest pairs an ASCII company portrait, name, and stack with a fictional prompt, a checked original reply, and a replayable alternative. Thin horizontal rules separate the dialogue from the section heading and the account of the actual work. Use the arrow buttons below the slide, Left/Right while the slide area is focused, or swipe horizontally.
 
 Pointer navigation and swipe turn the page with a scroll-linked ASCII seam, without hiding the dialogue or replies. Keyboard navigation and reduced-motion settings jump straight to the selected quest.
 
-The dialogue window enters with the waterfall handoff, independently of the heading reveal. About me and Get in touch reveal as they enter the viewport. The waterfall renderer pauses when the editorial surface has arrived.
+The quest enters with the waterfall handoff, independently of the heading reveal. About me and Get in touch reveal as they enter the viewport. The waterfall renderer pauses when the editorial surface has arrived.
 
 `AsciiSceneCamera` pulls back and lowers the viewing angle over the same water plane. A fixed drop edge enters from below and rises toward the top of the viewport, revealing a full-width waterfall. The ship and atmospheric layers recede and fade as the camera leaves the sea. The depth veil is inverse-projected to remain full-bleed during camera retreat, preventing rectangular color seams at the viewport edges; individual mist banks still follow the actor projection. Scrolling back restores the original camera and hero without replaying the intro.
 
