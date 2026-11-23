@@ -2,7 +2,6 @@ import { gsap } from './lib/ease'
 import { createTextEffect, effectNames, type TextEffect } from 'tte.js'
 import { env, wait } from './lib/env'
 import { AsciiRiver } from './components/AsciiRiver'
-import { AsciiDither } from './components/AsciiDither'
 import { AsciiHero } from './components/AsciiHero'
 import { SceneNavigation } from './components/SceneNavigation'
 
@@ -27,17 +26,15 @@ export class Director {
   private transition: gsap.core.Timeline | null = null
   private intro: TextEffect | null = null
   private river: AsciiRiver
-  private dither: AsciiDither
   private hero: AsciiHero
   private navigation: SceneNavigation
 
   constructor(refs: DirectorRefs) {
     this.refs = refs
-    this.dither = new AsciiDither(refs.root)
-    this.hero = new AsciiHero(refs.hero, this.dither)
+    this.hero = new AsciiHero(refs.hero)
     this.river = new AsciiRiver(refs.river, () => { void this.hero.start() },
       (progress) => this.hero.setExit(progress), refs.landing)
-    this.navigation = new SceneNavigation(refs, this.dither, (covered) => this.river.setCovered(covered))
+    this.navigation = new SceneNavigation(refs, (covered) => this.river.setCovered(covered))
   }
 
   private setPhase(phase: Phase): void {
@@ -109,6 +106,5 @@ export class Director {
     this.intro?.destroy()
     this.river.destroy()
     this.hero.destroy()
-    this.dither.destroy()
   }
 }

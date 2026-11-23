@@ -97,7 +97,7 @@ As camadas atmosféricas usam `sceneScale`: bandos e espaçamentos diminuem ao f
 
 ## Descent through the waterfall
 
-Once the indicator finishes spilling, the camera makes a four-second sine-eased move over the first `220svh`. As the camera nears the waterfall angle, its vertical descent starts before the pitch finishes. The brink moves above the viewport and the same water continues past the bottom of the frame. Filaments thin into spray, and their contrast fades with camera depth. At 3.15 seconds a fade to sage begins. The My Quests frame emerges during that fade, while the camera is still moving. Returning reverses the camera and fades the frame out.
+Once the indicator finishes spilling, the camera makes a four-second sine-eased move over the first `220svh`. As the camera nears the waterfall angle, its vertical descent starts before the pitch finishes. The brink moves above the viewport and the same water continues past the bottom of the frame. Filaments thin into spray, and their contrast fades with camera depth. At 3.15 seconds a fade to sage begins, overlapping the descent. The page ends on one empty sage viewport. Returning reverses the camera and fade.
 
 The page holds at the top from the intro through the indicator's entrance and spill. After the indicator finishes entering, the dive needs a charge of 390 px of wheel or 182 px of touch travel. The gesture affects only the indicator until the spill finishes; reversing it drains the charge. When input stops, the charge holds for 0.6 s, then drains with gathering speed, taking about 2.5 s to empty from full, so several strokes add up. On the final screen, an upward pull reveals up to 96 px of waterfall as it builds the same charge.
 
@@ -119,10 +119,4 @@ Waterfall particles follow their own trajectories without pointer input. The shi
 `AsciiSceneCamera` owns the projection, depth and fall light. `AsciiWaterfall` plots into the reusable water pixel buffer and glyph masks. The stream's ballistic path extends below the shot at a fixed sampling cadence; no pool enters the moving shot. Spatial phases update only while the water plane is visible. `SceneNavigation` drives the shared timeline, and `AsciiRiver` reads scroll position and stops rendering once the final backdrop covers the viewport.
 
 Reduced motion restores native scrolling, switches between static sea and waterfall compositions at the midpoint, and skips the animated descent. Home returns to the sea.
-
-## My Quests
-
-O diálogo da Hyperlocal usa Geist Mono, papel claro sobre a sálvia, moldura dupla em âmbar suave, cantos em degraus e folhagens espelhadas. “My Quests” fica na placa superior da moldura; a marca oficial aparece acima de Hyperlocal. A pergunta, os detalhes, a recompensa e as respostas ocupam linhas distintas. As respostas representam o aceite e não são controles.
-
-A moldura entra em 740 ms durante o fade da cachoeira. Seis varreduras de borda suave reaproveitam a textura dither do hero, com duração de 920 ms e inícios espaçados por 340 ms. Depois de as duas respostas aparecerem por inteiro, o check e o destaque sálvia de “Say no more” entram em 360 ms. Voltar ao mar durante o reveal congela a varredura até o fade de saída ocultar o diálogo. A sequência toca uma vez; movimento reduzido mostra o estado final sem espera.
 

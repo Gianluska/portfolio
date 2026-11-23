@@ -1,15 +1,12 @@
 import { Observer } from 'gsap/Observer'
 import { gsap } from '../lib/ease'
 import { ScrollCue } from './ScrollCue'
-import type { AsciiDither } from './AsciiDither'
-import { QuestReveal } from './QuestReveal'
 
 gsap.registerPlugin(Observer)
 
 const TRAVEL = 4
 const FADE_START = 3.15
 const FADE_DURATION = TRAVEL - FADE_START
-const QUEST_ENTRY = FADE_START + FADE_DURATION * 0.56
 const EDITABLE = 'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [data-native-scroll]'
 const DOWN: Record<string, true | undefined> = { ArrowDown: true, PageDown: true, End: true, ' ': true }
 const UP: Record<string, true | undefined> = { ArrowUp: true, PageUp: true }
@@ -99,7 +96,6 @@ export class SceneNavigation {
   private passage: Passage = 'native'
   private end = 1
   private readonly cue: ScrollCue
-  private readonly quests: QuestReveal
   private readonly down = new Charge((ratio) => this.cue.set(ratio))
   // An upward pull reveals a sliver of the waterfall before the return.
   private readonly up = new Charge((ratio) => {
@@ -110,10 +106,8 @@ export class SceneNavigation {
   private touchX = 0
   private touchY = 0
 
-  constructor(private readonly refs: SceneRefs, dither: AsciiDither, private readonly cover: (covered: boolean) => void) {
+  constructor(private readonly refs: SceneRefs, private readonly cover: (covered: boolean) => void) {
     this.cue = new ScrollCue(refs.cue)
-    this.quests = new QuestReveal(refs.landing.querySelector<HTMLElement>('.quests')!, dither)
-    refs.landing.inert = true
     this.observer = Observer.create({
       target: window,
       type: 'wheel,touch',
@@ -158,7 +152,6 @@ export class SceneNavigation {
     else if (passage === 'spill') this.cue.spill(() => this.descend())
     else this.cue.hide()
     const locked = passage !== 'landing' && passage !== 'native'
-    this.refs.landing.inert = locked
     document.documentElement.toggleAttribute('data-scene-scroll', locked)
     if (locked) this.observer.enable()
     else this.observer.disable()
@@ -179,7 +172,6 @@ export class SceneNavigation {
 
   private settle(): void {
     this.cancel()
-    this.quests.finish()
     const reduced = this.motion.matches
     const atLanding = window.scrollY >= this.end - 2
     // Resume the sea unless the restored scroll position is already at the final backdrop.
@@ -203,7 +195,6 @@ export class SceneNavigation {
   private descend(): void {
     if (this.passage !== 'spill' || this.motion.matches) return
     const { root, landing } = this.refs
-    this.quests.prepare()
     this.setPassage('outbound')
     const timeline = gsap.timeline({ onComplete: () => {
       this.timeline = null
@@ -217,7 +208,6 @@ export class SceneNavigation {
       .fromTo(landing, { opacity: 0 }, {
         opacity: 1, duration: FADE_DURATION, ease: 'power2.out', immediateRender: false,
       }, FADE_START)
-      .call(() => this.quests.show(), [], QUEST_ENTRY)
   }
 
   private ascend(): void {
@@ -226,7 +216,6 @@ export class SceneNavigation {
     const lift = Number(gsap.getProperty(landing, 'y')) || 0
     const fade = Number(gsap.getProperty(landing, 'opacity'))
     this.cancel()
-    this.quests.pause()
     gsap.set(landing, { y: lift, opacity: Number.isFinite(fade) ? fade : 1 })
     root.setAttribute('data-scene-handoff', '')
     this.setPassage('inbound')
@@ -238,10 +227,7 @@ export class SceneNavigation {
     } })
     this.timeline = this.moveCamera(timeline, 1, 0)
       .to(landing, { opacity: 0, duration: FADE_DURATION, ease: 'power2.in' }, 0)
-      .call(() => {
-        this.quests.finish()
-        this.clearHandoff()
-      }, [], FADE_DURATION)
+      .call(() => this.clearHandoff(), [], FADE_DURATION)
   }
 
   /** Upward gestures from the final backdrop build return intent. */
@@ -330,8 +316,6 @@ export class SceneNavigation {
   destroy(): void {
     this.cancel()
     this.cue.destroy()
-    this.quests.destroy()
-    this.refs.landing.inert = false
     this.observer.kill()
     window.removeEventListener('keydown', this.key)
     window.removeEventListener('scroll', this.scroll)
