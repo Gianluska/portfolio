@@ -11,7 +11,7 @@ const HANDOFF_DURATION = TRAVEL - TEXT_IN
 const EDITABLE = 'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [data-native-scroll]'
 const DOWN: Record<string, true | undefined> = { ArrowDown: true, PageDown: true, End: true, ' ': true }
 const UP: Record<string, true | undefined> = { ArrowUp: true, PageUp: true }
-// Gesture distance (px) that must build up before the camera crosses the waterfall.
+// Gesture distance (px) that must build up before the cue spills.
 const WHEEL_INTENT = 390
 const TOUCH_INTENT = 182
 // Once input pauses, charge holds (s), then drains with gathering speed so separate strokes add up.
@@ -20,11 +20,10 @@ const DRAIN_RAMP = 0.8
 const DRAIN_RATE = 0.55
 // Response of the displayed charge to new input (1/s).
 const FOLLOW = 14
-// Rubber-band preview at full intent: share of the camera journey, and lift of the content (px).
-const PREVIEW_DOWN = 0.09
+// Lift of the content (px) at full return intent.
 const PREVIEW_UP = 96
 
-/** Eases accumulated intent into preview distance: quick to respond, resisting near the threshold. */
+/** Eases accumulated return intent into preview distance. */
 const rubber = (ratio: number): number => 1 - (1 - Math.min(1, ratio)) ** 2
 
 /**
@@ -82,7 +81,7 @@ class Charge {
 const wheelPixels = (event: WheelEvent): number =>
   event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1)
 
-type Passage = 'sea' | 'outbound' | 'work' | 'inbound' | 'native'
+type Passage = 'sea' | 'spill' | 'outbound' | 'work' | 'inbound' | 'native'
 
 interface SceneRefs {
   root: HTMLElement
@@ -101,10 +100,7 @@ export class SceneNavigation {
   private passage: Passage = 'native'
   private end = 1
   private readonly cue: ScrollCue
-  private readonly down = new Charge((ratio) => {
-    window.scrollTo(0, rubber(ratio) * PREVIEW_DOWN * this.end)
-    this.cue.set(ratio)
-  })
+  private readonly down = new Charge((ratio) => this.cue.set(ratio))
   // The content sinks and dims as upward intent builds at its top edge.
   private readonly up = new Charge((ratio) => {
     const pull = rubber(ratio)
@@ -150,9 +146,9 @@ export class SceneNavigation {
         || (event.target instanceof Element && event.target.closest(EDITABLE)),
       ),
       onChangeY: (self) => {
-        if (this.passage !== 'sea') return
+        if (this.passage !== 'sea' || !this.cue.ready) return
         const threshold = self.event?.type === 'wheel' ? WHEEL_INTENT : TOUCH_INTENT
-        if (this.down.push(-self.deltaY / threshold)) this.descend()
+        if (this.down.push(-self.deltaY / threshold)) this.requestDescent()
       },
     })
     this.observer.disable()
@@ -175,7 +171,7 @@ export class SceneNavigation {
     this.down.reset()
     this.up.reset()
     if (passage === 'sea') this.cue.show()
-    else if (passage === 'outbound') this.cue.spill()
+    else if (passage === 'spill') this.cue.spill(() => this.descend())
     else this.cue.hide()
     const locked = passage !== 'work' && passage !== 'native'
     document.documentElement.toggleAttribute('data-scene-scroll', locked)
@@ -214,7 +210,7 @@ export class SceneNavigation {
     const { root } = this.refs
     const reduced = this.motion.matches
     const atWork = window.scrollY >= this.end - 2
-    // A half-built lean has no charge left to drain, so the sea starts level.
+    // Resume the sea at the top unless the restored scroll position is already in Projects.
     if (!reduced && !atWork) window.scrollTo(0, 0)
     root.toggleAttribute('data-reveal-ready', !reduced)
     this.cover(atWork)
@@ -229,9 +225,12 @@ export class SceneNavigation {
     }, 0)
   }
 
+  private requestDescent(): void {
+    if (this.passage === 'sea' && this.cue.ready) this.setPassage('spill')
+  }
+
   private descend(): void {
-    if (this.passage !== 'sea') return
-    this.down.reset()
+    if (this.passage !== 'spill' || this.motion.matches) return
     const { root, portfolio } = this.refs
     for (const block of this.blocks) {
       if (block.dataset.reveal !== 'arrival') continue
@@ -248,7 +247,7 @@ export class SceneNavigation {
       this.setPassage('work')
       this.clearHandoff()
     } })
-    this.timeline = this.moveCamera(timeline, window.scrollY / this.end, 1)
+    this.timeline = this.moveCamera(timeline, 0, 1)
       .call(() => {
         root.setAttribute('data-scene-handoff', '')
         this.watchReveals()
@@ -353,13 +352,13 @@ export class SceneNavigation {
       }
       return
     }
-    if (event.key === 'Escape' && this.timeline) {
+    if (event.key === 'Escape' && (this.timeline || this.passage === 'spill')) {
       event.preventDefault()
       window.scrollTo(0, this.passage === 'inbound' ? this.end : 0)
       this.settle()
     } else if (DOWN[event.key] && !(event.key === ' ' && event.shiftKey)) {
       event.preventDefault()
-      if (!event.repeat) this.descend()
+      if (!event.repeat) this.requestDescent()
     }
   }
 

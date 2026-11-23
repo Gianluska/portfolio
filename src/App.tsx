@@ -101,7 +101,7 @@ export default function App() {
           </div>
         </section>
 
-        <div className="portfolio relative z-2 bg-[linear-gradient(#000,#0c0c0c_24rem)] font-sans scene-veiled:invisible">
+        <div className="portfolio relative z-2 bg-[linear-gradient(#000,#0c0c0c_24rem)] font-sans motion-safe:scene-veiled:invisible">
           <section className={`projects ${editorialInner} pt-[clamp(7.5rem,17svh,11rem)] pb-[clamp(4rem,8vw,7rem)] compact:pt-[clamp(5rem,12svh,7.5rem)]`} aria-label="Selected work">
             <div data-reveal="arrival">
               <h2 className={editorialTitle}>Selected work</h2>

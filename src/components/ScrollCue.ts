@@ -1,8 +1,6 @@
 // The first appearance waits for the impact wave to clear the sea (ms).
 const FIRST_DELAY = 3400
 const RETURN_DELAY = 500
-// Spill choreography length before the loop stops (ms).
-const SPILL_TIME = 1100
 
 // Grid: row 0 is the sea running to the brink, the middle rows are the fall, the last row the pool.
 const COLS = 9
@@ -22,13 +20,14 @@ interface Drop {
 /**
  * Bottom-center hint at the sea, drawn in the scene's own glyphs: the sea slides to a brink and a
  * thin stream falls into a pool. Gesture charge widens and speeds the fall, the word leans over the
- * edge, and a full charge empties the whole cue down out of the frame as the camera dives.
+ * edge, and a full charge empties the whole cue down out of the frame before the camera dives.
  */
 export class ScrollCue {
   private first = true
+  private cycle = 0
+  private entered = false
   private timer = 0
   private frame = 0
-  private stopTimer = 0
   private charging = false
   private spilling = false
   private progress = 0
@@ -73,17 +72,19 @@ export class ScrollCue {
     el.append(label, fall)
   }
 
+  get ready(): boolean {
+    return this.entered
+  }
+
   show(): void {
-    clearTimeout(this.timer)
-    clearTimeout(this.stopTimer)
-    this.el.removeAttribute('data-spill')
-    this.spilling = false
+    this.hide()
     this.drops = []
     this.splash.fill(0)
     this.set(0)
     this.timer = window.setTimeout(() => {
       this.el.setAttribute('data-on', '')
       this.run()
+      this.afterMotion(false, () => { this.entered = true })
     }, this.first ? FIRST_DELAY : RETURN_DELAY)
     this.first = false
   }
@@ -98,36 +99,40 @@ export class ScrollCue {
     this.el.toggleAttribute('data-charging', charging)
   }
 
-  spill(): void {
-    clearTimeout(this.timer)
+  spill(onComplete: () => void): void {
+    this.entered = false
     this.set(1)
-    if (!this.el.hasAttribute('data-on')) return this.stop()
     this.spilling = true
     this.el.setAttribute('data-spill', '')
     this.el.removeAttribute('data-on')
-    clearTimeout(this.stopTimer)
-    this.stopTimer = window.setTimeout(() => this.stop(), SPILL_TIME)
+    this.afterMotion(true, onComplete)
   }
 
   hide(): void {
+    this.cycle++
+    this.entered = this.spilling = false
     clearTimeout(this.timer)
     this.el.removeAttribute('data-on')
-    clearTimeout(this.stopTimer)
-    this.stopTimer = window.setTimeout(() => this.stop(), 600)
+    this.el.removeAttribute('data-spill')
+    this.stop()
   }
 
   destroy(): void {
-    clearTimeout(this.timer)
-    clearTimeout(this.stopTimer)
-    this.stop()
-    this.el.removeAttribute('data-on')
-    this.el.removeAttribute('data-spill')
+    this.hide()
     this.set(0)
     this.el.replaceChildren()
   }
 
+  private afterMotion(subtree: boolean, done: () => void): void {
+    const cycle = this.cycle
+    const animations = this.el.getAnimations({ subtree })
+    // Include the staggered spill rows, not just the cue's own fade.
+    void Promise.allSettled(animations.map(({ finished }) => finished)).then(() => {
+      if (this.cycle === cycle) done()
+    })
+  }
+
   private run(): void {
-    clearTimeout(this.stopTimer)
     if (this.frame) return
     this.last = performance.now()
     this.frame = requestAnimationFrame(this.loop)
