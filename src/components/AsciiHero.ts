@@ -1,11 +1,10 @@
-import { animateSkeleton, asciiSkeletonHTML, SKELETON_CSS } from 'ascii-reveal/core'
+import { animateSkeleton, asciiSkeletonHTML } from 'ascii-reveal/core'
+import { sweepIn, type AsciiDither } from './AsciiDither'
 
 const ROLES = ['Creative Technologist', 'Frontend Specialist', 'Product Engineer'] as const
 const HOLD = 3200
 const LOADING = 900
 const ENTRANCE_STAGGER = 50
-// ascii-reveal 0.3.0 caps block textures at 96 glyph columns.
-const SKELETON_COLUMNS = 96
 // Scroll exit (fraction of the descent): the dither covers each line, then drains row by row.
 const EXIT_END = 0.3
 const EXIT_STAGGER = 0.15
@@ -15,11 +14,9 @@ const clamp = (value: number): number => Math.max(0, Math.min(1, value))
 
 /** Original dither skeletons shimmer briefly before the actual copy replaces them. */
 export class AsciiHero {
-  private readonly styles = document.createElement('style')
   private readonly roleSizer = document.createElement('span')
   private readonly role: HTMLElement
   private readonly text: HTMLElement
-  private readonly metrics: CanvasRenderingContext2D
   private readonly name: HTMLElement
   private readonly nickname: HTMLElement
   private readonly hover = matchMedia('(hover: hover) and (pointer: fine)')
@@ -43,12 +40,7 @@ export class AsciiHero {
   private exitProgress = 0
   private readonly exitStops: (() => void)[] = []
 
-  constructor(private readonly el: HTMLElement) {
-    const canvas = document.createElement('canvas')
-    canvas.width = canvas.height = 1
-    this.metrics = canvas.getContext('2d')!
-    this.styles.textContent = SKELETON_CSS
-    el.append(this.styles)
+  constructor(private readonly el: HTMLElement, private readonly dither: AsciiDither) {
     this.role = el.querySelector<HTMLElement>('.hero__role')!
     this.text = el.querySelector<HTMLElement>('[data-hero-role]')!
     this.name = el.querySelector<HTMLElement>('.hero__name')!
@@ -109,7 +101,7 @@ export class AsciiHero {
     if (!this.exitStops.length) {
       this.stop()
       lines.forEach((line, i) => {
-        const dispose = this.mountSkeleton(line, 41 + i * 10)
+        const dispose = this.dither.mount(line, line.querySelector<HTMLElement>('.hero__skeleton')!, 41 + i * 10)
         this.exitStops.push(() => {
           dispose()
           line.querySelector<HTMLElement>('.hero__skeleton')!.style.removeProperty('clip-path')
@@ -135,70 +127,14 @@ export class AsciiHero {
     this.exitStops.length = 0
   }
 
-  /** Fills `line` with a shimmering dither block that tracks its size; returns its disposer. */
-  private mountSkeleton(line: HTMLElement, seed: number): () => void {
-    const overlay = line.querySelector<HTMLElement>('.hero__skeleton')!
-    const style = getComputedStyle(overlay)
-    const baseFontSize = Number.parseFloat(style.fontSize)
-    this.metrics.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
-    const advance = this.metrics.measureText('M').width
-    let width = -1
-    let height = -1
-    let disposed = false
-    let stopShimmer: (() => void) | null = null
-    const render = () => {
-      if (disposed) return
-      const bounds = line.getBoundingClientRect()
-      if (bounds.width === width && bounds.height === height) return
-      width = bounds.width
-      height = bounds.height
-      stopShimmer?.()
-      // Leave one column spare so rounding cannot expose an untextured right edge.
-      const fontSize = Math.max(baseFontSize,
-        Math.ceil(width * baseFontSize / ((SKELETON_COLUMNS - 1) * advance)))
-      const rows = Math.max(1, Math.ceil(height / fontSize))
-      overlay.style.fontSize = `${fontSize}px`
-      overlay.dataset.rows = String(rows)
-      overlay.innerHTML = asciiSkeletonHTML({ variant: 'dither', rows, seed, css: false })
-      stopShimmer = animateSkeleton(overlay.firstElementChild as HTMLElement)
-    }
-    overlay.hidden = false
-    line.classList.add('is-loading')
-    render()
-    const resize = new ResizeObserver(render)
-    resize.observe(line)
-    return () => {
-      disposed = true
-      resize.disconnect()
-      stopShimmer?.()
-      overlay.replaceChildren()
-      overlay.style.removeProperty('font-size')
-      delete overlay.dataset.rows
-      overlay.hidden = true
-      line.classList.remove('is-loading')
-    }
-  }
-
   private showSkeleton(line: HTMLElement, seed: number, initial: boolean, delay = 0): void {
-    const dispose = this.mountSkeleton(line, seed)
     const overlay = line.querySelector<HTMLElement>('.hero__skeleton')!
+    const dispose = this.dither.mount(line, overlay, seed)
     this.waveLines.push(line)
     const text = line.querySelector<HTMLElement>('.hero__text')!
     if (initial) {
       text.style.clipPath = 'inset(0 100% 0 0)'
-      const timing: KeyframeAnimationOptions = { duration: LOADING, delay, easing: 'linear', fill: 'both' }
-      this.waves.push(
-        overlay.animate([
-          { clipPath: 'inset(0 100% 0 0)', offset: 0 },
-          { clipPath: 'inset(0)', offset: 0.5 },
-          { clipPath: 'inset(0 0 0 100%)', offset: 1 },
-        ], timing),
-        text.animate([
-          { clipPath: 'inset(0 100% 0 0)', offset: 0 },
-          { clipPath: 'inset(0 100% 0 0)', offset: 0.5 },
-          { clipPath: 'inset(0)', offset: 1 },
-        ], timing),
-      )
+      this.waves.push(...sweepIn(overlay, text, LOADING, delay))
     } else {
       this.sweep(overlay, 'inset(0 100% 0 0)', 'inset(0)')
       this.sweep(text, 'inset(0)', 'inset(0 0 0 100%)')
@@ -286,19 +222,8 @@ export class AsciiHero {
     if (!this.nicknameWaves.length) {
       const rows = Math.max(1, Math.ceil(this.nickname.offsetHeight / 10))
       overlay.innerHTML = asciiSkeletonHTML({ variant: 'dither', rows, seed: 27, css: false })
-      const timing: KeyframeAnimationOptions = { duration: 400, easing: 'linear', fill: 'both' }
-      this.nicknameWaves.push(
-        overlay.animate([
-          { clipPath: 'inset(0 100% 0 0)', offset: 0 },
-          { clipPath: 'inset(0)', offset: 0.5 },
-          { clipPath: 'inset(0 0 0 100%)', offset: 1 },
-        ], timing),
-        this.nickname.querySelector<HTMLElement>('.hero__nickname-text')!.animate([
-          { clipPath: 'inset(0 100% 0 0)', offset: 0 },
-          { clipPath: 'inset(0 100% 0 0)', offset: 0.5 },
-          { clipPath: 'inset(0)', offset: 1 },
-        ], timing),
-      )
+      const copy = this.nickname.querySelector<HTMLElement>('.hero__nickname-text')!
+      this.nicknameWaves.push(...sweepIn(overlay, copy, 400))
       for (const wave of this.nicknameWaves) {
         wave.pause()
         wave.currentTime = 0
@@ -402,7 +327,6 @@ export class AsciiHero {
     this.hover.removeEventListener('change', this.nicknameLeave)
     this.motion.removeEventListener('change', this.motionChange)
     document.removeEventListener('visibilitychange', this.visibility)
-    this.styles.remove()
     this.roleSizer.remove()
   }
 }

@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { Director } from './director'
 import { glyphs } from './data/glyphs'
+import { Quests } from './components/Quests'
 
 const heroLine = 'hero__line relative block w-full'
-const skeletonOverlay = 'absolute inset-0 overflow-hidden [--ars-radius:0px] [clip-path:inset(0_100%_0_0)] text-left leading-none font-ascii font-normal [&_:is(.ars,.ars-block)]:size-full'
-const heroSkeleton = `hero__skeleton ${skeletonOverlay} tracking-normal [&[hidden]]:hidden`
+const heroSkeleton = 'hero__skeleton ascii-dither-overlay tracking-normal'
 
 export default function App() {
   const root = useRef<HTMLDivElement>(null)
@@ -73,7 +73,7 @@ export default function App() {
                         group-[.is-nickname-open]/nickname:opacity-100 group-[.is-nickname-open]/nickname:[transform:none]
                         motion-reduce:transition-none motion-reduce:[transform:none]">
                         <span className="hero__nickname-text">"lvsk"</span>
-                        <span className={`hero__nickname-noise ${skeletonOverlay} text-[10px] motion-reduce:hidden`} aria-hidden="true" />
+                        <span className="hero__nickname-noise ascii-dither-overlay text-[10px] motion-reduce:hidden" aria-hidden="true" />
                       </span>
                     </span>
                   </span>
@@ -94,7 +94,9 @@ export default function App() {
           </div>
         </section>
 
-        <div className="landing relative z-2 min-h-dvh bg-scene motion-safe:scene-veiled:invisible" aria-hidden="true" />
+        <div className="landing relative z-2 min-h-dvh bg-scene motion-safe:scene-veiled:invisible">
+          <Quests />
+        </div>
       </main>
     </div>
   )

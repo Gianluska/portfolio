@@ -1,6 +1,8 @@
 import { Observer } from 'gsap/Observer'
 import { gsap } from '../lib/ease'
 import { ScrollCue } from './ScrollCue'
+import type { AsciiDither } from './AsciiDither'
+import { QuestReveal } from './QuestReveal'
 
 gsap.registerPlugin(Observer)
 
@@ -96,6 +98,7 @@ export class SceneNavigation {
   private passage: Passage = 'native'
   private end = 1
   private readonly cue: ScrollCue
+  private readonly quests: QuestReveal
   private readonly down = new Charge((ratio) => this.cue.set(ratio))
   // An upward pull reveals a sliver of the waterfall before the return.
   private readonly up = new Charge((ratio) => {
@@ -106,8 +109,10 @@ export class SceneNavigation {
   private touchX = 0
   private touchY = 0
 
-  constructor(private readonly refs: SceneRefs, private readonly cover: (covered: boolean) => void) {
+  constructor(private readonly refs: SceneRefs, dither: AsciiDither, private readonly cover: (covered: boolean) => void) {
     this.cue = new ScrollCue(refs.cue)
+    this.quests = new QuestReveal(refs.landing.querySelector<HTMLElement>('.quests')!, dither)
+    refs.landing.inert = true
     this.observer = Observer.create({
       target: window,
       type: 'wheel,touch',
@@ -152,6 +157,7 @@ export class SceneNavigation {
     else if (passage === 'spill') this.cue.spill(() => this.descend())
     else this.cue.hide()
     const locked = passage !== 'landing' && passage !== 'native'
+    this.refs.landing.inert = locked
     document.documentElement.toggleAttribute('data-scene-scroll', locked)
     if (locked) this.observer.enable()
     else this.observer.disable()
@@ -162,6 +168,7 @@ export class SceneNavigation {
     this.up.reset()
     this.timeline?.kill()
     this.timeline = null
+    this.quests.finish()
     this.clearHandoff()
   }
 
@@ -195,6 +202,7 @@ export class SceneNavigation {
   private descend(): void {
     if (this.passage !== 'spill' || this.motion.matches) return
     const { root, landing } = this.refs
+    this.quests.prepare()
     this.setPassage('outbound')
     const timeline = gsap.timeline({ onComplete: () => {
       this.timeline = null
@@ -202,6 +210,7 @@ export class SceneNavigation {
       this.cover(true)
       this.setPassage('landing')
       this.clearHandoff()
+      void this.quests.show()
     } })
     this.timeline = this.moveCamera(timeline, 0, 1)
       .call(() => root.setAttribute('data-scene-handoff', ''), [], FADE_START)
@@ -316,6 +325,8 @@ export class SceneNavigation {
   destroy(): void {
     this.cancel()
     this.cue.destroy()
+    this.quests.destroy()
+    this.refs.landing.inert = false
     this.observer.kill()
     window.removeEventListener('keydown', this.key)
     window.removeEventListener('scroll', this.scroll)

@@ -1,6 +1,6 @@
 # Gianlucca Claudino — portfolio
 
-Portfolio with an ASCII intro and a full-screen sea hero. The sea becomes a waterfall on the descent, then gives way to a plain sage backdrop.
+Portfolio with an ASCII intro and a full-screen sea hero. The sea becomes a waterfall on the descent, then fades into the My Quests section.
 
 ## Current experience
 
@@ -26,7 +26,7 @@ Hero typography: [Redaction 35](https://fonts.google.com/specimen/Redaction+35) 
 
 The page stays at the top during the intro and until the miniature ASCII waterfall cue finishes entering. Wheel or touch strokes then build charge in the cue without moving the page. The charge lingers briefly and then drains, so several strokes add up. At full charge, the cue spills over the edge; the camera waits until its last animated row finishes.
 
-The camera makes a continuous four-second move over the first `220svh`: it pitches from sea to waterfall and follows the falling water without stopping at the brink. The hero's name and role leave through the same dither skeleton as their entrance. At 3.15 seconds the viewport starts fading to a plain sage backdrop, and the waterfall renderer pauses once it is fully covered.
+The camera makes a continuous four-second move over the first `220svh`: it pitches from sea to waterfall and follows the falling water without stopping at the brink. The hero's name and role leave through the same dither skeleton as their entrance. At 3.15 seconds the viewport starts fading to the sage backdrop behind My Quests, and the waterfall renderer pauses once it is fully covered.
 
 Pulling upward or pressing Home reverses the descent. Reduced motion uses native scrolling and static scene compositions without camera travel.
 
@@ -37,6 +37,12 @@ Pulling upward or pressing Home reverses the descent. Reduced motion uses native
 The river-to-fall transition follows a single continuous material path over a stationary brink: upstream flow becomes an accelerating fall, with emission-time texture and short fading trails. Overlap-aware opacity keeps the slow lip from becoming a bright stripe. Reduced motion freezes the entire composition. Visual references and their use are recorded in `DESIGN.md`.
 
 Waterfall drops, trails, spray, and mist do not react to the pointer. The pointer still steers the ship at sea.
+
+## My Quests
+
+The first quest presents Hyperlocal in a pastel ASCII-style frame, with the [company's official brand mark](https://hyperlocal.com.br/). After the waterfall fade completes, the frame fades in and the shared Hero dither reveals the section title, company, quest prompt, details and reward, and responses in order. Once both decorative responses are visible, the check mark draws on “Say no more.”
+
+The entrance plays once per visit. Returning to the section or using reduced motion shows the accepted quest immediately. “Quest Details” is the only interactive element; its temporary `#` destination leaves the visitor in the section until a case study is linked.
 
 ## Running locally
 
