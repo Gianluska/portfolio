@@ -44,21 +44,23 @@ Waterfall drops, trails, spray, and mist do not react to the pointer. The pointe
 
 ## Running locally
 
-Node.js 22.12+.
+Node.js 22.12+ and pnpm 12.21.0 (pinned in `package.json`).
 
 ```sh
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
+
+Use `pnpm install --frozen-lockfile` in CI and deployments.
 
 ## Production
 
 ```sh
-npm run build
-npm run preview
+pnpm build
+pnpm preview
 ```
 
-`npm run typecheck` runs TypeScript only. `npm run glyphs` regenerates the official intro logo and its per-letter variants.
+`pnpm typecheck` runs TypeScript only. `pnpm glyphs` regenerates the official intro logo and its per-letter variants.
 
 `?intro=0` skips the intro, drop, and wave; it displays the header and river directly. The old scene parameters (`debug`, `t`, `webgl`) have been removed.
 

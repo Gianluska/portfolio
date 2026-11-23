@@ -1,6 +1,6 @@
 // Gera src/data/glyphs.json: cada letra da logo "lvsk" em várias fontes FIGlet,
 // todas encaixadas na mesma célula que a letra ocupa na logo oficial (Shadow).
-// Uso: node scripts/build-glyphs.ts [--print]   (ou npm run glyphs)
+// Uso: node scripts/build-glyphs.ts [--print]   (ou pnpm glyphs)
 import figlet from 'figlet'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'

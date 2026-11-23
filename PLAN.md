@@ -35,9 +35,9 @@ Removidos: hero, funções profissionais em ciclo, cena R3F/Three.js, baralho, s
 
 ## Uso
 
-- `npm run dev`: desenvolvimento.
-- `npm run build`: TypeScript e build de produção.
-- `npm run preview`: produção local.
+- `pnpm dev`: desenvolvimento.
+- `pnpm build`: TypeScript e build de produção.
+- `pnpm preview`: produção local.
 - `?intro=0`: cabeçalho e rio direto, sem abertura, gota ou onda.
 - `prefers-reduced-motion`: logo e água estáticas; sem coreografia, brisas ou pássaros.
 
