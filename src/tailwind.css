@@ -9,8 +9,8 @@
   }
 
   :root {
-    color-scheme: only dark;
-    --scene-rgb: 11 30 59;
+    color-scheme: only light;
+    --scene-rgb: 233 238 224;
   }
 
   ::selection {
@@ -42,9 +42,9 @@
 
 @theme inline {
   --color-scene: rgb(var(--scene-rgb));
-  --color-scene-ink: #e3eef9;
-  --color-scene-soft: #c8dbef;
-  --color-scene-muted: #b7cbe2;
+  --color-scene-ink: #24372a;
+  --color-scene-soft: #3a5140;
+  --color-scene-muted: #475c4c;
 }
 
 @layer components {
@@ -61,7 +61,7 @@
   --ease-scene: cubic-bezier(0.14, 0.9, 0.22, 1);
   /* Mola subamortecida (ζ≈0.55): ~12% de overshoot. */
   --ease-reveal: linear(0, 0.027 2.5%, 0.098 5%, 0.199 7.5%, 0.318 10%, 0.444 12.5%, 0.569 15%, 0.687 17.5%, 0.794 20%, 0.886 22.5%, 0.963 25%, 1.023 27.5%, 1.068 30%, 1.099 32.5%, 1.117 35%, 1.126 37.5%, 1.125 40%, 1.119 42.5%, 1.107 45%, 1.093 47.5%, 1.077 50%, 1.061 52.5%, 1.046 55%, 1.032 57.5%, 1.019 60%, 1.009 62.5%, 1 65%, 0.994 67.5%, 0.989 70%, 0.986 72.5%, 0.984 75%, 0.984 77.5%, 0.985 80%, 0.987 85%, 0.991 90%, 0.995 95%, 1);
-  --background-image-loader-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix color-interpolation-filters='sRGB' values='0 0 0 0 .667 0 0 0 0 .800 0 0 0 0 .949 1.6 0 0 0 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --background-image-loader-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix color-interpolation-filters='sRGB' values='0 0 0 0 .184 0 0 0 0 .325 0 0 0 0 .255 1.6 0 0 0 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --background-image-header-veil: linear-gradient(
     to bottom,
     rgb(var(--scene-rgb) / 0.85) 0%,
@@ -98,13 +98,13 @@
   0% { text-shadow: 0 0 6px rgb(var(--scene-rgb)); }
   25% {
     translate: 0 -3px;
-    text-shadow: -2px 0 rgb(var(--cue-periwinkle)), 2px 0 rgb(var(--cue-ice)), 0 0 6px rgb(var(--scene-rgb));
+    text-shadow: -2px 0 rgb(var(--cue-lichen)), 2px 0 rgb(var(--cue-fern)), 0 0 6px rgb(var(--scene-rgb));
   }
   100% {
     translate: 0 64px;
     scale: 0.7 1.8;
     opacity: 0;
-    text-shadow: -3px 0 rgb(var(--cue-periwinkle)), 3px 0 rgb(var(--cue-ice));
+    text-shadow: -3px 0 rgb(var(--cue-lichen)), 3px 0 rgb(var(--cue-fern));
   }
 }
 
@@ -117,14 +117,14 @@
 }
 
 @theme static {
-  --cue-periwinkle: 163 175 223;
-  --cue-ice: 125 189 228;
+  --cue-lichen: 108 128 89;
+  --cue-fern: 74 112 101;
 }
 
 @custom-variant scene-veiled (html[data-scene-scroll] .app:not([data-scene-handoff]) &);
 @utility cue-chroma {
   text-shadow:
-    calc(var(--p) * -1.5px) 0 rgb(var(--cue-periwinkle) / calc(var(--p) * 0.9)),
-    calc(var(--p) * 1.5px) 0 rgb(var(--cue-ice) / calc(var(--p) * 0.9)),
+    calc(var(--p) * -1.5px) 0 rgb(var(--cue-lichen) / calc(var(--p) * 0.9)),
+    calc(var(--p) * 1.5px) 0 rgb(var(--cue-fern) / calc(var(--p) * 0.9)),
     0 0 4px rgb(var(--scene-rgb));
 }
