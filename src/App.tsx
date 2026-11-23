@@ -1,17 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { QuestLog } from './components/QuestLog'
 import { Director } from './director'
 import { glyphs } from './data/glyphs'
 
 const heroLine = 'hero__line relative block w-full'
 const skeletonOverlay = 'absolute inset-0 overflow-hidden [--ars-radius:0px] [clip-path:inset(0_100%_0_0)] text-left leading-none font-ascii font-normal [&_:is(.ars,.ars-block)]:size-full'
 const heroSkeleton = `hero__skeleton ${skeletonOverlay} tracking-normal [&[hidden]]:hidden`
-const editorialInner = 'mx-auto max-w-[90rem] px-editorial'
-const editorialTitle = 'm-0 font-display text-[clamp(2.75rem,6.4vw,5.75rem)]/[0.98] font-bold tracking-[-0.025em] text-balance'
-const editorialCopy = 'max-w-[62ch] text-[clamp(1rem,1.5vw,1.1875rem)]/[1.6] text-pretty text-[#bababa]'
-const editorialScreen = `${editorialInner} flex min-h-dvh flex-col justify-center py-[clamp(2.25rem,7svh,7rem)]`
-const editorialSection = `${editorialScreen} border-t border-[#343434]`
-const contactLink = 'portfolio__link inline-flex min-h-11 items-center gap-4 border border-[#5c5c5c] px-3.5 font-semibold text-inherit no-underline [&:hover]:border-white [&:hover]:bg-white [&:hover]:text-[#0c0c0c] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white motion-safe:reveal-ready:reveal-link-motion motion-safe:reveal-pending:[clip-path:inset(0_100%_0_0)] motion-safe:reveal-resting:[transition:none]'
 
 export default function App() {
   const root = useRef<HTMLDivElement>(null)
@@ -25,9 +18,8 @@ export default function App() {
         loader: $('.loader'),
         loaderLogo: $('.loader__logo'),
         river: el.querySelector<HTMLCanvasElement>('.river')!,
-        portfolio: $('.portfolio'),
+        landing: $('.landing'),
         hero: $('.hero'),
-        projects: $('.projects'),
         ui: $('.ui'),
         header: $('.header'),
         cue: $('.cue'),
@@ -38,7 +30,7 @@ export default function App() {
   }, [])
 
   return (
-    <div ref={root} className="app motion-safe:data-reveal-ready:[--spring:var(--ease-reveal)]">
+    <div ref={root} className="app motion-safe:[--spring:var(--ease-reveal)]">
 
       <div className="loader group/loader fixed inset-0 z-1 grid place-items-center bg-black [&[hidden]]:hidden
         [&_canvas]:grayscale after:pointer-events-none after:fixed after:-inset-1/2 after:z-10
@@ -102,29 +94,7 @@ export default function App() {
           </div>
         </section>
 
-        <div className="portfolio relative z-2 bg-[linear-gradient(#000,#0c0c0c_24rem)] font-sans motion-safe:scene-veiled:invisible">
-          <section className={`projects ${editorialScreen}`} aria-label="Selected work">
-            <div data-reveal="arrival">
-              <h2 className={editorialTitle}>Selected work</h2>
-              <p className={`${editorialCopy} m-0 mt-3`}>Real jobs. Fictional dialogue. The tech stack is canon.</p>
-            </div>
-            <QuestLog />
-          </section>
-
-          <section className={editorialSection} aria-label="About me">
-            <h2 className={editorialTitle} data-reveal>About me</h2>
-            <p className={`${editorialCopy} m-0 mt-6 motion-safe:[--reveal-delay:70ms]`} data-reveal>I'm Gianlucca Claudino, a frontend engineer working with React and TypeScript. I’m interested in how design systems, frontend architecture and creative coding shape the way people use the web.</p>
-          </section>
-
-          <footer className={editorialSection} aria-label="Get in touch">
-            <h2 className={editorialTitle} data-reveal>Get in touch</h2>
-            <ul className="m-0 mt-6 flex list-none flex-wrap gap-3 p-0 motion-safe:[--reveal-delay:70ms]" data-reveal>
-              <li><a className={contactLink} href="mailto:gianluccaclaudino@gmail.com">Email</a></li>
-              <li><a className={contactLink} href="https://www.linkedin.com/in/gianlucca-claudino/">LinkedIn</a></li>
-              <li><a className={contactLink} href="https://github.com/Gianluska">GitHub</a></li>
-            </ul>
-          </footer>
-        </div>
+        <div className="landing relative z-2 min-h-dvh bg-black motion-safe:scene-veiled:invisible" aria-hidden="true" />
       </main>
     </div>
   )

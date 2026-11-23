@@ -1,6 +1,6 @@
 # Gianlucca Claudino — portfolio
 
-Portfolio with an ASCII intro, a full-screen sea that becomes a waterfall on scroll, two featured projects, an in-page case study, and profile and contact sections.
+Portfolio with an ASCII intro and a full-screen sea hero. The sea becomes a waterfall on the descent, then gives way to an empty black screen.
 
 ## Current experience
 
@@ -22,19 +22,13 @@ Tailwind CSS 4 is compiled by the Vite plugin. Layout and state styles live in u
 
 Hero typography: [Redaction 35](https://fonts.google.com/specimen/Redaction+35) Bold 700 for the name and Regular 400 for the roles. The family has no Thin weight; Regular is the lightest available, chosen to keep both texts in the same typeface. Geist Mono remains in the ASCII and header. All fonts used permit commercial use under SIL OFL 1.1; there are no demo fonts or synthesized weights. WOFF2 files are local, preloaded, and fully loaded before the reveal; the role box follows the actual width of the longest phrase.
 
-## Scroll to Projects
+## Descent to black
 
 The page stays at the top during the intro and until the miniature ASCII waterfall cue finishes entering. Wheel or touch strokes then build charge in the cue without moving the page. The charge lingers briefly and then drains, so several strokes add up. At full charge, the cue spills over the edge; the camera waits until its last animated row finishes.
 
-The camera then makes a continuous four-second move over the first `220svh`: it pitches from sea to waterfall and follows the same falling water down the shaft without stopping at the brink. The hero's name and role leave through the same dither skeleton as their entrance, scrubbed by the scroll: the ASCII block sweeps over each line, then drains away row by row, and it reverses on the way back. Water loses light with depth and Selected work begins fading in at 3.15 seconds while the camera is still descending. Normal scroll resumes at four seconds. Scrolling above Projects or pressing Home reverses the four-second move: content fades out as the camera climbs back to the sea.
+The camera makes a continuous four-second move over the first `220svh`: it pitches from sea to waterfall and follows the falling water without stopping at the brink. The hero's name and role leave through the same dither skeleton as their entrance. At 3.15 seconds the viewport starts fading to black; the page ends on a single empty black screen, and the waterfall renderer pauses.
 
-Sections have no `id` anchors and the header has no section links, so URLs such as `#projects` always open at the sea. The only way into the content is the descent, and the only shortcut back is Home. Reduced motion uses native scrolling and static scene compositions without camera travel or section animation.
-
-Selected work, About me, and Get in touch each take up at least one viewport and grow if the content needs more room. Selected work is an ASCII gallery of three real jobs: a bank vault for Hyperlocal, an alchemy flask for Grupo Boticário, and a train for GLS.AI. Each scene pairs a fictional dialogue and replayable answer with the real stack and work. Use the arrow buttons below the slide, Left/Right while the slide area is focused, or swipe horizontally.
-
-Pointer navigation and swipe turn the page with a scroll-linked ASCII seam, without hiding the dialogue or replies. Keyboard navigation and reduced-motion settings jump straight to the selected quest.
-
-The quest enters with the waterfall handoff, independently of the heading reveal. About me and Get in touch reveal as they enter the viewport. The waterfall renderer pauses when the editorial surface has arrived.
+Pulling upward or pressing Home reverses the descent. Reduced motion uses native scrolling and static scene compositions without camera travel.
 
 `AsciiSceneCamera` pulls back and lowers the viewing angle over the same water plane. A fixed drop edge enters from below and rises toward the top of the viewport, revealing a full-width waterfall. The ship and atmospheric layers recede and fade as the camera leaves the sea. The depth veil is inverse-projected to remain full-bleed during camera retreat, preventing rectangular color seams at the viewport edges; individual mist banks still follow the actor projection. Scrolling back restores the original camera and hero without replaying the intro.
 

@@ -41,4 +41,4 @@ Removidos: hero, funções profissionais em ciclo, cena R3F/Three.js, baralho, s
 - `?intro=0`: cabeçalho e rio direto, sem abertura, gota ou onda.
 - `prefers-reduced-motion`: logo e água estáticas; sem coreografia, brisas ou pássaros.
 
-Projects e Contact continuam mocks. A capa independente de GitHub em `github-profile/` permanece fora desta alteração.
+A página termina em uma tela preta vazia após a descida. A capa independente de GitHub em `github-profile/` permanece fora desta alteração.

@@ -12,9 +12,8 @@ interface DirectorRefs {
   loader: HTMLElement
   loaderLogo: HTMLElement
   river: HTMLCanvasElement
-  portfolio: HTMLElement
+  landing: HTMLElement
   hero: HTMLElement
-  projects: HTMLElement
   ui: HTMLElement
   header: HTMLElement
   cue: HTMLElement
@@ -34,7 +33,7 @@ export class Director {
     this.refs = refs
     this.hero = new AsciiHero(refs.hero)
     this.river = new AsciiRiver(refs.river, () => { void this.hero.start() },
-      (progress) => this.hero.setExit(progress), refs.projects)
+      (progress) => this.hero.setExit(progress), refs.landing)
     this.navigation = new SceneNavigation(refs, (covered) => this.river.setCovered(covered))
   }
 

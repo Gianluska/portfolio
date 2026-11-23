@@ -155,7 +155,7 @@ export class AsciiRiver {
 
   constructor(
     canvas: HTMLCanvasElement, private readonly onHeroReady: () => void,
-    private readonly onScrollCopy: (progress: number) => void, private readonly projects: HTMLElement,
+    private readonly onScrollCopy: (progress: number) => void, private readonly landing: HTMLElement,
   ) {
     this.canvas = canvas
     const ctx = canvas.getContext('2d', { alpha: false })
@@ -206,7 +206,7 @@ export class AsciiRiver {
     const box = this.canvas.getBoundingClientRect()
     this.width = Math.max(1, box.width)
     this.height = Math.max(1, box.height)
-    this.scrollEnd = Math.max(1, Math.round(this.projects.getBoundingClientRect().top + window.scrollY))
+    this.scrollEnd = Math.max(1, this.landing.offsetTop)
     this.scrollProgress = clamp(window.scrollY / this.scrollEnd)
     this.updateCamera()
     this.dpr = Math.min(1.5, window.devicePixelRatio || 1)

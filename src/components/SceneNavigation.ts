@@ -1,13 +1,12 @@
 import { Observer } from 'gsap/Observer'
 import { gsap } from '../lib/ease'
-import { splitReveal } from '../lib/splitReveal'
 import { ScrollCue } from './ScrollCue'
 
 gsap.registerPlugin(Observer)
 
 const TRAVEL = 4
-const TEXT_IN = 3.15
-const HANDOFF_DURATION = TRAVEL - TEXT_IN
+const FADE_START = 3.15
+const FADE_DURATION = TRAVEL - FADE_START
 const EDITABLE = 'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [data-native-scroll]'
 const DOWN: Record<string, true | undefined> = { ArrowDown: true, PageDown: true, End: true, ' ': true }
 const UP: Record<string, true | undefined> = { ArrowUp: true, PageUp: true }
@@ -20,7 +19,7 @@ const DRAIN_RAMP = 0.8
 const DRAIN_RATE = 0.55
 // Response of the displayed charge to new input (1/s).
 const FOLLOW = 14
-// Lift of the content (px) at full return intent.
+// Lift of the black screen (px) at full return intent.
 const PREVIEW_UP = 96
 
 /** Eases accumulated return intent into preview distance. */
@@ -81,55 +80,34 @@ class Charge {
 const wheelPixels = (event: WheelEvent): number =>
   event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1)
 
-type Passage = 'sea' | 'spill' | 'outbound' | 'work' | 'inbound' | 'native'
+type Passage = 'sea' | 'spill' | 'outbound' | 'landing' | 'inbound' | 'native'
 
 interface SceneRefs {
   root: HTMLElement
-  projects: HTMLElement
-  portfolio: HTMLElement
+  landing: HTMLElement
   cue: HTMLElement
 }
 
-/** One camera journey, with native scrolling once the editorial surface arrives. */
+/** Runs the camera journey between the sea and the black screen. */
 export class SceneNavigation {
   private readonly motion = matchMedia('(prefers-reduced-motion: reduce)')
   private readonly observer: Observer
-  private readonly reveal: IntersectionObserver
-  private readonly blocks: NodeListOf<HTMLElement>
   private timeline: gsap.core.Timeline | null = null
   private passage: Passage = 'native'
   private end = 1
   private readonly cue: ScrollCue
   private readonly down = new Charge((ratio) => this.cue.set(ratio))
-  // The content sinks and dims as upward intent builds at its top edge.
+  // An upward pull reveals a sliver of the waterfall before the return.
   private readonly up = new Charge((ratio) => {
     const pull = rubber(ratio)
-    if (pull === 0) gsap.set(this.refs.portfolio, { clearProps: 'opacity,transform' })
-    else gsap.set(this.refs.portfolio, { y: pull * PREVIEW_UP, opacity: 1 - pull * 0.2 })
+    if (pull === 0) gsap.set(this.refs.landing, { clearProps: 'opacity,transform' })
+    else gsap.set(this.refs.landing, { y: pull * PREVIEW_UP, opacity: 1 - pull * 0.2 })
   })
   private touchX = 0
   private touchY = 0
-  private readonly settleTimers = new Map<Element, number>()
 
   constructor(private readonly refs: SceneRefs, private readonly cover: (covered: boolean) => void) {
     this.cue = new ScrollCue(refs.cue)
-    this.blocks = refs.root.querySelectorAll('[data-reveal]')
-    const durations = new Map<Element, number>()
-    for (const block of this.blocks) durations.set(block, splitReveal(block))
-    this.reveal = new IntersectionObserver((entries, observer) => {
-      for (const { target, isIntersecting } of entries) {
-        if (!isIntersecting) continue
-        target.setAttribute('data-entered', '')
-        observer.unobserve(target)
-        // Once every word has landed, drop the entrance transitions so hovers respond instantly.
-        clearTimeout(this.settleTimers.get(target))
-        this.settleTimers.set(target, window.setTimeout(() => {
-          target.setAttribute('data-settled', '')
-          this.settleTimers.delete(target)
-        }, durations.get(target) ?? 0))
-      }
-    }, { rootMargin: '0px 0px -48px', threshold: 0 })
-
     this.observer = Observer.create({
       target: window,
       type: 'wheel,touch',
@@ -173,23 +151,10 @@ export class SceneNavigation {
     if (passage === 'sea') this.cue.show()
     else if (passage === 'spill') this.cue.spill(() => this.descend())
     else this.cue.hide()
-    const locked = passage !== 'work' && passage !== 'native'
+    const locked = passage !== 'landing' && passage !== 'native'
     document.documentElement.toggleAttribute('data-scene-scroll', locked)
-    this.refs.portfolio.inert = locked
-    if (locked) {
-      this.reveal.disconnect()
-      this.observer.enable()
-    } else {
-      this.observer.disable()
-      if (passage === 'work') this.watchReveals()
-      else this.reveal.disconnect()
-    }
-  }
-
-  private watchReveals(): void {
-    for (const block of this.blocks) {
-      if (!block.hasAttribute('data-entered')) this.reveal.observe(block)
-    }
+    if (locked) this.observer.enable()
+    else this.observer.disable()
   }
 
   private cancel(): void {
@@ -202,19 +167,17 @@ export class SceneNavigation {
 
   private clearHandoff(): void {
     this.refs.root.removeAttribute('data-scene-handoff')
-    gsap.set(this.refs.portfolio, { clearProps: 'opacity,transform' })
+    gsap.set(this.refs.landing, { clearProps: 'opacity,transform' })
   }
 
   private settle(): void {
     this.cancel()
-    const { root } = this.refs
     const reduced = this.motion.matches
-    const atWork = window.scrollY >= this.end - 2
-    // Resume the sea at the top unless the restored scroll position is already in Projects.
-    if (!reduced && !atWork) window.scrollTo(0, 0)
-    root.toggleAttribute('data-reveal-ready', !reduced)
-    this.cover(atWork)
-    this.setPassage(reduced ? 'native' : atWork ? 'work' : 'sea')
+    const atLanding = window.scrollY >= this.end - 2
+    // Resume the sea unless the restored scroll position is already at the black screen.
+    if (!reduced && !atLanding) window.scrollTo(0, 0)
+    this.cover(atLanding)
+    this.setPassage(reduced ? 'native' : atLanding ? 'landing' : 'sea')
   }
 
   private moveCamera(timeline: gsap.core.Timeline, from: number, to: number): gsap.core.Timeline {
@@ -231,41 +194,29 @@ export class SceneNavigation {
 
   private descend(): void {
     if (this.passage !== 'spill' || this.motion.matches) return
-    const { root, portfolio } = this.refs
-    for (const block of this.blocks) {
-      if (block.dataset.reveal !== 'arrival') continue
-      clearTimeout(this.settleTimers.get(block))
-      this.settleTimers.delete(block)
-      block.removeAttribute('data-entered')
-      block.removeAttribute('data-settled')
-    }
+    const { root, landing } = this.refs
     this.setPassage('outbound')
     const timeline = gsap.timeline({ onComplete: () => {
       this.timeline = null
       window.scrollTo(0, this.end)
       this.cover(true)
-      this.setPassage('work')
+      this.setPassage('landing')
       this.clearHandoff()
     } })
     this.timeline = this.moveCamera(timeline, 0, 1)
-      .call(() => {
-        root.setAttribute('data-scene-handoff', '')
-        this.watchReveals()
-      }, [], TEXT_IN)
-      .fromTo(portfolio, { opacity: 0 }, {
-        opacity: 1, duration: HANDOFF_DURATION, ease: 'power2.out', immediateRender: false,
-      }, TEXT_IN)
+      .call(() => root.setAttribute('data-scene-handoff', ''), [], FADE_START)
+      .fromTo(landing, { opacity: 0 }, {
+        opacity: 1, duration: FADE_DURATION, ease: 'power2.out', immediateRender: false,
+      }, FADE_START)
   }
 
   private ascend(): void {
-    const { root, portfolio } = this.refs
-    // Continue from the rubber-band preview, if any.
-    const lift = Number(gsap.getProperty(portfolio, 'y')) || 0
-    const fade = Number(gsap.getProperty(portfolio, 'opacity'))
+    const { root, landing } = this.refs
+    // Continue from the upward-pull preview, if any.
+    const lift = Number(gsap.getProperty(landing, 'y')) || 0
+    const fade = Number(gsap.getProperty(landing, 'opacity'))
     this.cancel()
-    // On a Home/brand jump from deeper content, keep that content in view for the fade.
-    const offset = Math.min(0, this.end - window.scrollY) + lift
-    gsap.set(portfolio, { y: offset, opacity: Number.isFinite(fade) ? fade : 1 })
+    gsap.set(landing, { y: lift, opacity: Number.isFinite(fade) ? fade : 1 })
     root.setAttribute('data-scene-handoff', '')
     this.setPassage('inbound')
     window.scrollTo(0, this.end)
@@ -275,13 +226,13 @@ export class SceneNavigation {
       this.setPassage('sea')
     } })
     this.timeline = this.moveCamera(timeline, 1, 0)
-      .to(portfolio, { opacity: 0, duration: HANDOFF_DURATION, ease: 'power2.in' }, 0)
-      .call(() => this.clearHandoff(), [], HANDOFF_DURATION)
+      .to(landing, { opacity: 0, duration: FADE_DURATION, ease: 'power2.in' }, 0)
+      .call(() => this.clearHandoff(), [], FADE_DURATION)
   }
 
-  /** At the top of the editorial surface, upward gestures build intent instead of scrolling. */
+  /** Upward gestures from the black screen build return intent. */
   private atBrink(): boolean {
-    return this.passage === 'work' && window.scrollY <= this.end + 1
+    return this.passage === 'landing' && window.scrollY <= this.end + 1
   }
 
   private ignored(event: Event): boolean {
@@ -289,7 +240,7 @@ export class SceneNavigation {
   }
 
   private wheel = (event: WheelEvent): void => {
-    if (this.passage !== 'work' || event.ctrlKey || event.metaKey || this.ignored(event)
+    if (this.passage !== 'landing' || event.ctrlKey || event.metaKey || this.ignored(event)
       || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return
     const delta = wheelPixels(event)
     // Scrolling back down drains a built-up pull before the page moves again.
@@ -308,7 +259,7 @@ export class SceneNavigation {
 
   private touchMove = (event: TouchEvent): void => {
     const touch = event.touches[0]
-    if (this.passage !== 'work' || !touch || event.touches.length > 1 || this.ignored(event)) return
+    if (this.passage !== 'landing' || !touch || event.touches.length > 1 || this.ignored(event)) return
     const dx = touch.clientX - this.touchX
     const dy = touch.clientY - this.touchY
     this.touchX = touch.clientX
@@ -321,7 +272,7 @@ export class SceneNavigation {
 
   private scroll = (): void => {
     if (this.passage === 'native') this.cover(window.scrollY >= this.end - 2)
-    else if (this.passage === 'work' && window.scrollY < this.end - 2) {
+    else if (this.passage === 'landing' && window.scrollY < this.end - 2) {
       // Momentum overshooting the brink is held there; a deliberate jump (scrollbar drag) still ascends.
       if (this.end - window.scrollY > window.innerHeight / 2) this.ascend()
       else window.scrollTo(0, this.end)
@@ -329,8 +280,8 @@ export class SceneNavigation {
   }
 
   private resize = (): void => {
-    this.end = Math.max(1, Math.round(this.refs.projects.getBoundingClientRect().top + window.scrollY))
-    if (this.passage === 'work' && window.scrollY < this.end) window.scrollTo(0, this.end)
+    this.end = Math.max(1, this.refs.landing.offsetTop)
+    if (this.passage === 'landing' && window.scrollY < this.end) window.scrollTo(0, this.end)
   }
 
   private preference = (): void => {
@@ -344,7 +295,7 @@ export class SceneNavigation {
     if (this.passage === 'native' || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return
     if (event.target instanceof Element && (event.target.closest(EDITABLE)
       || (event.key === ' ' && event.target.closest('a, button')))) return
-    if (this.passage === 'work') {
+    if (this.passage === 'landing') {
       if ((event.key === 'Home' && !event.shiftKey)
         || (this.atBrink() && (UP[event.key] || (event.key === ' ' && event.shiftKey)))) {
         event.preventDefault()
@@ -366,11 +317,6 @@ export class SceneNavigation {
     this.cancel()
     this.cue.destroy()
     this.observer.kill()
-    this.refs.portfolio.inert = false
-    this.refs.root.removeAttribute('data-reveal-ready')
-    this.reveal.disconnect()
-    for (const timer of this.settleTimers.values()) clearTimeout(timer)
-    this.settleTimers.clear()
     window.removeEventListener('keydown', this.key)
     window.removeEventListener('scroll', this.scroll)
     window.removeEventListener('wheel', this.wheel)
