@@ -40,7 +40,7 @@ Waterfall drops, trails, spray, and mist do not react to the pointer. The pointe
 
 ## My Quests
 
-The first quest presents Hyperlocal in a pastel ASCII-style frame, with the [company's official brand mark](https://hyperlocal.com.br/). After the waterfall fade completes, the frame fades in and the shared Hero dither reveals the section title, company, quest prompt, details and reward, and responses in order. Once both decorative responses are visible, the check mark draws on “Say no more.”
+The first quest presents Hyperlocal in a pastel RPG dialog: a double amber rule, stepped corners, sage vines, and a chamfered title plaque. The [company's official brand mark](https://hyperlocal.com.br/) sits above the quest prompt, followed by separate details and XP rows. The frame emerges during the waterfall fade. Overlapping, soft-edged sweeps use the Hero's dither texture to reveal the copy in reading order; only after both decorative responses finish does the check draw and the sage highlight settle on “Say no more.”
 
 The entrance plays once per visit. Returning to the section or using reduced motion shows the accepted quest immediately. “Quest Details” is the only interactive element; its temporary `#` destination leaves the visitor in the section until a case study is linked.
 

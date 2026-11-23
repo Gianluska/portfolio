@@ -9,6 +9,7 @@ gsap.registerPlugin(Observer)
 const TRAVEL = 4
 const FADE_START = 3.15
 const FADE_DURATION = TRAVEL - FADE_START
+const QUEST_ENTRY = FADE_START + FADE_DURATION * 0.56
 const EDITABLE = 'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [data-native-scroll]'
 const DOWN: Record<string, true | undefined> = { ArrowDown: true, PageDown: true, End: true, ' ': true }
 const UP: Record<string, true | undefined> = { ArrowUp: true, PageUp: true }
@@ -168,7 +169,6 @@ export class SceneNavigation {
     this.up.reset()
     this.timeline?.kill()
     this.timeline = null
-    this.quests.finish()
     this.clearHandoff()
   }
 
@@ -179,6 +179,7 @@ export class SceneNavigation {
 
   private settle(): void {
     this.cancel()
+    this.quests.finish()
     const reduced = this.motion.matches
     const atLanding = window.scrollY >= this.end - 2
     // Resume the sea unless the restored scroll position is already at the final backdrop.
@@ -210,13 +211,13 @@ export class SceneNavigation {
       this.cover(true)
       this.setPassage('landing')
       this.clearHandoff()
-      void this.quests.show()
     } })
     this.timeline = this.moveCamera(timeline, 0, 1)
       .call(() => root.setAttribute('data-scene-handoff', ''), [], FADE_START)
       .fromTo(landing, { opacity: 0 }, {
         opacity: 1, duration: FADE_DURATION, ease: 'power2.out', immediateRender: false,
       }, FADE_START)
+      .call(() => this.quests.show(), [], QUEST_ENTRY)
   }
 
   private ascend(): void {
@@ -225,6 +226,7 @@ export class SceneNavigation {
     const lift = Number(gsap.getProperty(landing, 'y')) || 0
     const fade = Number(gsap.getProperty(landing, 'opacity'))
     this.cancel()
+    this.quests.pause()
     gsap.set(landing, { y: lift, opacity: Number.isFinite(fade) ? fade : 1 })
     root.setAttribute('data-scene-handoff', '')
     this.setPassage('inbound')
@@ -236,7 +238,10 @@ export class SceneNavigation {
     } })
     this.timeline = this.moveCamera(timeline, 1, 0)
       .to(landing, { opacity: 0, duration: FADE_DURATION, ease: 'power2.in' }, 0)
-      .call(() => this.clearHandoff(), [], FADE_DURATION)
+      .call(() => {
+        this.quests.finish()
+        this.clearHandoff()
+      }, [], FADE_DURATION)
   }
 
   /** Upward gestures from the final backdrop build return intent. */

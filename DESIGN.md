@@ -97,7 +97,7 @@ As camadas atmosféricas usam `sceneScale`: bandos e espaçamentos diminuem ao f
 
 ## Descent through the waterfall
 
-Once the indicator finishes spilling, the camera makes a four-second sine-eased move over the first `220svh`. As the camera nears the waterfall angle, its vertical descent starts before the pitch finishes. The brink moves above the viewport and the same water continues past the bottom of the frame. Filaments thin into spray, and their contrast fades with camera depth. At 3.15 seconds a fade to sage begins, overlapping the descent. Once it covers the viewport, My Quests enters. Returning reverses the camera and fade.
+Once the indicator finishes spilling, the camera makes a four-second sine-eased move over the first `220svh`. As the camera nears the waterfall angle, its vertical descent starts before the pitch finishes. The brink moves above the viewport and the same water continues past the bottom of the frame. Filaments thin into spray, and their contrast fades with camera depth. At 3.15 seconds a fade to sage begins. The My Quests frame emerges during that fade, while the camera is still moving. Returning reverses the camera and fades the frame out.
 
 The page holds at the top from the intro through the indicator's entrance and spill. After the indicator finishes entering, the dive needs a charge of 390 px of wheel or 182 px of touch travel. The gesture affects only the indicator until the spill finishes; reversing it drains the charge. When input stops, the charge holds for 0.6 s, then drains with gathering speed, taking about 2.5 s to empty from full, so several strokes add up. On the final screen, an upward pull reveals up to 96 px of waterfall as it builds the same charge.
 
@@ -122,7 +122,7 @@ Reduced motion restores native scrolling, switches between static sea and waterf
 
 ## My Quests
 
-O título usa Redaction 35, como o hero. O diálogo da Hyperlocal usa Geist Mono e papel claro sobre a sálvia, com cantos em degraus e um losango entre os filetes. O símbolo oficial da empresa aparece acima do nome; as respostas são representação visual do aceite, sem interação.
+O diálogo da Hyperlocal usa Geist Mono, papel claro sobre a sálvia, moldura dupla em âmbar suave, cantos em degraus e folhagens espelhadas. “My Quests” fica na placa superior da moldura; a marca oficial aparece acima de Hyperlocal. A pergunta, os detalhes, a recompensa e as respostas ocupam linhas distintas. As respostas representam o aceite e não são controles.
 
-Depois do fade da cachoeira, a seção entra em 320 ms. O mesmo dither do hero revela cinco blocos em ordem: título, empresa, pergunta, detalhes e recompensa, e respostas. Cada bloco dura 660 ms; só depois do último, o traço de confirmação de “Say no more” é desenhado em 220 ms. A sequência toca uma vez, e o movimento reduzido mostra o estado final sem espera.
+A moldura entra em 740 ms durante o fade da cachoeira. Seis varreduras de borda suave reaproveitam a textura dither do hero, com duração de 920 ms e inícios espaçados por 340 ms. Depois de as duas respostas aparecerem por inteiro, o check e o destaque sálvia de “Say no more” entram em 360 ms. Voltar ao mar durante o reveal congela a varredura até o fade de saída ocultar o diálogo. A sequência toca uma vez; movimento reduzido mostra o estado final sem espera.
 
