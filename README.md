@@ -30,7 +30,7 @@ The camera then makes a continuous four-second move over the first `220svh`: it 
 
 Sections have no `id` anchors and the header has no section links, so URLs such as `#projects` always open at the sea. The only way into the content is the descent, and the only shortcut back is Home. Reduced motion uses native scrolling and static scene compositions without camera travel or section animation.
 
-Selected work presents Hyperlocal, Grupo Boticário, and GLS.AI through RPG dialogue on the same editorial grid as the rest of the portfolio. Each quest pairs an ASCII company portrait, name, and stack with a fictional prompt, a checked original reply, and a replayable alternative. Thin horizontal rules separate the dialogue from the section heading and the account of the actual work. Use the arrow buttons below the slide, Left/Right while the slide area is focused, or swipe horizontally.
+Selected work, About me, and Get in touch each take up at least one viewport and grow if the content needs more room. Selected work is an ASCII gallery of three real jobs: a bank vault for Hyperlocal, an alchemy flask for Grupo Boticário, and a train for GLS.AI. Each scene pairs a fictional dialogue and replayable answer with the real stack and work. Use the arrow buttons below the slide, Left/Right while the slide area is focused, or swipe horizontally.
 
 Pointer navigation and swipe turn the page with a scroll-linked ASCII seam, without hiding the dialogue or replies. Keyboard navigation and reduced-motion settings jump straight to the selected quest.
 

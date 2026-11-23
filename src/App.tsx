@@ -9,7 +9,8 @@ const heroSkeleton = `hero__skeleton ${skeletonOverlay} tracking-normal [&[hidde
 const editorialInner = 'mx-auto max-w-[90rem] px-editorial'
 const editorialTitle = 'm-0 font-display text-[clamp(2.75rem,6.4vw,5.75rem)]/[0.98] font-bold tracking-[-0.025em] text-balance'
 const editorialCopy = 'max-w-[62ch] text-[clamp(1rem,1.5vw,1.1875rem)]/[1.6] text-pretty text-[#bababa]'
-const editorialSection = `${editorialInner} border-t border-[#343434] py-[clamp(3rem,8vw,7rem)]`
+const editorialScreen = `${editorialInner} flex min-h-dvh flex-col justify-center py-[clamp(2.25rem,7svh,7rem)]`
+const editorialSection = `${editorialScreen} border-t border-[#343434]`
 const contactLink = 'portfolio__link inline-flex min-h-11 items-center gap-4 border border-[#5c5c5c] px-3.5 font-semibold text-inherit no-underline [&:hover]:border-white [&:hover]:bg-white [&:hover]:text-[#0c0c0c] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white motion-safe:reveal-ready:reveal-link-motion motion-safe:reveal-pending:[clip-path:inset(0_100%_0_0)] motion-safe:reveal-resting:[transition:none]'
 
 export default function App() {
@@ -102,10 +103,10 @@ export default function App() {
         </section>
 
         <div className="portfolio relative z-2 bg-[linear-gradient(#000,#0c0c0c_24rem)] font-sans motion-safe:scene-veiled:invisible">
-          <section className={`projects ${editorialInner} pt-[clamp(7.5rem,17svh,11rem)] pb-[clamp(4rem,8vw,7rem)] compact:pt-[clamp(5rem,12svh,7.5rem)]`} aria-label="Selected work">
+          <section className={`projects ${editorialScreen}`} aria-label="Selected work">
             <div data-reveal="arrival">
               <h2 className={editorialTitle}>Selected work</h2>
-              <p className={`${editorialCopy} m-0 mt-5`}>Real jobs. Fictional dialogue. The tech stack is canon.</p>
+              <p className={`${editorialCopy} m-0 mt-3`}>Real jobs. Fictional dialogue. The tech stack is canon.</p>
             </div>
             <QuestLog />
           </section>
