@@ -35,8 +35,8 @@ const FONTS: Record<number, string> = {
 }
 const SIDES = [-1, 1] as const
 const RING_DELAYS = [0, 0.22] as const
-// From the muzzle's round core to the thinner tips of the flash.
-const TONGUE = ['0', '0', '0', '1', '1', '1'] as const
+// Fire tongue from the muzzle out; the second-to-last slot takes the shot's direction mark.
+const TONGUE = ['#', '#', '*', '+', '', '.'] as const
 
 const clamp = (value: number, min = 0, max = 1): number => Math.max(min, Math.min(max, value))
 
@@ -62,6 +62,13 @@ interface Shot {
 interface Drop { vx: number; vy: number; vz: number }
 interface Splash { born: number; x: number; y: number; scale: number; height: number; drops: Drop[] }
 export interface Impact { x: number; y: number; strength: number }
+
+/** Directional ASCII mark for a screen-space direction. */
+function dirGlyph(dx: number, dy: number): string {
+  if (Math.abs(dy) < Math.abs(dx) * 0.42) return '-'
+  if (Math.abs(dx) < Math.abs(dy) * 0.32) return '|'
+  return dx * dy > 0 ? '\\' : '/'
+}
 
 export class AsciiBroadside {
   /** Water pushes for the river's ripple field; drained by the river every frame. */
@@ -210,7 +217,7 @@ export class AsciiBroadside {
   }
 
   private put(
-    ctx: CanvasRenderingContext2D, glyph: '0' | '1', x: number, y: number,
+    ctx: CanvasRenderingContext2D, glyph: string, x: number, y: number,
     alpha: number, size: number, weight = 400,
   ): void {
     if (alpha <= 0.004) return
@@ -254,7 +261,7 @@ export class AsciiBroadside {
       if (z < 0) continue
       const fade = 1 - age / spark.life
       this.put(
-        ctx, spark.vz - SPARK_GRAVITY * spark.scale * age > 0 ? '0' : '1',
+        ctx, spark.vz - SPARK_GRAVITY * spark.scale * age > 0 ? "'" : '.',
         spark.x + spark.vx * age, spark.y + spark.vy * age - z,
         fade * fade * opacity, 8 * spark.scale, 600,
       )
@@ -273,16 +280,17 @@ export class AsciiBroadside {
       const k = age / FLASH_LIFE
       const fade = (1 - k) ** 1.4
       // A white bloom for the first frames, then a dense core.
-      if (age < 0.07) this.put(ctx, '0', x + ux * 6 * s, y + uy * 6 * s, 0.4 * opacity, 36 * s, 700)
-      this.put(ctx, k < 0.35 ? '0' : '1', x, y, fade * opacity, 15 * s, 700)
+      if (age < 0.07) this.put(ctx, '*', x + ux * 6 * s, y + uy * 6 * s, 0.4 * opacity, 36 * s, 700)
+      this.put(ctx, k < 0.35 ? '@' : '*', x, y, fade * opacity, 15 * s, 700)
       // The fire tongue lunges out, then retracts while thinning to sparks.
       const reach = (16 + 46 * Math.sin(Math.min(1, age / 0.06) * Math.PI / 2)) * s * (1 - k * 0.55)
+      const mark = dirGlyph(ux, uy)
       const count = TONGUE.length
       for (let j = 1; j < count; j++) {
         const t = j / (count - 1)
         const wobble = Math.sin(age * 90 + j * 2.1) * 1.4 * s * t
         this.put(
-          ctx, TONGUE[j],
+          ctx, j === count - 2 ? mark : TONGUE[j],
           x + ux * reach * t - uy * wobble, y + uy * reach * t + ux * wobble,
           fade * (1 - t * 0.55) * opacity, (15 - t * 5) * s, 700,
         )
@@ -291,7 +299,7 @@ export class AsciiBroadside {
       const flare = (4 + age * 40) * s
       for (const sign of SIDES) {
         this.put(
-          ctx, '1', x + ux * 3 * s - uy * flare * sign, y + uy * 3 * s + ux * flare * sign,
+          ctx, ':', x + ux * 3 * s - uy * flare * sign, y + uy * 3 * s + ux * flare * sign,
           fade * 0.6 * opacity, 8 * s, 600,
         )
       }
@@ -305,7 +313,7 @@ export class AsciiBroadside {
       for (let p = 0; p < points; p++) {
         const angle = p / points * Math.PI * 2
         this.put(
-          ctx, '1', cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius * 0.7,
+          ctx, '.', cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius * 0.7,
           0.4 * (1 - k) ** 2 * opacity, 8 * s,
         )
       }
@@ -321,7 +329,7 @@ export class AsciiBroadside {
     const x = puff.x + puff.vx * glide + Math.cos(this.wind) * drift
     const y = puff.y + puff.vy * glide + Math.sin(this.wind) * SEA_TILT * drift
     const z = puff.z + puff.vz * glide + 10 * s * age
-    const glyph = f < 0.62 ? '0' : '1'
+    const glyph = f < 0.06 ? '@' : f < 0.34 ? 'O' : f < 0.62 ? 'o' : f < 0.8 ? '°' : '.'
     // Lit by the flash at birth, then dulling to grey as it billows and thins.
     const lit = 1 + 1.3 * Math.exp(-age * 9)
     const swell = f < 0.06 ? f / 0.06 : 1
@@ -338,17 +346,17 @@ export class AsciiBroadside {
     const x = shot.x + shot.dx * u, y = shot.y + shot.dy * u
     const z = shot.z * (1 - u) + ARC * scale * 4 * u * (1 - u)
     // Shadow on the water, then a fading trail of hot air behind the ball.
-    this.put(ctx, '1', x, y, 0.2 * opacity, 8 * scale)
+    this.put(ctx, '.', x, y, 0.2 * opacity, 8 * scale)
     for (let j = 1; j <= 4; j++) {
       const v = u - j * 0.035
       if (v < 0) break
       const tz = shot.z * (1 - v) + ARC * (shot.scale + growth * v) * 4 * v * (1 - v)
       this.put(
-        ctx, '1', shot.x + shot.dx * v, shot.y + shot.dy * v - tz,
+        ctx, j === 1 ? '-' : '.', shot.x + shot.dx * v, shot.y + shot.dy * v - tz,
         0.55 * (1 - j / 5) * opacity, 8 * scale,
       )
     }
-    this.put(ctx, '0', x, y - z, 0.95 * opacity, 10 * scale, 700)
+    this.put(ctx, 'o', x, y - z, 0.95 * opacity, 10 * scale, 700)
   }
 
   private drawSplash(ctx: CanvasRenderingContext2D, splash: Splash, age: number, opacity: number): void {
@@ -364,14 +372,14 @@ export class AsciiBroadside {
       for (let p = 0; p < points; p++) {
         const angle = (p + delay * 10) / points * Math.PI * 2
         this.put(
-          ctx, t < 0.45 ? '0' : '1', x + Math.cos(angle) * radius,
+          ctx, t < 0.45 ? '~' : '-', x + Math.cos(angle) * radius,
           y + Math.sin(angle) * radius * SEA_TILT, fade * opacity, 9 * s,
         )
       }
     }
     // Foam churned at the point of impact.
     this.put(
-      ctx, age < 1 ? '0' : '1', x, y,
+      ctx, age < 0.12 ? '@' : age < 0.5 ? '*' : age < 1 ? 'o' : '.', x, y,
       0.65 * (1 - age / SPLASH_LIFE) * opacity, 9 * s,
     )
     // The column shoots up, overshoots and collapses back with a widening crown.
@@ -381,15 +389,15 @@ export class AsciiBroadside {
       const top = 36 * splash.height * s * rise
       const fade = 0.85 * (1 - k) ** 0.7 * opacity
       for (let h = 0; h < top; h += 5 * s) {
-        this.put(ctx, '1', x, y - h, fade * (0.45 + 0.55 * h / Math.max(1, top)), 9 * s)
+        this.put(ctx, '|', x, y - h, fade * (0.45 + 0.55 * h / Math.max(1, top)), 9 * s)
       }
-      this.put(ctx, k < 0.28 ? '0' : '1', x, y - top, fade, 9 * s, 600)
+      this.put(ctx, k < 0.28 ? '*' : "'", x, y - top, fade, 9 * s, 600)
       const crown = (3 + 16 * k) * s
       const lift = 7 * s * (1 - k)
-      this.put(ctx, '1', x - crown, y - lift, fade * 0.85, 9 * s)
-      this.put(ctx, '1', x + crown, y - lift, fade * 0.85, 9 * s)
-      this.put(ctx, '0', x - crown * 0.5, y - lift * 1.6, fade * 0.6, 9 * s)
-      this.put(ctx, '0', x + crown * 0.5, y - lift * 1.6, fade * 0.6, 9 * s)
+      this.put(ctx, '\\', x - crown, y - lift, fade * 0.85, 9 * s)
+      this.put(ctx, '/', x + crown, y - lift, fade * 0.85, 9 * s)
+      this.put(ctx, '(', x - crown * 0.5, y - lift * 1.6, fade * 0.6, 9 * s)
+      this.put(ctx, ')', x + crown * 0.5, y - lift * 1.6, fade * 0.6, 9 * s)
     }
     // Droplets arc out and fall back.
     const gravity = DROP_GRAVITY * s
@@ -397,13 +405,13 @@ export class AsciiBroadside {
       const z = drop.vz * age - 0.5 * gravity * age * age
       if (z < 0) continue
       this.put(
-        ctx, drop.vz - gravity * age > 0 ? '0' : '1',
+        ctx, drop.vz - gravity * age > 0 ? "'" : '.',
         x + drop.vx * age, y + drop.vy * age - z, 0.7 * (1 - age / 1.2) * opacity, 8 * s,
       )
     }
   }
 
-  /** A binary gauge under the hull while the guns reload; it pulses once when ready. */
+  /** A faint dashed gauge under the hull while the guns reload; it pulses once when ready. */
   drawReload(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, opacity: number): void {
     const since = this.time - this.lastTrigger
     if (!(since >= 0) || since > RELOAD + 0.8) return
@@ -420,7 +428,7 @@ export class AsciiBroadside {
     for (let i = 0; i < cells; i++) {
       const fill = clamp(progress * cells - i)
       this.put(
-        ctx, fill >= 1 ? '1' : '0', x + (i - (cells - 1) / 2) * step, y,
+        ctx, fill >= 1 ? '-' : '.', x + (i - (cells - 1) / 2) * step, y,
         base * (0.14 + 0.3 * fill + 0.4 * pulse), 8 * scale,
       )
     }

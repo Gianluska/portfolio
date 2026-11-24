@@ -159,7 +159,7 @@ export class AsciiHero {
       const rows = Math.max(1, Math.ceil(height / fontSize))
       overlay.style.fontSize = `${fontSize}px`
       overlay.dataset.rows = String(rows)
-      overlay.innerHTML = asciiSkeletonHTML({ variant: 'terminal', rows, seed, css: false })
+      overlay.innerHTML = asciiSkeletonHTML({ variant: 'dither', rows, seed, css: false })
       stopShimmer = animateSkeleton(overlay.firstElementChild as HTMLElement)
     }
     overlay.hidden = false
@@ -285,7 +285,7 @@ export class AsciiHero {
     const overlay = this.nickname.querySelector<HTMLElement>('.hero__nickname-noise')!
     if (!this.nicknameWaves.length) {
       const rows = Math.max(1, Math.ceil(this.nickname.offsetHeight / 10))
-      overlay.innerHTML = asciiSkeletonHTML({ variant: 'terminal', rows, seed: 27, css: false })
+      overlay.innerHTML = asciiSkeletonHTML({ variant: 'dither', rows, seed: 27, css: false })
       const timing: KeyframeAnimationOptions = { duration: 400, easing: 'linear', fill: 'both' }
       this.nicknameWaves.push(
         overlay.animate([

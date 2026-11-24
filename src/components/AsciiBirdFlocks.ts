@@ -14,9 +14,9 @@ const REACTION_SPREAD = 700
 const PANIC_FLAP = 3
 // A small beak, one body glyph and two wings; no separate neck or feather detail.
 const BIRD_POSES = [
-  ['1 1 1', ' 101 ', '  1  '],
-  ['  1  ', '11011', '  1  '],
-  ['  1  ', ' 101 ', '1 1 1'],
+  ['\\ ^ /', ' \\o/ ', '  v  '],
+  ['  ^  ', '--o--', '  v  '],
+  ['  ^  ', ' /o\\ ', '/ v \\'],
 ] as const
 
 interface FormationBird {

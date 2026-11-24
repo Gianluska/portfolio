@@ -1,7 +1,6 @@
 import { gsap } from './lib/ease'
-import { createTextEffect, type TextEffect } from 'tte.js'
+import { createTextEffect, effectNames, type TextEffect } from 'tte.js'
 import { env, wait } from './lib/env'
-import { INTRO_EFFECT, INTRO_VARIANTS } from './lib/binaryIntro'
 import { AsciiRiver } from './components/AsciiRiver'
 import { AsciiHero } from './components/AsciiHero'
 import { SceneNavigation } from './components/SceneNavigation'
@@ -52,9 +51,9 @@ export class Director {
       this.refs.loader.classList.add('is-on')
       await wait(1400)
     } else {
+      const effects = effectNames()
       this.intro = createTextEffect(this.refs.loaderLogo, {
-        effect: INTRO_EFFECT,
-        sourceEffect: INTRO_VARIANTS[Math.floor(Math.random() * INTRO_VARIANTS.length)],
+        effect: effects[Math.floor(Math.random() * effects.length)],
         // Keep the animation plus the final 250 ms hold within a 3 s cycle.
         duration: 1000 + Math.floor(Math.random() * 1751),
         colors: ['#a3a3a3', '#ffffff'],

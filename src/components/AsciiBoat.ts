@@ -30,10 +30,10 @@ const MASTS = [
 ] as const
 // Four rows of cloth; the yard is rigid, the body and hem breathe below it.
 const SAIL = [
-  '0110110',
-  '1 010 1',
-  '1 010 1',
-  ' 11011 ',
+  '.--+--.',
+  '| :|: |',
+  '( .|. )',
+  ' \\_|_/ ',
 ] as const
 // Idle life. The prevailing wind blows toward screen east, a little south; the
 // pennant streams with it at rest and swings aft as the ship gathers way.
@@ -228,13 +228,15 @@ export class AsciiBoat {
   /** ASCII strokes are sampled in screen space, so no contour becomes a solid line. */
   private stroke(
     ctx: CanvasRenderingContext2D,
-    x0: number, y0: number, x1: number, y1: number, glyph: '0' | '1' = '1',
+    x0: number, y0: number, x1: number, y1: number, glyph = '',
   ): void {
     const dx = x1 - x0, dy = y1 - y0
     const count = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 5.5))
+    const mark = glyph || (Math.abs(dy) < Math.abs(dx) * 0.42
+      ? '-' : Math.abs(dx) < Math.abs(dy) * 0.32 ? '|' : dx * dy > 0 ? '\\' : '/')
     for (let step = 0; step <= count; step++) {
       const along = step / count
-      ctx.fillText(glyph, x0 + dx * along, y0 + dy * along)
+      ctx.fillText(mark, x0 + dx * along, y0 + dy * along)
     }
   }
 
@@ -242,7 +244,7 @@ export class AsciiBoat {
   private groundStroke(
     ctx: CanvasRenderingContext2D,
     x0: number, y0: number, z0: number,
-    x1: number, y1: number, z1: number, glyph?: '0' | '1',
+    x1: number, y1: number, z1: number, glyph = '',
   ): void {
     const fx = this.projectionX, fy = this.projectionY
     this.stroke(
@@ -268,8 +270,8 @@ export class AsciiBoat {
     ctx.font = '400 9px "Geist Mono", monospace'
     ctx.fillStyle = INK
     ctx.globalAlpha = opacity * 0.86
-    this.stroke(ctx, x, deckY - 16, x, deckY - mast.height)
-    ctx.fillText('0', x, deckY - mast.height)
+    this.stroke(ctx, x, deckY - 16, x, deckY - mast.height, '|')
+    ctx.fillText('+', x, deckY - mast.height)
 
     for (let tier = 0; tier < 2; tier++) {
       // Yards keep a readable width even when the keel points directly at the viewer.
@@ -331,12 +333,11 @@ export class AsciiBoat {
       ctx.translate(this.foamX[slot], this.foamY[slot])
       ctx.scale(this.foamScale[slot], this.foamScale[slot])
       ctx.globalAlpha = alpha
-      const foam = age < 0.35 ? '0' : '1'
-      ctx.fillText(foam, sideX, sideY)
-      ctx.fillText(foam, -sideX, -sideY)
+      ctx.fillText(age < 0.35 ? ':' : '.', sideX, sideY)
+      ctx.fillText(age < 0.35 ? ':' : '.', -sideX, -sideY)
       if (age < 0.5) {
         ctx.globalAlpha = alpha * 0.8
-        ctx.fillText(age < 0.2 ? '0' : '1', 0, 0)
+        ctx.fillText(age < 0.2 ? '*' : '~', 0, 0)
       }
       ctx.restore()
     }
@@ -376,10 +377,10 @@ export class AsciiBoat {
     ctx.globalAlpha = opacity * 0.45
     for (let index = 0; index < MASTS.length; index++) {
       const mast = MASTS[index]
-      this.groundStroke(ctx, mast.along, mast.across, mast.height - 3, -49, 0, 20)
-      this.groundStroke(ctx, mast.along, mast.across, mast.height - 3, 75, 0, 24)
-      this.groundStroke(ctx, mast.along, mast.across, mast.height - 28, mast.along - 12, -15, 15)
-      this.groundStroke(ctx, mast.along, mast.across, mast.height - 28, mast.along - 12, 15, 15)
+      this.groundStroke(ctx, mast.along, mast.across, mast.height - 3, -49, 0, 20, '.')
+      this.groundStroke(ctx, mast.along, mast.across, mast.height - 3, 75, 0, 24, '.')
+      this.groundStroke(ctx, mast.along, mast.across, mast.height - 28, mast.along - 12, -15, 15, ':')
+      this.groundStroke(ctx, mast.along, mast.across, mast.height - 28, mast.along - 12, 15, 15, ':')
     }
     ctx.globalAlpha = opacity * 0.92
     this.groundStroke(ctx, 36, 0, 16, 82, 0, 27)
@@ -392,9 +393,9 @@ export class AsciiBoat {
     this.groundStroke(ctx, -53, 12, 22, -53, -12, 22)
     // Hatch and sterncastle windows remain attached to the turning deck.
     ctx.globalAlpha = opacity * 0.55
-    this.groundStroke(ctx, -45, -8, 23, -35, -8, 23, '0')
-    this.groundStroke(ctx, -45, 8, 23, -35, 8, 23, '0')
-    this.groundStroke(ctx, -15, 0, 16, 18, 0, 16)
+    this.groundStroke(ctx, -45, -8, 23, -35, -8, 23, '=')
+    this.groundStroke(ctx, -45, 8, 23, -35, 8, 23, '=')
+    this.groundStroke(ctx, -15, 0, 16, 18, 0, 16, ':')
 
     // Paint the far mast first; the nearer canvas naturally occludes its rigging.
     for (let layer = 0; layer < MASTS.length; layer++) {
@@ -421,15 +422,15 @@ export class AsciiBoat {
     this.groundStroke(ctx, -38, near * 17, 15, 36, near * 14, 15)
     this.groundStroke(ctx, 36, near * 14, 15, 57, 0, 18)
     this.groundStroke(ctx, 57, 0, 18, 39, near * 9, 0)
-    this.groundStroke(ctx, 39, near * 9, 0, -47, near * 11, 0)
+    this.groundStroke(ctx, 39, near * 9, 0, -47, near * 11, 0, '_')
     this.groundStroke(ctx, -47, near * 11, 0, -53, near * 12, 22)
     ctx.globalAlpha = opacity * 0.5
-    this.groundStroke(ctx, -44, near * 13, 5, 39, near * 11, 5, '0')
+    this.groundStroke(ctx, -44, near * 13, 5, 39, near * 11, 5, '=')
     for (let along = -34; along <= 30; along += 16) {
-      ctx.fillText('0', along * fx - near * 15 * fy, (along * fy + near * 15 * fx) * SEA_TILT - 10)
+      ctx.fillText('o', along * fx - near * 15 * fy, (along * fy + near * 15 * fx) * SEA_TILT - 10)
     }
-    this.groundStroke(ctx, -52, -8, 17, -52, 8, 17, '0')
-    this.groundStroke(ctx, -52, 0, 0, -58, 0, -3)
+    this.groundStroke(ctx, -52, -8, 17, -52, 8, 17, '#')
+    this.groundStroke(ctx, -52, 0, 0, -58, 0, -3, '|')
 
     // End-on headings expose a full transom or both cheeks of the pointed bow.
     if (fy < 0) {
@@ -447,9 +448,9 @@ export class AsciiBoat {
       this.groundStroke(ctx, -53, -12, 22, -53, 12, 22)
       this.groundStroke(ctx, -53, -12, 22, -47, -11, 0)
       this.groundStroke(ctx, -53, 12, 22, -47, 11, 0)
-      this.groundStroke(ctx, -47, -11, 0, -47, 11, 0)
+      this.groundStroke(ctx, -47, -11, 0, -47, 11, 0, '_')
       ctx.globalAlpha = opacity * 0.55
-      this.groundStroke(ctx, -51, -8, 13, -51, 8, 13, '0')
+      this.groundStroke(ctx, -51, -8, 13, -51, 8, 13, '#')
     } else {
       ctx.fillStyle = '#000000'
       ctx.globalAlpha = this.alpha * 0.96
@@ -467,7 +468,7 @@ export class AsciiBoat {
       this.groundStroke(ctx, 36, 14, 15, 57, 0, 18)
       this.groundStroke(ctx, 57, 0, 18, 39, -9, 0)
       this.groundStroke(ctx, 57, 0, 18, 39, 9, 0)
-      this.groundStroke(ctx, 39, -9, 0, 39, 9, 0)
+      this.groundStroke(ctx, 39, -9, 0, 39, 9, 0, '_')
     }
 
     // A screen-space ribbon eases continuously between wind and the projected stern.
@@ -481,8 +482,8 @@ export class AsciiBoat {
       const y = flagY + flowY * step * PENNANT_STEP + flowX * wave
       const width = 2.5 * (1 - step / PENNANT)
       ctx.globalAlpha = opacity * (1 - step * 0.025)
-      ctx.fillText('1', x, y - width)
-      if (step < PENNANT - 1) ctx.fillText('0', x, y + width)
+      ctx.fillText('~', x, y - width)
+      if (step < PENNANT - 1) ctx.fillText('~', x, y + width)
     }
 
     // Lapping foam is projected around the waterline, never around the tall sails.
@@ -495,7 +496,7 @@ export class AsciiBoat {
       for (let side = -1; side <= 1; side += 2) {
         for (let along = -27; along <= 27; along += 27) {
           ctx.fillText(
-            '1', along * fx - side * across * fy,
+            '~', along * fx - side * across * fy,
             (along * fy + side * across * fx) * SEA_TILT + 1,
           )
         }

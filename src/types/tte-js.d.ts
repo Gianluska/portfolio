@@ -7,7 +7,6 @@ declare module 'tte.js' {
   }
 
   export interface TextEffectOptions {
-    sourceEffect: string
     effect: string
     duration: number
     colors: string[]
@@ -17,32 +16,6 @@ declare module 'tte.js' {
     autoplay: boolean
     respectReducedMotion: boolean
   }
-
-  interface EffectContext {
-    options: TextEffectOptions
-  }
-
-  export interface EffectCell {
-    character: string
-    row: number
-    column: number
-    alpha?: number
-    color?: string
-    glow?: number
-  }
-
-  export interface EffectFrame {
-    cells: readonly EffectCell[]
-    particles?: readonly EffectCell[]
-    beam?: { row: number; column: number; color: string }
-  }
-
-  interface Effect {
-    render(progress: number, elapsed: number): EffectFrame
-  }
-
-  export function createEffect(name: string, context: EffectContext): Effect
-  export function registerEffect(name: string, factory: (context: EffectContext) => Effect): void
 
   export function createTextEffect(target: HTMLElement, options: TextEffectOptions): TextEffect
   export function effectNames(): string[]
