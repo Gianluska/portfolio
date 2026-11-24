@@ -129,7 +129,7 @@ export class AsciiBreezes {
         previousHeight = height
       }
       ctx.globalAlpha = this.alpha[point]
-      ctx.fillText('-', this.x[point] / depth, this.y[point] / height)
+      ctx.fillText('1', this.x[point] / depth, this.y[point] / height)
     }
     ctx.restore()
   }

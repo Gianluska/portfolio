@@ -171,7 +171,7 @@ export class AsciiRiverAir {
             + Math.sin(u * 5 - fogTime * 0.18 * depth + bank) * radiusY * 0.28
           this.mistScale[point] = depth
           this.mistAlpha[point] = alpha
-          this.mistGlyph[point] = texture < 0.45 ? 0 : texture < 0.75 ? 1 : 2
+          this.mistGlyph[point] = texture < 0.75 ? 1 : 0
         }
       }
     }
@@ -207,7 +207,7 @@ export class AsciiRiverAir {
         previousScale = depth
       }
       ctx.globalAlpha = this.mistAlpha[i] * FOG_OPACITY
-      ctx.fillText('.:-'[this.mistGlyph[i]], this.mistX[i] / depth, this.mistY[i] / (depth * SEA_TILT))
+      ctx.fillText(this.mistGlyph[i] ? '1' : '0', this.mistX[i] / depth, this.mistY[i] / (depth * SEA_TILT))
     }
     ctx.restore()
   }
@@ -227,7 +227,7 @@ export class AsciiRiverAir {
         previousScale = depth
       }
       ctx.globalAlpha = this.dustAlpha[i]
-      ctx.fillText(i % 4 === 0 ? "'" : '.', this.dustX[i] / depth, this.dustY[i] / depth)
+      ctx.fillText(i % 4 === 0 ? '0' : '1', this.dustX[i] / depth, this.dustY[i] / depth)
     }
     ctx.scale(1 / previousScale, 1 / previousScale)
     ctx.font = '400 7px "Geist Mono", monospace'
@@ -240,11 +240,11 @@ export class AsciiRiverAir {
       ctx.scale(this.insectScale[i], this.insectScale[i])
       ctx.rotate(Math.sin(this.time * 1.2 + i) * 0.45)
       ctx.globalAlpha = this.insectAlpha[i]
-      ctx.fillText(':', 0, 0)
-      ctx.fillText('/', -spread, wingY)
-      ctx.fillText('\\', spread, wingY)
-      ctx.fillText('\\', -spread * 0.85, -wingY)
-      ctx.fillText('/', spread * 0.85, -wingY)
+      ctx.fillText('0', 0, 0)
+      ctx.fillText('1', -spread, wingY)
+      ctx.fillText('1', spread, wingY)
+      ctx.fillText('1', -spread * 0.85, -wingY)
+      ctx.fillText('1', spread * 0.85, -wingY)
       ctx.restore()
     }
     ctx.restore()

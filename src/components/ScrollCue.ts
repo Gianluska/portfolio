@@ -184,7 +184,7 @@ export class ScrollCue {
     for (let c = 0; c < COLS; c++) this.splash[c] = Math.max(0, this.splash[c] - dt * 4.5)
   }
 
-  private put(row: number, col: number, glyph: string, level: number): void {
+  private put(row: number, col: number, glyph: '0' | '1', level: number): void {
     if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return
     const i = row * COLS + col
     if (level < this.level[i]) return
@@ -206,33 +206,32 @@ export class ScrollCue {
         const d = Math.abs(c - MID)
         const wave = Math.sin(d * 1.4 + this.time * 7)
         const lip = d <= half + 0.5
-        this.put(0, c, lip ? (wave > 0 ? '~' : '-') : wave > 0.2 ? '-' : '.', lip ? 2 : 1)
+        this.put(0, c, wave > (lip ? 0 : 0.2) ? '0' : '1', lip ? 2 : 1)
       }
     }
 
     // Each drop is a bright head with a trail that lengthens as it speeds up.
     for (const drop of this.drops) {
       const row = Math.floor(drop.y)
-      const head = drop.v < 9 ? ':' : drop.v < 16 ? '¦' : '|'
-      this.put(row, drop.x, head, 3)
+      this.put(row, drop.x, drop.v < 9 ? '0' : '1', 3)
       const trail = Math.min(3, Math.floor(drop.v / 7))
-      for (let t = 1; t <= trail; t++) this.put(row - t, drop.x, t === trail ? '.' : ':', t === 1 ? 2 : 1)
+      for (let t = 1; t <= trail; t++) this.put(row - t, drop.x, '1', t === 1 ? 2 : 1)
     }
 
     // Pool: a faint basin that widens with the stream, with a burst wherever water lands.
     const basin = Math.max(1, half + 1.5)
     for (let c = 0; c < COLS; c++) {
       const d = Math.abs(c - MID)
-      if (d <= basin) this.put(POOL, c, p > 0.001 ? (Math.sin(c * 2 - this.time * 9) > 0 ? '~' : '-') : '_', 1)
+      if (d <= basin) this.put(POOL, c, p > 0.001 && Math.sin(c * 2 - this.time * 9) > 0 ? '0' : '1', 1)
       const s = this.splash[c]
       if (s > 0.55) {
-        this.put(POOL, c, '*', 3)
-        this.put(POOL - 1, c - 1, "'", 2)
-        this.put(POOL - 1, c + 1, "'", 2)
+        this.put(POOL, c, '0', 3)
+        this.put(POOL - 1, c - 1, '1', 2)
+        this.put(POOL - 1, c + 1, '1', 2)
       } else if (s > 0.15) {
-        this.put(POOL, c, 'o', 2)
-        this.put(POOL, c - 1, '.', 2)
-        this.put(POOL, c + 1, '.', 2)
+        this.put(POOL, c, '0', 2)
+        this.put(POOL, c - 1, '1', 2)
+        this.put(POOL, c + 1, '1', 2)
       }
     }
 

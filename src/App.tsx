@@ -5,6 +5,9 @@ import { glyphs } from './data/glyphs'
 const heroLine = 'hero__line relative block w-full'
 const skeletonOverlay = 'absolute inset-0 overflow-hidden [--ars-radius:0px] [clip-path:inset(0_100%_0_0)] text-left leading-none font-ascii font-normal [&_:is(.ars,.ars-block)]:size-full'
 const heroSkeleton = `hero__skeleton ${skeletonOverlay} tracking-normal [&[hidden]]:hidden`
+// Preserve the original silhouette; spaces are uninked cells.
+const binaryLogo = glyphs.official.map((line, row) =>
+  line.replace(/\S/g, (char, col) => (char.charCodeAt(0) + row + col) % 2 ? '1' : '0')).join('\n')
 
 export default function App() {
   const root = useRef<HTMLDivElement>(null)
@@ -36,7 +39,7 @@ export default function App() {
         after:pointer-events-none after:fixed after:-inset-1/2 after:z-10
         after:bg-loader-grain after:opacity-[0.075] motion-safe:after:animate-grain" aria-hidden="true">
         <pre className="loader__logo invisible m-0 font-mono text-[clamp(9px,1.5vw,24px)]/[1.1] font-normal whitespace-pre text-scene-ink
-          [font-kerning:none] [font-variant-ligatures:none] select-none group-[.is-on]/loader:visible">{glyphs.official.join('\n')}</pre>
+          [font-kerning:none] [font-variant-ligatures:none] select-none group-[.is-on]/loader:visible">{binaryLogo}</pre>
       </div>
 
       <canvas className="river pointer-events-none fixed inset-0 z-0 block size-full data-[state=waiting]:invisible" data-state="waiting" aria-hidden="true" />

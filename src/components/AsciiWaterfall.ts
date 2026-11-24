@@ -1,17 +1,13 @@
 import type { AsciiSceneCamera } from './AsciiSceneCamera'
 
-// Keep the sea's first six glyph slots stable; the fall adds softer droplets and foam curls.
-export const WATER_GLYPHS = " .-~+*:,'`o()|"
-const DOT = 1, DASH = 2, TILDE = 3, PLUS = 4
-const COLON = 6, COMMA = 7, DROP = 8, MIST = 9, BUBBLE = 10, LEFT = 11, RIGHT = 12
-const THREAD = 13
+export const WATER_GLYPHS = '01'
 const TAU = Math.PI * 2
 const STREAMS = 512
 const SPRAY = 224
 const APPROACH_TIME = 1.1
 const FALL_TIME = 1.8
 
-type Plot = (glyph: number, x: number, y: number, alpha: number) => void
+type Plot = (bit: 0 | 1, x: number, y: number, alpha: number) => void
 const clamp = (value: number): number => Math.max(0, Math.min(1, value))
 
 function seed(index: number): number {
@@ -103,12 +99,8 @@ export class AsciiWaterfall {
         const coverage = Math.min(1, (projectedSpeed + 2 * fallCurve * falling) * spacing / cellHeight)
         const alpha = ink * envelope * sheen * (0.5 + material * 0.5) * (0.7 + detail * 0.3) * coverage
           * (1 - 0.6 * dissipation) * light
-        let glyph = detail > 0.6 ? DASH : DOT
-        if (age < 0 && material > 0.72) glyph = TILDE
-        else if (turn > 0.25 + detail * 0.5) glyph = detail > 0.8 ? THREAD : detail > 0.4 ? COMMA : COLON
-        else if (age >= 0) glyph = COMMA
-        if (dissipation > 0.55 + detail * 0.4) glyph = detail > 0.7 ? MIST : DOT
-        plot(glyph, x, y, alpha)
+        const bit = (age < 0 ? material > 0.62 : detail < 0.45 && dissipation < 0.6) ? 0 : 1
+        plot(bit, x, y, alpha)
         // Short, fading trails keep the accelerating water filament-like, not isolated rain.
         if (age > 0.25 && this.streams[slot + 4] > 0.45) {
           for (let k = 1; k <= 2; k++) {
@@ -119,7 +111,7 @@ export class AsciiWaterfall {
             const trailSpread = 1 - soft((trailDescent - 0.25) / 0.6)
             if (trailSpread <= 0) continue
             plot(
-              k === 1 ? COLON : DOT,
+              1,
               source + sideways * trailTurn + drift * trailDescent * trailDescent + scatter,
               edge + projectedSpeed * trail + fallCurve * trail * trail,
               alpha * trailSpread * (k === 1 ? 0.45 : 0.22),
@@ -155,9 +147,8 @@ export class AsciiWaterfall {
         // The base reads as diffuse mist, softer than the water at the brink.
         let alpha = core * (0.11 + cloud * 0.18) + haze * cloud * 0.13
         const grain = this.spray[(row * 7 + col * 13) % this.spray.length]
-        let glyph = grain > 0.94 ? PLUS : grain > 0.68 ? COMMA : grain > 0.28 ? COLON : DOT
+        let bit: 0 | 1 = grain > 0.68 ? 0 : 1
         if (edge > 0.7 && detail > 0.55 && core > 0.4 && grain > 0.94) {
-          glyph = grain > 0.985 ? BUBBLE : curl > 0.52 ? RIGHT : LEFT
           alpha += core * edge * 0.05
         }
         // Smooth outward ripples under the impact retain dark gaps between their crests.
@@ -165,11 +156,11 @@ export class AsciiWaterfall {
           const ripple = Math.sin(relative * 9 - time * 1.5 + curl * 5 + billow * 2)
           alpha = alpha * (1 - pool * 0.8) + pool * soft((ripple - 0.2) / 0.8) * 0.15
           alpha *= 0.45 + detail * 0.55
-          glyph = ripple > 0.6 && grain > 0.3 ? TILDE : grain > 0.7 ? DASH : DOT
+          bit = ripple > 0.6 && grain > 0.3 ? 0 : 1
         }
         if (alpha < 0.027) continue
         const offset = (detail - 0.5) * stepY * 0.5
-        plot(glyph, x + (curl - 0.5) * stepX * 0.7, y + offset, alpha)
+        plot(bit, x + (curl - 0.5) * stepX * 0.7, y + offset, alpha)
       }
     }
 
@@ -185,14 +176,14 @@ export class AsciiWaterfall {
       const y = impact - 4 * lift * phase * (1 - phase)
       const fade = Math.sin(phase * Math.PI)
       const alpha = fade * (0.14 + this.spray[slot + 5] * 0.27)
-      plot(phase < 0.45 ? DROP : COMMA, x, y, alpha)
+      plot(phase < 0.45 ? 0 : 1, x, y, alpha)
       if (phase < 0.6 && this.spray[slot + 5] > 0.65) {
         const trail = Math.max(0, phase - 0.035)
-        plot(DOT, origin + side * trail, impact - 4 * lift * trail * (1 - trail), alpha * 0.45)
+        plot(1, origin + side * trail, impact - 4 * lift * trail * (1 - trail), alpha * 0.45)
       }
       const rise = (phase + 0.45) % 1
       const mistX = origin + Math.sin(rise * 3 + this.spray[slot + 3] * TAU) * 14 + side * rise * 0.4
-      plot(MIST, mistX, impact - rise * mistHeight, Math.sin(rise * Math.PI) * 0.075)
+      plot(1, mistX, impact - rise * mistHeight, Math.sin(rise * Math.PI) * 0.075)
     }
   }
 }

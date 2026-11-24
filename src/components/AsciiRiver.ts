@@ -8,9 +8,7 @@ const DROP_TIME = 0.95
 const REVEAL_TIME = 2.8
 const HERO_START = Math.max(0, DROP_TIME + REVEAL_TIME - 3)
 const FRAME_TIME = 1000 / 30
-// Sea palette: troughs fade out, slopes read as dashes, crests as tildes, sun glints sparkle.
 const GLYPHS = WATER_GLYPHS
-const DOT = 1, DASH = 2, TILDE = 3, PLUS = 4, STAR = 5
 // Two long swells shade the sea broadly; a gentle, narrow-angle wind sea draws wide, soft crests.
 const SWELLS = 2
 const SWELL_LIFT = 0.35
@@ -369,13 +367,13 @@ export class AsciiRiver {
     this.atlas.width = this.tileWidth * GLYPHS.length
     this.atlas.height = this.tileHeight * sizes.size
     const ctx = this.atlas.getContext('2d')!
-    ctx.font = `400 ${this.cellHeight * 0.83 * this.dpr}px "Geist Mono", monospace`
+    ctx.font = `400 ${this.cellHeight * 0.74 * this.dpr}px "Geist Mono", monospace`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillStyle = '#ffffff'
     for (let slot = 0; slot < sizes.size; slot++) {
       const width = this.glyphWidth[slot], height = this.glyphHeight[slot]
-      for (let i = 1; i < GLYPHS.length; i++) {
+      for (let i = 0; i < GLYPHS.length; i++) {
         ctx.save()
         ctx.translate(i * this.tileWidth + width / 2, slot * this.tileHeight + height / 2)
         ctx.scale(width / (this.cellWidth * this.dpr), height / (this.cellHeight * this.dpr))
@@ -670,14 +668,12 @@ export class AsciiRiver {
       // Low relief: troughs stay readable and crests only slightly brighter.
       const body = smoothstep(-0.6, 0.6, level * WAVE_HEIGHT + impactHeight * heightNorm * 0.5
         + rippleHeight * 0.4)
-      let glyph = level > 0.55 ? TILDE : level > 0.1 ? DASH : DOT
+      const glyph = level > 0.1 ? 0 : 1
       let alpha = (0.21 + body * 0.46) * (0.65 + luminance * 0.4)
       // Wake crests catch a little extra light so the rings read over the wind sea.
       if (rippleHeight > 0) alpha += smoothstep(0.05, 0.6, rippleHeight) * 0.08
-      // Sun glitter brightens the crest itself; only the hottest facets sparkle.
+      // Sun glitter adds contrast without changing the digit under a crest.
       if (glint > 0.4 && level > 0) {
-        if (glint > 0.85 && level > 0.3) glyph = STAR
-        else if (glyph === DOT) glyph = DASH
         alpha = Math.max(alpha, 0.3 + glint * 0.5)
       }
       const displacement = impactHeight * inverseWorldScale * 0.35
@@ -705,7 +701,7 @@ export class AsciiRiver {
       const speed = 55 + noise(i, 7) * 95
       const x = this.width / 2 + Math.cos(angle) * speed * age
       const y = this.height / 2 + Math.sin(angle) * speed * age * 0.45 - 95 * age + 170 * age * age
-      this.glyph(age < 0.18 ? PLUS : DOT, x, y, fade * (0.4 + noise(i, 3) * 0.5))
+      this.glyph(i % 2, x, y, fade * (0.4 + noise(i, 3) * 0.5))
     }
   }
 
@@ -719,13 +715,13 @@ export class AsciiRiver {
     ctx.textBaseline = 'middle'
     ctx.fillStyle = '#ffffff'
     ctx.globalAlpha = 0.18 * progress
-    ctx.fillText('.', this.width / 2, y - 34)
+    ctx.fillText('1', this.width / 2, y - 34)
     ctx.globalAlpha = 0.35 * progress
-    ctx.fillText('|', this.width / 2, y - 25)
+    ctx.fillText('1', this.width / 2, y - 25)
     ctx.globalAlpha = clamp(progress * 7) * 0.9
-    ctx.fillText('.', this.width / 2, y - 18)
-    ctx.fillText('/\\', this.width / 2, y - 9)
-    ctx.fillText('\\/', this.width / 2, y)
+    ctx.fillText('1', this.width / 2, y - 18)
+    ctx.fillText('0', this.width / 2, y - 9)
+    ctx.fillText('0', this.width / 2, y)
   }
 
   private draw(): void {
