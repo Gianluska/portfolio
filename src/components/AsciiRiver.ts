@@ -83,6 +83,11 @@ export class AsciiRiver {
   private readonly atlas = document.createElement('canvas')
   private readonly actorsCanvas = document.createElement('canvas')
   private readonly actorsContext = this.actorsCanvas.getContext('2d')!
+  // One light sample per simulation cell; Canvas interpolates between their centers.
+  private readonly lightCanvas = document.createElement('canvas')
+  private readonly lightContext = this.lightCanvas.getContext('2d')!
+  private lightPixels!: ImageData
+  private lightWords!: Uint32Array
   // Water is the first layer over opaque black, so it is composited straight into
   // final grey pixels and put onto the visible canvas with no intermediate copy.
   private waterPixels!: ImageData
@@ -228,6 +233,10 @@ export class AsciiRiver {
     this.count = cols * rows
     this.cols = cols
     this.rows = rows
+    this.lightCanvas.width = cols
+    this.lightCanvas.height = rows
+    this.lightPixels = this.lightContext.createImageData(cols, rows)
+    this.lightWords = new Uint32Array(this.lightPixels.data.buffer)
     this.ripple = new Float32Array(this.count)
     this.ripplePrev = new Float32Array(this.count)
     this.rippleActive = false
@@ -342,7 +351,8 @@ export class AsciiRiver {
   }
 
   private readonly plotFall = (glyph: number, x: number, y: number, alpha: number): void => {
-    this.glyph(glyph, x, y, alpha)
+    // Thin falling threads need more exposure than the broad sea reflections.
+    this.glyph(glyph, x, y, alpha * 1.7)
   }
 
   private buildAtlas(): void {
@@ -667,6 +677,11 @@ export class AsciiRiver {
       const target = clamp(facing * 0.85 + crest * impactStrength * 0.3 + Math.max(0, rippleHeight) * 0.15)
       const luminance = this.luminance[i] + (target - this.luminance[i]) * blend
       this.luminance[i] = luminance
+      const lip = smoothstep(0, lipBlend, this.camera.lipY - this.y[i])
+      // Expose the lit swell faces as stippled bands, keeping the high text area quiet.
+      const band = smoothstep(0.45, 0.69, luminance / 0.85)
+      const exposure = 0.035 + 0.42 * depth * depth
+      this.lightWords[i] = GREY[Math.round(255 * band * exposure * reveal * lip)]
       // Low relief: troughs stay readable and crests only slightly brighter.
       const body = smoothstep(-0.6, 0.6, level * WAVE_HEIGHT + impactHeight * heightNorm * 0.5
         + rippleHeight * 0.4)
@@ -689,13 +704,20 @@ export class AsciiRiver {
       this.glyph(
         glyph,
         x, y,
-        alpha * reveal * (0.48 + depth * 0.52)
-          * smoothstep(0, lipBlend, this.camera.lipY - this.y[i]),
+        alpha * reveal * (0.48 + depth * 0.52) * lip,
         this.scrollProgress > 0 ? Math.round(clamp((depth - 0.3) / 0.8) * (this.rows - 1)) : row,
       )
     }
   }
 
+  private drawWaterLight(): void {
+    this.lightContext.putImageData(this.lightPixels, 0, 0)
+    // Screen adds the interpolated light while retaining the discrete glyph highlights.
+    const ctx = this.ctx
+    ctx.globalCompositeOperation = 'screen'
+    ctx.drawImage(this.lightCanvas, 0, 0, this.cols * this.cellWidth, this.rows * this.cellHeight)
+    ctx.globalCompositeOperation = 'source-over'
+  }
 
   private drawSplash(age: number): void {
     if (age > 0.75) return
@@ -762,13 +784,18 @@ export class AsciiRiver {
       this.pushShots()
       // Opaque black under the water replaces a separate background fill.
       this.waterWords.fill(GREY[0])
-      if (this.camera.lipY > 0) this.drawWater(age, radius)
+      const seaVisible = this.camera.lipY > 0
+      if (seaVisible) {
+        this.lightWords.fill(GREY[0])
+        this.drawWater(age, radius)
+      }
       this.drawSplash(age)
       this.waterfall.draw(
         this.motion.matches ? 0 : age, this.width, this.height, this.cellWidth, this.cellHeight,
         this.camera, this.plotFall,
       )
       ctx.putImageData(this.waterPixels, 0, 0)
+      if (seaVisible) this.drawWaterLight()
       const actorFade = 1 - smoothstep(0.06, 0.5, this.scrollProgress)
       if (actorFade > 0) {
         // Fully visible actors go straight onto the scene; only a fade needs its own layer.

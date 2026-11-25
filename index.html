@@ -22,6 +22,19 @@
             <feFuncB type="table" tableValues="0.878 0.255" />
           </feComponentTransfer>
         </filter>
+        <filter id="river-dither" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <!-- Seamless blue-noise ranks (24×24, two CSS pixels per sample). No animated grain. -->
+          <feImage x="0" y="0" width="48" height="48" result="ranks"
+            href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAAAAAByaaZbAAADQUlEQVR42p3Ua0/XBRgG4Mvmm9642lJnLtYWSFYegIzMA6IoIioBiURaglOYyFCXkAINkAl5mpolK/SPkAcswdAyWEBD0nlCCUUNUyln6tb8Cn0Gf88XuHbf2/0MK1Mmz7vWmmur02Ldski4i5brM0KVr6ywRbtcHTI95xlvWEiLO75Xa4so0erFGWepVjFu+kC1g9IUOyzBNWsCCC84qccEVXIMibNErlRFTonQI1Wps/IcVSNMrYoAQqF1ppmjWrSfFPvQNAkq3fG2IyZbL1O8GhPVaJP/7MLw8XJsE26F7fY4Ism/7nvfkHwF1prngnV6dTrkW1cCZAhz0zoHfabMGKtMtcTHMoy2xyx9sl123T23dOnyZgDhZ1tkSHJLuWxRqm1zTrVsX/jPdOG+EaXBef0GJAdoqVWjRENuO6DODgPKXHVZt7nqbJUlJMzLahw1y8gAwgRrVUr2ihtK9DvlsFa7/eK4eTJcV2qNevEeSHYmQEtPTNRql8kaTRIlWbmZNsuSoc5mGQ6Y7aFYp9VpD5Ah30bH9FqpyO/me6LPdiOl2eOYdGP9ZopuM520y/EAQqk4d01Q5UeDQuIlyDHWBhEeq5Jpmade02uZRz4P0FKsEnUqRbmnyS6LXZMuVaOpDul2QrYYvyrX4YqSABm61bjpvCI3NDuj314vGq1Jmhl2WipXujQLPFahOIAwQrs70kV7rMV6F11yVoWzttuvXZzJIuSpddUUkQGEPy1UItUJt0WqsMoFy+1QrFebB5LlivGJq0JSrA4grJRpsYdCLngqUYpa5y2S5YBt2hSqtFutBu32CQUQ9llgQJtzGvV4y3u+NspG070k3UFfe1WEVDstNkJTACGkwhsy5Oo2XqcNwuzX5ZHXJZmjSYFSKVbqVG5zAKHEKIminBQyVbh8Cwzptdx802xQr9tHov0tT2yQ7z18ngrLRHvgH3sdUiBehu90qzRbhFNmGNShV7YCPwQQJomTZK+J7usw4KgGWeIct8+n0vTr0SzGGJs0uxtg038plGDQHwY8kqzekAotxumUKVGDeHdt8qXrBr0TQHhei9UuGdAlUpWZWuWI1CzGJI0q9VmoSKFmN6Q8u/A/QrshFOTRjmYAAAAASUVORK5CYII=" />
+          <feTile in="ranks" result="threshold" />
+          <!-- Half the scene light plus half the inverted rank crosses 0.5 at the local threshold. -->
+          <feComposite in="SourceGraphic" in2="threshold" operator="arithmetic" k2=".5" k3=".5" />
+          <feComponentTransfer>
+            <feFuncR type="discrete" tableValues="0.2 0.891" />
+            <feFuncG type="discrete" tableValues="0.2 1" />
+            <feFuncB type="discrete" tableValues="0.091 1" />
+          </feComponentTransfer>
+        </filter>
       </defs>
     </svg>
     <div id="root"></div>

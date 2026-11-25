@@ -42,26 +42,6 @@
 
 @theme inline {
   --color-scene: rgb(var(--scene-rgb));
-  --color-scene-ink: #24372a;
-  --color-scene-soft: #3a5140;
-  --color-scene-muted: #475c4c;
-}
-
-@layer components {
-  /* Recolor the finished ASCII artwork, not the simulation or its actors. */
-  .river { filter: brightness(1.56) url(#ascii-palette); }
-  .loader canvas { filter: grayscale(1) url(#ascii-palette); }
-}
-
-@theme {
-  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-  --font-ascii: 'Geist Mono', monospace;
-  --font-display: 'Redaction 35', serif;
-  --spacing-page: clamp(18px, 2.4vw, 40px);
-  --ease-scene: cubic-bezier(0.14, 0.9, 0.22, 1);
-  /* Mola subamortecida (ζ≈0.55): ~12% de overshoot. */
-  --ease-reveal: linear(0, 0.027 2.5%, 0.098 5%, 0.199 7.5%, 0.318 10%, 0.444 12.5%, 0.569 15%, 0.687 17.5%, 0.794 20%, 0.886 22.5%, 0.963 25%, 1.023 27.5%, 1.068 30%, 1.099 32.5%, 1.117 35%, 1.126 37.5%, 1.125 40%, 1.119 42.5%, 1.107 45%, 1.093 47.5%, 1.077 50%, 1.061 52.5%, 1.046 55%, 1.032 57.5%, 1.019 60%, 1.009 62.5%, 1 65%, 0.994 67.5%, 0.989 70%, 0.986 72.5%, 0.984 75%, 0.984 77.5%, 0.985 80%, 0.987 85%, 0.991 90%, 0.995 95%, 1);
-  --background-image-loader-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix color-interpolation-filters='sRGB' values='0 0 0 0 .184 0 0 0 0 .325 0 0 0 0 .255 1.6 0 0 0 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --background-image-header-veil: linear-gradient(
     to bottom,
     rgb(var(--scene-rgb) / 0.85) 0%,
@@ -73,6 +53,42 @@
     transparent 100%
   );
   --background-image-cue-veil: radial-gradient(closest-side, rgb(var(--scene-rgb) / 0.78), rgb(var(--scene-rgb) / 0.5) 45%, rgb(var(--scene-rgb) / 0.16) 75%, transparent);
+}
+
+@theme {
+  --color-scene-ink: #24372a;
+  --color-scene-soft: #3a5140;
+  --color-scene-muted: #475c4c;
+}
+
+@layer components {
+  /* Quantize the finished scene, including actors and fog, without touching the loader. */
+  .river { filter: brightness(1.25) url(#river-dither); }
+  .loader canvas { filter: grayscale(1) url(#ascii-palette); }
+
+  .river:not([data-state=waiting]) ~ .ui,
+  .river:not([data-state=waiting]) ~ main .hero {
+    --scene-rgb: 51 51 23;
+    --color-scene: rgb(var(--scene-rgb));
+    --color-scene-ink: #e3ffff;
+    --color-scene-soft: #d1ebe4;
+    --color-scene-muted: #c6ded5;
+  }
+
+  .river:not([data-state=waiting]) ~ main .hero {
+    text-shadow: 0 1px rgb(var(--scene-rgb)), 0 0 3px rgb(var(--scene-rgb));
+  }
+}
+
+@theme {
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --font-ascii: 'Geist Mono', monospace;
+  --font-display: 'Redaction 35', serif;
+  --spacing-page: clamp(18px, 2.4vw, 40px);
+  --ease-scene: cubic-bezier(0.14, 0.9, 0.22, 1);
+  /* Mola subamortecida (ζ≈0.55): ~12% de overshoot. */
+  --ease-reveal: linear(0, 0.027 2.5%, 0.098 5%, 0.199 7.5%, 0.318 10%, 0.444 12.5%, 0.569 15%, 0.687 17.5%, 0.794 20%, 0.886 22.5%, 0.963 25%, 1.023 27.5%, 1.068 30%, 1.099 32.5%, 1.117 35%, 1.126 37.5%, 1.125 40%, 1.119 42.5%, 1.107 45%, 1.093 47.5%, 1.077 50%, 1.061 52.5%, 1.046 55%, 1.032 57.5%, 1.019 60%, 1.009 62.5%, 1 65%, 0.994 67.5%, 0.989 70%, 0.986 72.5%, 0.984 75%, 0.984 77.5%, 0.985 80%, 0.987 85%, 0.991 90%, 0.995 95%, 1);
+  --background-image-loader-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix color-interpolation-filters='sRGB' values='0 0 0 0 .184 0 0 0 0 .325 0 0 0 0 .255 1.6 0 0 0 -0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --animate-grain: grain 0.9s steps(6) infinite;
 
   @keyframes grain {
