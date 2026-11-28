@@ -36,7 +36,7 @@ export default function App() {
 
 
       <main>
-        <section className="hero pointer-events-none fixed inset-x-page top-[36svh] z-3 grid justify-items-center text-center [&[hidden]]:hidden" hidden>
+        <section className="hero pointer-events-none fixed inset-x-page top-[60svh] z-3 grid -translate-y-1/2 justify-items-center text-center [&[hidden]]:grid [&[hidden]]:invisible" hidden>
           <div className="pointer-events-auto relative w-fit max-w-full [--ascii-font:var(--font-ascii)] [--ascii-skeleton:currentColor] [font-synthesis:none]">
             <h1 className="hero__name group/nickname m-0 font-display text-[clamp(24px,min(6.8vw,9svh),96px)]/[1.05] font-bold tracking-[-0.01em]
               whitespace-normal text-scene-ink focus-visible:outline-1 focus-visible:outline-offset-8 focus-visible:outline-scene-ink" tabIndex={0} aria-label={'Gianlucca "lvsk" Claudino'}>

@@ -6,7 +6,7 @@ Single-screen portfolio with an ASCII intro and a windblown meadow at sunrise. N
 
 - On each page load, one of 37 tte.js effects is randomly selected to reveal the official ASCII logo. The animation lasts between 1 and 2.75 s, followed by a final 0.25 s pause: a cycle of at most 3 s, with no looping. The intro remains monochrome.
 - The intro and meadow share a charcoal (`#2d3038`) and ivory (`#ece7cd`) palette inspired by *Return of the Obra Dinn*. The opening effects retain translucent ivory shades; the scene stays strictly two-color.
-- The `lvsk` intro clears to a fully dark frame. The sun rises through a straight horizon at 72% of the screen over 3.8 seconds, lighting the clouds and short grass from the horizon toward the foreground. Traveling gusts bend the clumps at different depths.
+- The `lvsk` intro clears to a fully dark frame. The sun rises through a flat horizon at 39% of the screen over 3.8 seconds, slowing gently as it settles. Its light spreads from the horizon across the windblown meadow, then fades into the dark foreground around the hero. Thin clouds cross the disc, and small flocks pass through the sky.
 - The hero appears below the sun with an [ascii-reveal](https://github.com/quanhoangindex/ascii-reveal) dither reveal. Roles cycle between `Creative Technologist`, `Frontend Specialist`, and `Product Engineer`, with 3.2 s reading pauses. Hover or keyboard focus on the title reveals the nickname.
 - Reduced motion shows the fully lit meadow and sun without motion. Animation pauses while the tab is hidden.
 
@@ -42,5 +42,5 @@ The standalone GitHub cover files in `github-profile/` are separate from the sit
 
 ## Verification
 
-Chromium at 1440×900 (DPR 1.5) rendered the lit meadow at 60 frames per second. Pixel samples confirmed a fully dark first frame after the loader, a rising disc before any illuminated grass, then illumination reaching the distant grass before the foreground. At 390×844, reduced motion preserved the two-color still frame without overflow.
+Check the desktop view from the loader through daylight: the canvas starts dark, then the sun lights the sky and the horizon before the hero appears. Once the sun stops, the clouds, halo and grass keep moving without changing the foreground. In a narrow viewport with reduced motion, the finished scene should hold still without scrolling.
 

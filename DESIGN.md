@@ -12,7 +12,7 @@ Uma única tela, sem rolagem. A abertura `lvsk` termina sobre o mesmo grafite da
 
 ## Hero
 
-O hero começa a `36svh`, entre o sol e o campo. O título em Redaction 35 Bold 700 usa o mesmo marfim da cena (`#ece7cd`) e varia com largura e altura para caber em retrato e paisagem. A role em Redaction 35 Regular 400 fica abaixo, centralizada. O céu é mais escuro atrás do texto. Hover ou foco visível abre um slot inline para `"lvsk"` com o mesmo peso e linha de base, em tamanho `0.9em` e marfim atenuado; o nome acessível permanece estável. Com movimento reduzido, a troca de apelido é instantânea.
+O hero fica centralizado a `60svh`, sobre o solo escuro e sem grama atrás do texto. O título em Redaction 35 Bold 700 usa o mesmo marfim da cena (`#ece7cd`) e varia com largura e altura para caber em retrato e paisagem. A role em Redaction 35 Regular 400 fica abaixo, centralizada. Hover ou foco visível abre um slot inline para `"lvsk"` com o mesmo peso e linha de base, em tamanho `0.9em` e marfim atenuado; o nome acessível permanece estável. Com movimento reduzido, a troca de apelido é instantânea.
 
 A família [Redaction 35](https://fonts.google.com/specimen/Redaction+35) unifica o hero; Geist Mono permanece nos glifos. Ambas são locais e usam SIL OFL 1.1. Licenças: `public/fonts/redaction-35-OFL.txt` e `public/fonts/geist-OFL.txt`.
 
@@ -23,15 +23,19 @@ A role é texto não interativo: clique, Enter e espaço não pausam nem reinici
 
 ## Amanhecer
 
-A câmera é frontal, fixa e nivelada, com horizonte reto a 72% da altura. O primeiro quadro tem apenas o fundo grafite: o disco está oculto pelo plano do campo. O sol sobe durante 3,8 s. Primeiro aparece o halo e o bordo do disco; sua elevação governa o brilho das nuvens e o avanço da luz pelo solo. O primeiro plano permanece escuro até depois das touceiras distantes. Quando o sol libera a área do texto, começa o reveal do hero.
+A câmera é frontal, fixa e nivelada. O horizonte reto fica a 39% da altura; o solo ocupa os 61% restantes. O primeiro quadro tem apenas o fundo grafite. Em 3,8 s, o sol acelera ao sair do horizonte e desacelera progressivamente até repousar a 15% da altura. Conforme sobe, a luz alcança primeiro a grama logo abaixo do disco, depois se abre para as laterais e avança em direção ao primeiro plano antes do reveal do hero.
+
+Duas camadas de nuvens deslizam a velocidades diferentes. Os filamentos mais próximos velam trechos do disco solar com pontos grafite, deixando seu contorno legível. O halo pulsa devagar, sem mover nem redimensionar o disco.
+
+Pequenos bandos atravessam o céu entre pausas, com asas fora de sincronia. As silhuetas alternam entre grafite e marfim conforme o fundo. Com movimento reduzido, o céu não tem aves.
 
 ### Campo e vento
 
-As gramíneas são baixas no enquadramento e crescem em seis faixas de profundidade. As lâminas e plumas distantes têm poucos pixels; as mais próximas ficam maiores, sem romper a linha do horizonte. Cada faixa ganha luz de acordo com a altura do sol e sua distância. As raízes permanecem fixas: duas ondas com fases baseadas na posição fazem as rajadas atravessarem as touceiras. As sementes no ar só aparecem com a luz.
+Uma faixa densa de lâminas finas recorta o horizonte. O solo abaixo mantém a mesma quantidade de touceiras por faixa de profundidade; as lâminas crescem em escala conforme se aproximam. Só a luz enfraquece: o gradiente se alonga nas laterais e dá espaço ao texto no centro, inclusive quando o título quebra linha. A crista da rajada passa de ponta a ponta e chega um pouco mais tarde às lâminas próximas. A câmera continua rasa e nivelada.
 
 ### Rasterização
 
-`DawnLandscape` mantém céu, halo e gradação do solo em cache. `WindMeadow` refaz geometria e fases no redimensionamento e agrupa os traços por tom e profundidade. `CanvasPalette` quantiza o Canvas 2D CPU-backed em grafite e marfim, com limiares de blue noise e raster de aproximadamente 0,9 megapixel ou menos. Depois do amanhecer, só as linhas alcançadas pela grama e pelas sementes são atualizadas. O Canvas da cena não usa filtro CSS, WebGL ou loop extra.
+`DawnLandscape` mantém as duas texturas contínuas de nuvens, a névoa, o halo e a gradação do solo em cache. `WindMeadow` refaz geometria e fases no redimensionamento e rasteriza as silhuetas em pequenos lotes numa faixa transparente. A luz do amanhecer é aplicada à faixa inteira, sem acúmulo onde as folhas se sobrepõem. `CanvasPalette` quantiza o Canvas 2D CPU-backed em grafite e marfim, com limiares de blue noise e raster de aproximadamente 0,9 megapixel ou menos. Depois do amanhecer, só o céu e a faixa do horizonte são atualizados. O Canvas da cena não usa filtro CSS, WebGL ou loop extra.
 
 ## Movimento reduzido
 

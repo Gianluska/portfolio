@@ -1,4 +1,4 @@
-import { DawnLandscape, smooth } from './DawnLandscape'
+import { DawnLandscape } from './DawnLandscape'
 import { CanvasPalette } from './CanvasPalette'
 import { WindMeadow } from './WindMeadow'
 
@@ -17,8 +17,11 @@ export class FieldScene {
   private width = 0
   private height = 0
   private scale = 0
-  private dynamicTop = 0
-  private skyPainted = false
+  private groundLimit = 0
+  private groundLeft = 0
+  private groundRight = 0
+  private dynamicBottom = 0
+  private sceneryPainted = false
   private started = false
   private destroyed = false
   private heroStarted = false
@@ -28,7 +31,7 @@ export class FieldScene {
   private previousFrame: number | null = null
   private nextPaint = 0
 
-  constructor(private readonly canvas: HTMLCanvasElement, private readonly onHeroReady: () => void) {
+  constructor(private readonly canvas: HTMLCanvasElement, private readonly hero: Element, private readonly onHeroReady: () => void) {
     this.palette = new CanvasPalette(canvas)
     this.motion.addEventListener('change', this.motionChange)
     document.addEventListener('visibilitychange', this.visibilityChange)
@@ -40,6 +43,7 @@ export class FieldScene {
     if (immediate || this.motion.matches) this.clock = SUNRISE
     this.resize()
     this.observer.observe(this.canvas)
+    this.observer.observe(this.hero)
     this.resume()
   }
 
@@ -48,16 +52,26 @@ export class FieldScene {
     const bounds = this.canvas.getBoundingClientRect()
     const w = Math.max(1, bounds.width), h = Math.max(1, bounds.height)
     const scale = CanvasPalette.scale(w, h)
-    if (w === this.width && h === this.height && scale === this.scale) return
-    this.width = w
-    this.height = h
-    this.scale = scale
-    this.palette.resize(w, h, scale)
-    this.setTransform()
-    this.sky.resize(w, h)
-    const top = this.meadow.resize(w, h)
-    this.dynamicTop = Math.max(0, Math.floor(top * this.canvas.height / h) - 2)
-    this.skyPainted = false
+    const copy = this.hero.getBoundingClientRect()
+    const groundLimit = Math.floor(copy.top - bounds.top - Math.min(10, h * 0.012))
+    const groundLeft = Math.floor(copy.left - bounds.left)
+    const groundRight = Math.ceil(copy.right - bounds.left)
+    const viewportChanged = w !== this.width || h !== this.height || scale !== this.scale
+    if (!viewportChanged && groundLimit === this.groundLimit && groundLeft === this.groundLeft && groundRight === this.groundRight) return
+    if (viewportChanged) {
+      this.width = w
+      this.height = h
+      this.scale = scale
+      this.palette.resize(w, h, scale)
+      this.setTransform()
+      this.sky.resize(w, h)
+      this.dynamicBottom = this.meadow.resize(w, h, this.canvas.width, this.canvas.height)
+      this.sceneryPainted = false
+    }
+    this.groundLimit = groundLimit
+    this.groundLeft = groundLeft
+    this.groundRight = groundRight
+    this.meadow.setLightBoundary(groundLimit, groundLeft, groundRight)
     this.draw()
   }
 
@@ -69,24 +83,27 @@ export class FieldScene {
   private draw(): void {
     const still = this.motion.matches
     const progress = still ? 1 : Math.min(1, this.clock / SUNRISE)
-    const rise = smooth(progress)
+    // Asymmetric ease: peak speed in the first third, then a long, gentle approach to rest.
+    const remaining = 1 - progress
+    const rise = 1 - remaining * remaining * remaining * (1 + 3 * progress)
     const ctx = this.palette.context
-    // Once the sun stops, leave the already-quantized sky above the moving field untouched.
-    const top = this.skyPainted ? this.dynamicTop : 0
-    if (top > 0) {
+    // Keep the still foreground out of the raster pass once the sky and horizon are lit.
+    const bottom = this.sceneryPainted ? this.dynamicBottom : this.canvas.height
+    if (this.sceneryPainted) {
       ctx.save()
       ctx.beginPath()
-      ctx.rect(0, top * this.height / this.canvas.height, this.width, this.height)
+      const cssScale = this.height / this.canvas.height
+      ctx.rect(0, 0, this.width, bottom * cssScale)
       ctx.clip()
     }
-    const elevation = this.sky.draw(ctx, rise)
+    const elevation = this.sky.draw(ctx, rise, still ? 0 : this.clock)
     this.meadow.draw(ctx, still ? SUNRISE : this.clock, elevation)
-    if (top > 0) ctx.restore()
-    this.palette.present(top)
-    this.skyPainted = progress === 1
+    if (this.sceneryPainted) ctx.restore()
+    this.palette.present(bottom)
+    this.sceneryPainted = progress === 1
     this.setState(still ? 'still' : progress < 1 ? 'sunrise' : 'daylight')
-    // Wait for the disc to clear the text before starting the dither reveal.
-    if (!this.heroStarted && rise >= 0.91) {
+    // Reveal the title once the light has reached the foreground.
+    if (!this.heroStarted && progress >= 0.8) {
       this.heroStarted = true
       this.onHeroReady()
     }

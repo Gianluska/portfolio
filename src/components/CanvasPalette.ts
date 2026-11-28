@@ -49,18 +49,18 @@ export class CanvasPalette {
     for (let y = 0; y < h; y++) this.rows[y] = Math.floor((y + 0.5) / pixel) % TILE * w
   }
 
-  present(top: number): void {
-    const { width, height } = this.context.canvas
-    const image = this.context.getImageData(0, top, width, height - top)
+  present(bottom: number): void {
+    const { width } = this.context.canvas
+    const image = this.context.getImageData(0, 0, width, bottom)
     const bytes = image.data, words = new Uint32Array(bytes.buffer)
     const thresholds = this.thresholds
     const colors = this.colors
-    for (let y = top, i = 0; y < height; y++) {
+    for (let y = 0, i = 0; y < bottom; y++) {
       const end = i + width
       for (let rank = this.rows[y]; i < end; i++, rank++) {
         words[i] = colors[+(bytes[i * 4] >= thresholds[rank])]
       }
     }
-    this.context.putImageData(image, 0, top)
+    this.context.putImageData(image, 0, 0)
   }
 }

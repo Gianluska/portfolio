@@ -25,7 +25,7 @@ export class Director {
   constructor(refs: DirectorRefs) {
     this.refs = refs
     this.hero = new AsciiHero(refs.hero)
-    this.field = new FieldScene(refs.field, () => { void this.hero.start() })
+    this.field = new FieldScene(refs.field, refs.hero.firstElementChild!, () => { void this.hero.start() })
   }
 
   private setPhase(phase: Phase): void {
