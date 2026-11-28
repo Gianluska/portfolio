@@ -2,7 +2,7 @@
 
 ## Escopo vigente
 
-A abertura `lvsk` termina sobre o mesmo grafite da cena. O sol nasce no horizonte plano, acende a paisagem e revela o hero com nome e três roles. A grama se curva em rajadas, sem responder ao ponteiro. A rolagem alterna entre o campo e o espaço.
+A abertura `lvsk` termina sobre o mesmo grafite da cena. O sol nasce no horizonte plano, acende a paisagem e revela o hero com nome e três roles. A grama se curva em rajadas, sem responder ao ponteiro. A rolagem alterna entre o campo e o espaço. Em órbita, as experiências por empresa ficam sobre a curva da Terra.
 
 ## Elementos preservados
 
@@ -47,12 +47,26 @@ A rolagem nativa fornece apenas o gatilho: cruzar 65% do percurso para baixo ini
 
 O disco solar preserva seu centro e raio durante todo o voo. Depois do campo, passam os cúmulos próximos, com copas iluminadas e bases sombreadas, e os filamentos de cirros em outra velocidade. A névoa da estratosfera se afina até marcar a curvatura da atmosfera, enquanto o halo se contrai e as estrelas aparecem.
 
-A câmera começa a frear antes do destino, passa ligeiramente do ponto de repouso e assenta uma vez, sem deslocar o disco solar. O título do espaço entra durante a frenagem; se o scroll inverter no meio do voo, a câmera conserva o impulso ao mudar de direção.
+A câmera começa a frear antes do destino, passa ligeiramente do ponto de repouso e assenta uma vez, sem deslocar o disco solar. O nome da empresa selecionada nasce atrás do horizonte durante a frenagem; se o scroll inverter no meio do voo, a câmera conserva o impulso ao mudar de direção.
 
 Em órbita, cada estrela pulsa em seu próprio ritmo, sem mudar de posição. Faixas translúcidas correm em velocidades diferentes ao longo da estratosfera. O movimento horizontal do mouse gira a Terra em até 2° por lado em torno do eixo entre o observador e o centro do planeta. O contorno e o brilho da borda ficam fixos; só a superfície e as faixas deslizam por baixo deles. O sol, as estrelas e o texto não se movem. Ao sair da janela, a Terra volta suavemente ao centro. A órbita usa o mesmo Canvas de dois tons, com rasterização a 30 quadros por segundo.
 
+### Experiências em órbita
+
+Em repouso, o contorno da Terra fica a 80% da altura no centro do quadro. O conteúdo é provisório: cinco experiências em empresas fictícias, em `src/data/work.ts`.
+
+Cada empresa é um ponto numa curva paralela ao contorno, abaixo da faixa brilhante. O rótulo em Geist Mono acompanha a tangente da curva e tem um fundo grafite para continuar legível sobre o ruído da superfície. Em telas largas aparecem dois vizinhos de cada lado; em telas estreitas, só os mais próximos. O item ativo vira um anel, sem rótulo.
+
+Navegar é girar o planeta. Roda do mouse ou trackpad, setas, Home/End, clique num vizinho, arraste horizontal e swipe vertical avançam um item por vez, com um pequeno overshoot. A superfície e as correntes giram junto com os rótulos. A inércia do trackpad não pula itens. Nas pontas, a Terra se inclina para o item ausente e volta. Rolar para cima ou fazer swipe para baixo a partir do primeiro item devolve o controle à página e inicia a descida.
+
+O título do item ativo, em Redaction 35 Bold, fica sobre o horizonte. Sua base e seus descendentes ficam escondidos atrás da borda iluminada. Ao trocar de item, o título atual se põe com uma breve subida antes de afundar. Quando o novo ponto passa sob o sol, o halo dá um pulso menor que o da decolagem, e o novo título nasce com a mesma curva do nascer do sol.
+
+Os detalhes (período, papel, resumo, stack e link) formam uma constelação entre o sol e o título. Cada linha tem uma estrela em cruz, ligada à próxima por um traço pontilhado que se desenha por máscara. Em telas largas, as estrelas ficam penduradas sob o sol e os textos se abrem para fora. Em telas estreitas, as estrelas ficam numa margem e o texto se lê para dentro.
+
+A estrutura é uma lista ordenada com foco itinerante e `aria-current`, seguida de um `article` com o título e uma `dl`. Uma região `aria-live` anuncia cada troca.
+
 ## Movimento reduzido
 
-A logo permanece estática. A cena mostra o sol já alto e alterna diretamente entre campo e espaço, sem preparação, voo nem paralaxe. Ocultar a aba pausa a animação; desmontar cancela o frame e remove os listeners.
+A logo permanece estática. A cena mostra o sol já alto e alterna diretamente entre campo e espaço, sem preparação, voo nem paralaxe. Em órbita, a troca de empresa é instantânea, sem giro animado, pulso, poente ou nascente. Ocultar a aba pausa a animação; desmontar cancela o frame e remove os listeners.
 
 

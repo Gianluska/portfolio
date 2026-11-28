@@ -1,8 +1,6 @@
-import { cameraTravel, grain, HORIZON, smooth, SUN_DEPTH } from './SceneGeometry'
+import { cameraTravel, grain, HORIZON, smooth, SUN_AT_REST, SUN_DEPTH, sunRadius } from './SceneGeometry'
 import { ValleyBackdrop } from './ValleyBackdrop'
 import { UpperAtmosphere } from './UpperAtmosphere'
-
-const SUN_AT_REST = 0.15
 
 function noise(x: number, y: number, period: number): number {
   const ix = Math.floor(x), iy = Math.floor(y)
@@ -218,7 +216,7 @@ export class DawnLandscape {
   resize(width: number, height: number): void {
     this.w = width
     this.h = height
-    this.sunRadius = Math.min(width * 0.105, height * 0.098)
+    this.sunRadius = sunRadius(width, height)
     bakeClouds(this.clouds[0], width, height, 'dawn')
     bakeClouds(this.clouds[1], width, height, 'veil')
     bakeClouds(this.cumulus, width, height, 'cumulus')
@@ -229,7 +227,7 @@ export class DawnLandscape {
 
   draw(
     ctx: CanvasRenderingContext2D, rise: number, time: number, camera: number, altitude: number,
-    groundOffset: number, launchGlow: number, launchProgress: number, earthSteer: number,
+    groundOffset: number, launchGlow: number, launchProgress: number, earthTurn: number,
   ): number {
     const { w, h, sunRadius: radius } = this
     const horizon = Math.round(HORIZON * ctx.canvas.height) * h / ctx.canvas.height
@@ -244,7 +242,7 @@ export class DawnLandscape {
     ctx.fillStyle = '#000'
     ctx.fillRect(0, 0, w, h)
     if (spill === 0) return elevation
-    this.atmosphere.draw(ctx, altitude, time, earthSteer)
+    this.atmosphere.draw(ctx, altitude, time, earthTurn)
 
     const veil = this.clouds[1]
     const veilTop = h * altitude * 2.8

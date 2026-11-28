@@ -1,6 +1,6 @@
 # Portfolio — estado da implementação
 
-Escopo: abertura ASCII, amanhecer 1-bit no campo e subida pelas camadas da atmosfera até o espaço. Direção em `DESIGN.md`.
+Escopo: abertura ASCII, amanhecer 1-bit no campo, subida pelas camadas da atmosfera e índice de experiências em órbita. Direção em `DESIGN.md`.
 
 ## Sequência
 
@@ -11,6 +11,7 @@ Escopo: abertura ASCII, amanhecer 1-bit no campo e subida pelas camadas da atmos
 5. Mostrar o campo escuro após a abertura. Fazer o sol subir pelo horizonte e iluminar o céu e o solo antes de revelar o hero.
 6. Manter o vento em rajadas e usar a posição horizontal do mouse para revelar a profundidade da cena.
 7. Ao cruzar o limiar do scroll, manter o sol fixo enquanto a câmera sobe pelo campo, nuvens e estratosfera. No sentido oposto, refazer o percurso de volta.
+8. Em órbita, cada passo de scroll, seta, arraste ou swipe gira a Terra até a próxima empresa. O título atual se põe atrás do horizonte e o próximo nasce. Só rolar para cima a partir do primeiro item faz a descida.
 
 ## Arquivos
 
@@ -21,11 +22,13 @@ Escopo: abertura ASCII, amanhecer 1-bit no campo e subida pelas camadas da atmos
 | `src/components/FieldScene.ts` | Relógio, movimento da câmera, redimensionamento e pausa |
 | `src/components/DawnLandscape.ts` | Céu, sol, composição do vale e avanço da luz |
 | `src/components/UpperAtmosphere.ts` | Estrelas pulsantes, correntes e curvatura da atmosfera em cache |
-| `src/components/EarthSurface.ts` | Superfície da Terra sob o contorno fixo, girada pelo mouse |
+| `src/components/EarthSurface.ts` | Superfície da Terra sob o contorno fixo, girada pelo mouse e pela navegação |
+| `src/components/OrbitIndex.ts` | Itens sobre a curva da Terra, título atrás do horizonte, constelação de detalhes e gestos da órbita |
 | `src/components/SceneScroll.ts` | Limiares da rolagem nativa, controles e foco das seções |
 | `src/components/ValleyBackdrop.ts` | Três cristas de vale com mata, araucárias e árvores |
 | `src/components/WindMeadow.ts` | Silhuetas de grama e rajadas na borda do horizonte |
 | `src/components/CanvasPalette.ts` | Quantização 1-bit com orçamento fixo de pixels |
+| `src/data/work.ts` | Cinco experiências em empresas fictícias (placeholder) exibidas em órbita |
 | `src/lib/env.ts` | Movimento reduzido e opção de pular a intro |
 | `src/tailwind.css` | Entrada do Tailwind, fontes, tema e animações |
 | `src/types/tte-js.d.ts` | Tipos da API tte.js utilizada na abertura |

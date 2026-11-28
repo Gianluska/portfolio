@@ -1,6 +1,7 @@
 import { DawnLandscape } from './DawnLandscape'
 import { CanvasPalette } from './CanvasPalette'
 import { WindMeadow } from './WindMeadow'
+import { MAX_TURN } from './EarthSurface'
 import { cameraTravel, HORIZON, PARALLAX_GAIN, smooth } from './SceneGeometry'
 import { flightEase } from '../lib/ease'
 
@@ -13,6 +14,7 @@ const DESCENT_SECONDS = 2.4
 const GROUND_TRAVEL = 2.65
 const LAUNCH_SECONDS = 1.8
 const LAUNCH_RECOVERY_SECONDS = 0.58
+const PULSE_SECONDS = 1.3
 
 type FieldState = 'waiting' | 'sunrise' | 'daylight' | 'still' | 'launch' | 'flight' | 'space'
 
@@ -55,6 +57,9 @@ export class FieldScene {
   private flightDuration = 0
   private flightVelocity = 0
   private carryVelocity = 0
+  private orbitTurn = 0
+  private paintedTurn = 0
+  private pulseTime = -1
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -97,6 +102,22 @@ export class FieldScene {
     if (!this.started) return
     if (this.motion.matches) this.draw()
     else this.resume()
+  }
+
+  /** Radians the planet has turned to bring the selected orbit item under the sun. */
+  setOrbitTurn(turn: number): void {
+    if (turn === this.orbitTurn) return
+    this.orbitTurn = turn
+    if (!this.started) return
+    if (this.motion.matches) this.draw()
+    else this.resume()
+  }
+
+  /** A smaller echo of the takeoff wave, sent when an item settles beneath the sun. */
+  pulseSun(): void {
+    if (!this.started || this.motion.matches) return
+    this.pulseTime = 0
+    this.resume()
   }
 
   private finishFlight(): void {
@@ -201,8 +222,13 @@ export class FieldScene {
     const camera = still ? 0 : this.camera
     const groundOffset = altitude * this.height * GROUND_TRAVEL
     const time = still ? 0 : this.clock
+    const pulse = this.pulseTime < 0 ? 0 : this.pulseTime / PULSE_SECONDS
+    const pulseGlow = 0.62 * smooth(pulse / 0.16) * (1 - smooth((pulse - 0.2) / 0.8))
+    const launching = this.launchGlow > 0
+    const turn = (still ? 0 : this.earthSteer) * MAX_TURN + this.orbitTurn
+    this.paintedTurn = this.orbitTurn
     const elevation = this.sky.draw(ctx, rise, time, camera, altitude, groundOffset,
-      this.launchGlow, this.launchProgress, still ? 0 : this.earthSteer)
+      launching ? this.launchGlow : pulseGlow, launching ? this.launchProgress : 0.1 + 0.52 * pulse, turn)
     if (groundOffset + this.height * (HORIZON - 0.1) < this.height) {
       if (!grounded) {
         ctx.save()
@@ -257,10 +283,16 @@ export class FieldScene {
       const earthGap = earthTarget - this.earthSteer
       this.earthSteer = Math.abs(earthGap) < 0.001
         ? earthTarget : this.earthSteer + earthGap * -Math.expm1(-dt / 0.24)
+      if (this.pulseTime >= 0) {
+        this.pulseTime += dt
+        if (this.pulseTime >= PULSE_SECONDS) this.pulseTime = -1
+      }
     }
     this.previousFrame = now
     if (now >= this.nextPaint - 0.5) {
-      const interval = this.state === 'space' && this.destination === 1 ? ORBIT_FRAME_TIME : FRAME_TIME
+      // Turning the planet or pulsing the sun borrows the full frame rate until it settles.
+      const resting = this.paintedTurn === this.orbitTurn && this.pulseTime < 0
+      const interval = this.state === 'space' && this.destination === 1 && resting ? ORBIT_FRAME_TIME : FRAME_TIME
       this.nextPaint = this.nextPaint === 0 ? now + interval
         : this.nextPaint + (1 + Math.floor((now - this.nextPaint + 0.5) / interval)) * interval
       this.draw()

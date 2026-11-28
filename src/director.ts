@@ -4,6 +4,8 @@ import { env, wait } from './lib/env'
 import { FieldScene } from './components/FieldScene'
 import { AsciiHero } from './components/AsciiHero'
 import { SceneScroll } from './components/SceneScroll'
+import { OrbitIndex } from './components/OrbitIndex'
+import { work } from './data/work'
 
 type Phase = 'boot' | 'animating' | 'reveal' | 'idle'
 
@@ -25,6 +27,7 @@ export class Director {
   private field: FieldScene
   private hero: AsciiHero
   private navigation: SceneScroll
+  private orbit: OrbitIndex
 
   constructor(refs: DirectorRefs) {
     this.refs = refs
@@ -33,7 +36,10 @@ export class Director {
       refs.field,
       refs.hero.firstElementChild!,
       () => { void this.hero.start() },
-      (altitude, settled, launch) => this.navigation.paint(altitude, settled, launch),
+      (altitude, settled, launch) => {
+        this.navigation.paint(altitude, settled, launch)
+        this.orbit.paint(altitude, settled)
+      },
     )
     this.navigation = new SceneScroll(
       refs.meadow,
@@ -41,6 +47,11 @@ export class Director {
       (inSpace) => this.field.setDestination(inSpace),
       (visible) => this.hero.setActive(visible),
     )
+    this.orbit = new OrbitIndex(refs.space, work, {
+      turn: (radians) => this.field.setOrbitTurn(radians),
+      pulse: () => this.field.pulseSun(),
+      descend: () => this.navigation.toMeadow(),
+    })
   }
 
   private setPhase(phase: Phase): void {
@@ -102,6 +113,7 @@ export class Director {
     this.destroyed = true
     this.transition?.kill()
     this.intro?.destroy()
+    this.orbit.destroy()
     this.navigation.destroy()
     this.field.destroy()
     this.hero.destroy()

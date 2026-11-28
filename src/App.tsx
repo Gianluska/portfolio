@@ -1,10 +1,15 @@
 import { useEffect, useRef } from 'react'
 import { Director } from './director'
 import { glyphs } from './data/glyphs'
+import { work } from './data/work'
 
 const heroLine = 'hero__line relative block w-full'
 const skeletonOverlay = 'absolute inset-0 overflow-hidden [--ars-radius:0px] [clip-path:inset(0_100%_0_0)] text-left leading-none font-ascii font-normal [&_:is(.ars,.ars-block)]:size-full'
 const heroSkeleton = `hero__skeleton ${skeletonOverlay} tracking-normal [&[hidden]]:hidden`
+
+const noteFields = [
+  ['period', 'Period'], ['role', 'Role'], ['summary', 'Summary'], ['stack', 'Stack'], ['link', 'Link'],
+] as const
 
 const sceneButton = 'scene-button pointer-events-auto absolute inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] mx-auto flex min-h-11 w-fit cursor-pointer items-center gap-2 border-0 bg-transparent px-3 font-mono text-xs text-scene-ink focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-scene-ink'
 
@@ -89,10 +94,47 @@ export default function App() {
           </button>
         </section>
 
-        <section className="space-view pointer-events-none fixed inset-0 z-3 opacity-0 outline-none" tabIndex={-1} aria-labelledby="space-title" inert>
-          <h2 id="space-title" className="absolute inset-x-page top-[60svh] m-0 -translate-y-1/2 text-center font-display text-[clamp(32px,min(6.1vw,8svh),88px)]/[1.05] font-bold tracking-[-0.01em] text-balance text-scene-ink">
-            Beyond the atmosphere
-          </h2>
+        <section className="space-view pointer-events-none fixed inset-0 z-3 overflow-hidden opacity-0 outline-none
+          [&.is-orbiting]:pointer-events-auto [&.is-orbiting]:touch-none [&.is-dragging]:cursor-grabbing [&.is-dragging]:select-none" tabIndex={-1} aria-labelledby="space-title" inert>
+          <h2 id="space-title" className="sr-only">Experience</h2>
+          <ol className="orbit-list m-0 list-none p-0" aria-label="Companies, use the arrow keys to turn">
+            {work.map((item, i) => (
+              <li key={item.name} className="orbit-item invisible absolute top-0 left-0 size-0">
+                <button type="button" className="group/item absolute top-0 left-0 grid -translate-x-1/2 -translate-y-[6px] cursor-pointer justify-items-center gap-[10px]
+                  border-0 bg-transparent p-1 font-mono text-[11px]/none tracking-[0.08em] whitespace-nowrap text-scene-muted uppercase
+                  hover:text-scene-ink focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-scene-ink aria-[current=true]:text-scene-ink" tabIndex={i === 0 ? 0 : -1} aria-current={i === 0}>
+                  <span className="orbit-item__dot block size-[5px] rounded-full bg-current shadow-[0_0_0_2px_rgb(var(--scene-rgb))] [transition:transform_300ms_var(--ease-scene)]
+                    group-aria-[current=true]/item:scale-[2.25] group-aria-[current=true]/item:bg-transparent group-aria-[current=true]/item:outline-1 group-aria-[current=true]/item:-outline-offset-1 group-aria-[current=true]/item:outline-current" aria-hidden="true" />
+                  <span className="orbit-item__label block bg-scene px-[5px] py-[3px]">
+                    <span aria-hidden="true">{String(i + 1).padStart(2, '0')} </span>{item.name}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+          <article className="orbit-focus pointer-events-none absolute inset-0" aria-labelledby="orbit-title">
+            <svg className="orbit-chart absolute inset-0 size-full overflow-visible text-scene-ink" aria-hidden="true" />
+            <dl className="orbit-notes m-0">
+              {noteFields.map(([key, term]) => (
+                <div key={key} className="orbit-note invisible absolute top-0 left-0 max-w-[34ch]" data-note={key}>
+                  <dt className="sr-only">{term}</dt>
+                  <dd className={key === 'summary'
+                    ? 'm-0 font-display text-[clamp(14px,1.15vw,17px)]/[1.35] text-balance text-scene-ink'
+                    : 'm-0 font-mono text-[11px]/[1.4] tracking-[0.08em] text-scene-muted uppercase'}>
+                    {key === 'link'
+                      ? <a className="pointer-events-auto text-scene-ink underline decoration-1 underline-offset-4 focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-scene-ink" href="#" />
+                      : null}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <div className="orbit-title absolute inset-x-0 top-0 flex items-end justify-center px-page">
+              <h3 id="orbit-title" className="m-0 text-center font-display text-[clamp(40px,min(11vw,12svh),124px)]/[0.98] font-bold tracking-[-0.015em] text-balance text-scene-ink translate-y-[0.22em]">
+                <span className="orbit-title__text inline-block translate-y-[135%]" />
+              </h3>
+            </div>
+          </article>
+          <p className="orbit-status sr-only" aria-live="polite" />
           <button type="button" className={sceneButton}>
             Back to the meadow <ScrollArrow up />
           </button>

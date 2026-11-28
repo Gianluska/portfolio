@@ -1,5 +1,5 @@
-import { grain, smooth } from './SceneGeometry'
-import { EarthSurface, MAX_TURN } from './EarthSurface'
+import { grain, limbAt, limbCurve, smooth } from './SceneGeometry'
+import { EarthSurface } from './EarthSurface'
 
 const RIM = 0.43
 const TAU = Math.PI * 2
@@ -54,7 +54,7 @@ export class UpperAtmosphere {
     const ctx = this.limb.getContext('2d')!
     const pixels = ctx.createImageData(lw, lh)
     const { data } = pixels
-    const curve = this.curve = Math.min(0.34, 0.12 + width / height * 0.09)
+    const curve = this.curve = limbCurve(width, height)
     for (let x = 0; x < lw; x++) {
       const u = 2 * (x + 0.5) / lw - 1
       const edge = RIM + curve * u * u
@@ -77,7 +77,7 @@ export class UpperAtmosphere {
     this.surface.resize(width, height, curve)
   }
 
-  draw(ctx: CanvasRenderingContext2D, altitude: number, time: number, earthSteer: number): void {
+  draw(ctx: CanvasRenderingContext2D, altitude: number, time: number, turn: number): void {
     if (altitude <= 0.34) return
     const w = this.width, h = this.height
     if (altitude > 0.49) this.drawStars(ctx, h * 0.24 * (altitude - 1), smooth((altitude - 0.49) / 0.43), time)
@@ -85,8 +85,7 @@ export class UpperAtmosphere {
     // The haze resolves into a thin atmospheric limb as the camera clears it.
     const air = smooth((altitude - 0.34) / 0.40)
     ctx.globalAlpha = air
-    const depth = h * (0.66 - 0.11 * smooth((altitude - 0.45) / 0.55))
-    const rim = h * (0.3465 + 0.56 * altitude)
+    const { rim, depth } = limbAt(altitude, h)
     const top = rim - RIM * depth
     ctx.drawImage(this.limb, 0, top, w, depth)
     if (top + depth < h) {
@@ -97,8 +96,8 @@ export class UpperAtmosphere {
     const currentLight = air * smooth((altitude - 0.55) / 0.35)
     if (currentLight > 0) {
       ctx.globalAlpha = currentLight
-      this.surface.draw(ctx, w, rim, depth, earthSteer)
-      this.drawCurrents(ctx, rim, depth, currentLight, time, earthSteer)
+      this.surface.draw(ctx, w, rim, depth, turn)
+      this.drawCurrents(ctx, rim, depth, currentLight, time, turn)
     }
     ctx.globalAlpha = 1
   }
@@ -124,7 +123,7 @@ export class UpperAtmosphere {
     ctx.restore()
   }
 
-  private drawCurrents(ctx: CanvasRenderingContext2D, rim: number, depth: number, light: number, time: number, steer: number): void {
+  private drawCurrents(ctx: CanvasRenderingContext2D, rim: number, depth: number, light: number, time: number, turn: number): void {
     const w = this.width, curvature = this.curve * depth
     ctx.globalCompositeOperation = 'screen'
     ctx.fillStyle = '#fff'
@@ -132,7 +131,7 @@ export class UpperAtmosphere {
       // Wrap only when the whole tapered ribbon is outside the frame.
       const period = 1 + span
       // Same angular turn as the surface, converted from bearing to a fraction of the frame.
-      const travel = start + speed * time + span * 0.5 - steer * MAX_TURN / 1.14
+      const travel = start + speed * time + span * 0.5 - turn / 1.14
       const left = travel - Math.floor(travel / period) * period - span
       const right = left + span, middle = (left + right) * 0.5
       const lane = rim - level * depth

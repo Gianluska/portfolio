@@ -25,7 +25,6 @@ export class SceneScroll {
   private moveFocus = false
   private readonly ascend: HTMLButtonElement
   private readonly descend: HTMLButtonElement
-  private readonly spaceTitle: HTMLElement
   private readonly heroLines: NodeListOf<HTMLElement>
   private readonly glitch: Animation[] = []
   private meadowOpacity = 1
@@ -39,11 +38,10 @@ export class SceneScroll {
     private readonly onMeadowVisible: (visible: boolean) => void,
   ) {
     this.ascend = meadow.querySelector<HTMLButtonElement>('.scene-button')!
-    this.descend = space.querySelector<HTMLButtonElement>('.scene-button')!
-    this.spaceTitle = space.querySelector('h2')!
+    this.descend = space.querySelector<HTMLButtonElement>(':scope > .scene-button')!
     this.heroLines = meadow.querySelectorAll<HTMLElement>('.hero__line')
     this.ascend.addEventListener('click', this.goUp)
-    this.descend.addEventListener('click', this.goDown)
+    this.descend.addEventListener('click', this.toMeadow)
     window.addEventListener('scroll', this.readScroll, { passive: true })
     window.addEventListener('resize', this.readScroll, { passive: true })
     this.readScroll()
@@ -71,7 +69,8 @@ export class SceneScroll {
   }
 
   private goUp = (): void => { this.jump(this.scrollRange()) }
-  private goDown = (): void => { this.jump(0) }
+  /** Returns to the meadow from anywhere in orbit, as the button does. */
+  toMeadow = (): void => { this.jump(0) }
 
   paint(altitude: number, settled: boolean, launch: number): void {
     const meadowOpacity = (1 - smooth((altitude - 0.025) / 0.23)) * (1 - smooth((launch - 0.48) / 0.48))
@@ -86,7 +85,6 @@ export class SceneScroll {
     if (this.spaceOpacity !== spaceOpacity) {
       this.spaceOpacity = spaceOpacity
       this.space.style.opacity = `${spaceOpacity}`
-      this.spaceTitle.style.transform = spaceOpacity < 1 ? `translateY(${-14 * (1 - spaceOpacity)}px)` : ''
       this.setInert(this.space, spaceOpacity === 0)
     }
     if (this.moveFocus && settled) {
@@ -128,7 +126,7 @@ export class SceneScroll {
   destroy(): void {
     this.paintGlitch(0)
     this.ascend.removeEventListener('click', this.goUp)
-    this.descend.removeEventListener('click', this.goDown)
+    this.descend.removeEventListener('click', this.toMeadow)
     window.removeEventListener('scroll', this.readScroll)
     window.removeEventListener('resize', this.readScroll)
   }

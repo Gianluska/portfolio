@@ -72,11 +72,10 @@ export class EarthSurface {
     }
   }
 
-  draw(ctx: CanvasRenderingContext2D, width: number, rim: number, depth: number, steer: number): void {
+  draw(ctx: CanvasRenderingContext2D, width: number, rim: number, depth: number, turn: number): void {
     if (!this.pixels) return
-    if (steer !== this.lastTurn) {
-      this.lastTurn = steer
-      const turn = steer * MAX_TURN
+    if (turn !== this.lastTurn) {
+      this.lastTurn = turn
       const { data } = this.pixels
       const { map, range, azimuth, visibility } = this
       for (let i = 0; i < visibility.length; i++) {

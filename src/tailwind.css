@@ -53,7 +53,7 @@
   .loader canvas { filter: url(#intro-palette); }
   .intro-ink { flood-color: rgb(var(--scene-ink-rgb)); }
 
-  .hero, .space-view h2, .scene-button {
+  .hero, .orbit-title, .orbit-note, .orbit-item, .scene-button {
     text-shadow: 0 1px rgb(var(--scene-rgb)), 0 0 3px rgb(var(--scene-rgb));
   }
 
