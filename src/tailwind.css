@@ -49,7 +49,7 @@
 }
 
 @layer components {
-  .river { image-rendering: pixelated; }
+  .field { image-rendering: pixelated; }
   .loader canvas { filter: url(#intro-palette); }
   .intro-ink { flood-color: rgb(var(--scene-ink-rgb)); }
 

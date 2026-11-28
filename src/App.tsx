@@ -16,7 +16,7 @@ export default function App() {
       {
         loader: $('.loader'),
         loaderLogo: $('.loader__logo'),
-        river: el.querySelector<HTMLCanvasElement>('.river')!,
+        field: el.querySelector<HTMLCanvasElement>('.field')!,
         hero: $('.hero'),
       },
     )
@@ -32,7 +32,7 @@ export default function App() {
           [font-kerning:none] [font-variant-ligatures:none] select-none group-[.is-on]/loader:visible">{glyphs.official.join('\n')}</pre>
       </div>
 
-      <canvas className="river pointer-events-none fixed inset-0 z-0 block size-full data-[state=waiting]:invisible" data-state="waiting" aria-hidden="true" />
+      <canvas className="field pointer-events-none fixed inset-0 z-0 block size-full data-[state=waiting]:invisible" data-state="waiting" aria-hidden="true" />
 
 
       <main>

@@ -12,7 +12,7 @@ const THRESHOLDS = Uint8Array.from(atob(
 ), (c) => Math.ceil(c.charCodeAt(0) / 1.25))
 
 /** Quantize the composed grayscale frame in-place, before it reaches the CSS compositor. */
-export class RiverPalette {
+export class CanvasPalette {
   private readonly colors: Uint32Array
   private thresholds = new Uint8Array(0)
   private rows = new Uint32Array(0)
@@ -21,7 +21,7 @@ export class RiverPalette {
   constructor(output: HTMLCanvasElement) {
     // Keep the canvas CPU-backed so the read never synchronizes with the GPU.
     const context = output.getContext('2d', { alpha: false, willReadFrequently: true })
-    if (!context) throw new Error('The ASCII river requires a 2D canvas context')
+    if (!context) throw new Error('The 1-bit scene requires a 2D canvas context')
     this.context = context
     const style = getComputedStyle(output)
     const rgb = (name: string) => style.getPropertyValue(name).trim().split(/\s+/).map(Number)
@@ -49,18 +49,18 @@ export class RiverPalette {
     for (let y = 0; y < h; y++) this.rows[y] = Math.floor((y + 0.5) / pixel) % TILE * w
   }
 
-  present(): void {
+  present(top: number): void {
     const { width, height } = this.context.canvas
-    const image = this.context.getImageData(0, 0, width, height)
+    const image = this.context.getImageData(0, top, width, height - top)
     const bytes = image.data, words = new Uint32Array(bytes.buffer)
     const thresholds = this.thresholds
     const colors = this.colors
-    for (let y = 0, i = 0; y < height; y++) {
+    for (let y = top, i = 0; y < height; y++) {
       const end = i + width
       for (let rank = this.rows[y]; i < end; i++, rank++) {
         words[i] = colors[+(bytes[i * 4] >= thresholds[rank])]
       }
     }
-    this.context.putImageData(image, 0, 0)
+    this.context.putImageData(image, 0, top)
   }
 }

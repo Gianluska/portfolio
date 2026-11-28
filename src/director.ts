@@ -1,7 +1,7 @@
 import { gsap } from './lib/ease'
 import { createTextEffect, effectNames, type TextEffect } from 'tte.js'
 import { env, wait } from './lib/env'
-import { AsciiRiver } from './components/AsciiRiver'
+import { FieldScene } from './components/FieldScene'
 import { AsciiHero } from './components/AsciiHero'
 
 type Phase = 'boot' | 'animating' | 'reveal' | 'idle'
@@ -9,23 +9,23 @@ type Phase = 'boot' | 'animating' | 'reveal' | 'idle'
 interface DirectorRefs {
   loader: HTMLElement
   loaderLogo: HTMLElement
-  river: HTMLCanvasElement
+  field: HTMLCanvasElement
   hero: HTMLElement
 }
 
-/** Runs the ASCII intro and starts the sea and portfolio copy. */
+/** Runs the ASCII intro and starts the sunrise and portfolio copy. */
 export class Director {
   private refs: DirectorRefs
   private destroyed = false
   private transition: gsap.core.Timeline | null = null
   private intro: TextEffect | null = null
-  private river: AsciiRiver
+  private field: FieldScene
   private hero: AsciiHero
 
   constructor(refs: DirectorRefs) {
     this.refs = refs
     this.hero = new AsciiHero(refs.hero)
-    this.river = new AsciiRiver(refs.river, () => { void this.hero.start() })
+    this.field = new FieldScene(refs.field, () => { void this.hero.start() })
   }
 
   private setPhase(phase: Phase): void {
@@ -35,7 +35,7 @@ export class Director {
   async run(): Promise<void> {
     await Promise.race([document.fonts.load('400 16px "Geist Mono"'), wait(900)])
     if (this.destroyed) return
-    if (env.skipIntro) return this.showSea()
+    if (env.skipIntro) return this.showField()
 
     if (env.reducedMotion) {
       this.refs.loader.classList.add('is-on')
@@ -63,14 +63,14 @@ export class Director {
     this.reveal()
   }
 
-  private showSea(): void {
+  private showField(): void {
     this.refs.loader.hidden = true
-    this.river.start(true)
+    this.field.start(true)
     this.setPhase('idle')
   }
 
   private reveal(): void {
-    if (env.reducedMotion) return this.showSea()
+    if (env.reducedMotion) return this.showField()
     const { refs } = this
     this.setPhase('reveal')
     this.transition = gsap.timeline({ onComplete: () => this.setPhase('idle') })
@@ -79,7 +79,7 @@ export class Director {
         refs.loader.hidden = true
         this.intro?.destroy()
         this.intro = null
-        this.river.start()
+        this.field.start()
       })
   }
 
@@ -87,7 +87,7 @@ export class Director {
     this.destroyed = true
     this.transition?.kill()
     this.intro?.destroy()
-    this.river.destroy()
+    this.field.destroy()
     this.hero.destroy()
   }
 }
