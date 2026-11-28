@@ -1,4 +1,4 @@
-const HORIZON = 0.60
+export const HORIZON = 0.72
 const SUN_AT_REST = 0.205
 
 export const smooth = (x: number): number => {
@@ -21,18 +21,12 @@ function noise(x: number, y: number): number {
   return top + (bottom - top) * v
 }
 
-/** Low saddle in the center; the same profile anchors the farthest stems. */
-export function meadowEdge(x: number): number {
-  return HORIZON + 0.024 * Math.cos((x - 0.46) * 7.7) + 0.019 * Math.sin(x * 13.1 + 0.6)
-}
-
-/** Static scattering and three rolling ridges; only solar position and exposure change. */
+/** Cached cloud texture in a level view; the sun alone drives the exposure. */
 export class DawnLandscape {
   private readonly sky = document.createElement('canvas')
   private readonly skyContext = this.sky.getContext('2d')!
   private readonly glow = document.createElement('canvas')
-  private readonly ridges = [new Path2D(), new Path2D(), new Path2D()]
-  private soil!: CanvasGradient
+  private readonly soil = document.createElement('canvas')
   private w = 1
   private h = 1
   private sunRadius = 1
@@ -47,19 +41,30 @@ export class DawnLandscape {
     halo.addColorStop(1, 'rgba(255,255,255,0)')
     ctx.fillStyle = halo
     ctx.fillRect(0, 0, 96, 96)
+
+    this.soil.width = 2
+    this.soil.height = 128
+    const ground = this.soil.getContext('2d')!
+    const falloff = ground.createLinearGradient(0, 0, 0, this.soil.height)
+    falloff.addColorStop(0, '#303030')
+    falloff.addColorStop(0.20, '#1a1a1a')
+    falloff.addColorStop(0.75, '#101010')
+    falloff.addColorStop(1, '#000')
+    ground.fillStyle = falloff
+    ground.fillRect(0, 0, this.soil.width, this.soil.height)
   }
 
-  resize(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  resize(width: number, height: number): void {
     this.w = width
     this.h = height
     this.sunRadius = Math.min(width * 0.105, height * 0.087)
     const w = this.sky.width = Math.max(1, Math.min(640, Math.round(width / 2)))
-    const h = this.sky.height = Math.max(1, Math.min(330, Math.round(height * 0.66 / 2)))
+    const h = this.sky.height = Math.max(1, Math.min(360, Math.round(height * HORIZON / 2)))
     const pixels = this.skyContext.createImageData(w, h)
     const { data } = pixels
     for (let row = 0, i = 0; row < h; row++) {
-      const y = (row + 0.5) / h * 0.66
-      const haze = smooth((y - 0.39) / 0.24)
+      const y = (row + 0.5) / h * HORIZON
+      const haze = smooth((y - 0.46) / (HORIZON - 0.46))
       const caption = smooth((0.135 - Math.abs(y - 0.423)) / 0.065)
       for (let col = 0; col < w; col++, i += 4) {
         const sx = (col + 0.5) / w - 0.5
@@ -74,58 +79,51 @@ export class DawnLandscape {
       }
     }
     this.skyContext.putImageData(pixels, 0, 0)
-
-    for (let i = 0; i < this.ridges.length; i++) {
-      const path = this.ridges[i] = new Path2D()
-      path.moveTo(0, height)
-      for (let col = 0; col <= 96; col++) {
-        const x = col / 96
-        const profile = i === 2 ? meadowEdge(x)
-          : HORIZON - (i === 0 ? 0.064 : 0.029)
-            + 0.027 * Math.cos(x * (i === 0 ? 8.3 : 11.7) + i * 2.1)
-            + 0.018 * Math.sin(x * 19 - i * 1.8) + (noise(x * 15, i + 6) - 0.5) * 0.013
-        path.lineTo(x * width, profile * height)
-      }
-      path.lineTo(width, height)
-      path.closePath()
-    }
-    this.soil = ctx.createLinearGradient(0, height * 0.58, 0, height)
-    this.soil.addColorStop(0, '#151515')
-    this.soil.addColorStop(0.24, '#292929')
-    this.soil.addColorStop(0.76, '#171717')
-    this.soil.addColorStop(1, '#030303')
   }
 
-  draw(ctx: CanvasRenderingContext2D, rise: number, light: number): void {
+  draw(ctx: CanvasRenderingContext2D, rise: number): number {
     const { w, h, sunRadius: radius } = this
-    const x = w * (0.5 + (rise - 1) * 0.021)
-    const y = h * (0.74 + (SUN_AT_REST - 0.74) * rise)
+    const horizon = Math.round(HORIZON * ctx.canvas.height) * h / ctx.canvas.height
+    const start = horizon + radius + h * 0.059
+    const end = h * SUN_AT_REST
+    const y = start + (end - start) * rise
+    const x = w * 0.5
+    // Zero until the upper rim reaches the horizon. The first glow leads it by a few pixels.
+    const elevation = (horizon - y + radius) / (horizon - end + radius)
+    const spill = smooth((elevation + 0.035) / 0.38)
+    const skyLight = smooth(elevation / 0.86)
     ctx.fillStyle = '#000'
     ctx.fillRect(0, 0, w, h)
-    ctx.globalAlpha = 0.08 + 0.88 * light
-    ctx.drawImage(this.sky, 0, 0, w, h * 0.66)
-    ctx.globalAlpha = 0.20 + light * 0.62
-    const haloX = Math.min(w * 0.48, radius * 4.2)
-    const haloY = Math.min(h * 0.31, radius * 3.4)
+    if (spill === 0) return elevation
+
+    if (skyLight > 0) {
+      ctx.globalAlpha = skyLight
+      ctx.drawImage(this.sky, 0, 0, w, horizon)
+    }
+    const haloX = Math.min(w * (0.16 + 0.32 * spill), radius * (2 + 2.2 * spill))
+    const haloY = Math.min(h * 0.31, radius * (1.4 + 2 * spill))
+    ctx.globalAlpha = spill * 0.74
     ctx.globalCompositeOperation = 'screen'
     ctx.drawImage(this.glow, x - haloX, y - haloY, haloX * 2, haloY * 2)
     ctx.globalCompositeOperation = 'source-over'
     ctx.globalAlpha = 1
-    ctx.fillStyle = '#fff'
-    ctx.beginPath()
-    ctx.arc(x, y, radius, 0, Math.PI * 2)
-    ctx.fill()
 
-    // The ridges occlude the actual disc, not just a cropped image of it.
-    ctx.fillStyle = '#202020'
-    ctx.fill(this.ridges[0])
-    ctx.fillStyle = '#111'
-    ctx.fill(this.ridges[1])
+    if (elevation > 0) {
+      ctx.fillStyle = '#fff'
+      ctx.beginPath()
+      ctx.arc(x, y, radius, 0, Math.PI * 2)
+      ctx.fill()
+    }
+
+    // The flat ground occludes the disc and halo, then catches light from the rising sun.
     ctx.fillStyle = '#000'
-    ctx.fill(this.ridges[2])
-    ctx.globalAlpha = 0.24 + light * 0.76
-    ctx.fillStyle = this.soil
-    ctx.fill(this.ridges[2])
-    ctx.globalAlpha = 1
+    ctx.fillRect(0, horizon, w, h - horizon)
+    const reach = smooth((elevation - 0.035) / 0.83)
+    if (reach > 0) {
+      ctx.globalAlpha = smooth((elevation - 0.06) / 0.82)
+      ctx.drawImage(this.soil, 0, horizon, w, (h - horizon) * reach)
+      ctx.globalAlpha = 1
+    }
+    return elevation
   }
 }

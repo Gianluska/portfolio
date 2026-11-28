@@ -2,7 +2,7 @@
 
 ## Escopo vigente
 
-Uma única tela, sem rolagem. A abertura `lvsk` dá lugar a um campo de gramíneas altas sob um céu pontilhado. O sol sobe atrás das colinas, acende a paisagem e libera o hero com nome e três roles. O mar, a gota e o barco interativo foram removidos. A grama se curva em rajadas, sem responder ao ponteiro.
+Uma única tela, sem rolagem. A abertura `lvsk` termina sobre o mesmo grafite da cena. O sol nasce no horizonte plano, acende a paisagem e revela o hero com nome e três roles. A grama se curva em rajadas, sem responder ao ponteiro.
 
 ## Elementos preservados
 
@@ -23,15 +23,15 @@ A role é texto não interativo: clique, Enter e espaço não pausam nem reinici
 
 ## Amanhecer
 
-Três cristas baixas, recortadas contra nuvens pontilhadas, separam o horizonte do campo. O disco solar começa abaixo do relevo e sobe durante 3,8 s; as cristas o ocultam fisicamente na composição. O brilho do céu e a exposição de folhas e plumas aumentam com a altura do sol. Uma vez acima do texto, o sol se detém; o vento continua.
+A câmera é frontal, fixa e nivelada, com horizonte reto a 72% da altura. O primeiro quadro tem apenas o fundo grafite: o disco está oculto pelo plano do campo. O sol sobe durante 3,8 s. Primeiro aparece o halo e o bordo do disco; sua elevação governa o brilho das nuvens e o avanço da luz pelo solo. O primeiro plano permanece escuro até depois das touceiras distantes. Quando o sol libera a área do texto, começa o reveal do hero.
 
 ### Campo e vento
 
-As gramíneas de inspiração em *Ghost of Tsushima* crescem em touceiras distribuídas em seis faixas de profundidade. As lâminas curvas ficam mais altas e espaçadas no primeiro plano, e as espigas têm franjas desenhadas no eixo das hastes. As raízes permanecem fixas: duas ondas com fases baseadas na posição fazem as rajadas atravessarem o campo, com variação de inclinação, flexibilidade e comprimento entre hastes. As sementes no ar só aparecem com a luz.
+As gramíneas são baixas no enquadramento e crescem em seis faixas de profundidade. As lâminas e plumas distantes têm poucos pixels; as mais próximas ficam maiores, sem romper a linha do horizonte. Cada faixa ganha luz de acordo com a altura do sol e sua distância. As raízes permanecem fixas: duas ondas com fases baseadas na posição fazem as rajadas atravessarem as touceiras. As sementes no ar só aparecem com a luz.
 
 ### Rasterização
 
-`DawnLandscape` mantém o céu procedural, o halo e o relevo em cache. `WindMeadow` refaz a geometria e as fases apenas no redimensionamento e agrupa os traços por tom e profundidade. `CanvasPalette` quantiza o Canvas 2D CPU-backed em grafite e marfim com limiares de blue noise. O raster fica em aproximadamente 0,9 megapixel ou menos. Depois do amanhecer, só as linhas alcançadas pelo campo e pelas sementes são redesenhadas e quantizadas. O Canvas da cena não usa filtro CSS, WebGL ou loop extra.
+`DawnLandscape` mantém céu, halo e gradação do solo em cache. `WindMeadow` refaz geometria e fases no redimensionamento e agrupa os traços por tom e profundidade. `CanvasPalette` quantiza o Canvas 2D CPU-backed em grafite e marfim, com limiares de blue noise e raster de aproximadamente 0,9 megapixel ou menos. Depois do amanhecer, só as linhas alcançadas pela grama e pelas sementes são atualizadas. O Canvas da cena não usa filtro CSS, WebGL ou loop extra.
 
 ## Movimento reduzido
 

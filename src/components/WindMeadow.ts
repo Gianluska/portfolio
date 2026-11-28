@@ -1,4 +1,4 @@
-import { grain, meadowEdge, smooth } from './DawnLandscape'
+import { grain, HORIZON, smooth } from './DawnLandscape'
 
 const BANDS = [0, 0.16, 0.31, 0.47, 0.65, 0.83, 1.12]
 const BLADE_COLORS = ['#050505', '#777', '#ddd']
@@ -67,7 +67,7 @@ export class WindMeadow {
     const scale = Math.min(height, width * 1.8)
     const density = Math.min(390, Math.max(95, Math.round(width * 0.27)))
     // Include the highest possible blade tips and airborne seeds at any wind phase.
-    let upperEdge = height * 0.495 - 6
+    let upperEdge = height * (HORIZON - 0.085) - 6
     for (let bandIndex = 0; bandIndex < BANDS.length - 1; bandIndex++) {
       const band: Band = { blades: [[], [], []], plumes: [] }
       this.bands.push(band)
@@ -81,11 +81,13 @@ export class WindMeadow {
         const depth = far + (near - far) * (0.12 + 0.76 * grain(tuft + bandIndex * 79, 4))
         const d = Math.min(1, depth)
         const x = baseX + (grain(id, 7) - 0.5) * (0.035 + d * 0.14)
-        const horizon = meadowEdge(x)
-        const root = horizon + (1.045 - horizon) * depth ** 1.53 + (grain(id, 8) - 0.5) * (0.009 + d * 0.053)
+        const root = HORIZON + (1.015 - HORIZON) * depth ** 1.43
+          + (grain(id, 8) - 0.5) * (0.002 + d * 0.019)
         const vigor = grain(id, 14)
-        const length = scale * (0.009 + d ** 1.72 * 0.315) * (0.39 + vigor * 0.81)
-        const leafWidth = 0.65 + d ** 1.35 * scale * (0.0022 + grain(id, 15) * 0.0053)
+        const length = Math.min((root - HORIZON) * height * 0.84,
+          scale * (0.0035 + d ** 1.52 * 0.078) * (0.45 + vigor * 0.73))
+        if (length < 0.4) continue
+        const leafWidth = 0.62 + d ** 1.35 * scale * (0.0014 + grain(id, 15) * 0.0039)
         const phase = x * 13.4 + depth * 8.2
         const gust = x * 5.8 - depth * 6.7 + (grain(tuft, bandIndex + 30) - 0.5) * 0.5
         const stem: Stem = {
@@ -100,9 +102,8 @@ export class WindMeadow {
         const brightness = grain(id, 19)
         const hasPlume = brightness > 0.84 - 0.05 * d && (vigor > 0.48 || bandIndex === 0)
         if (hasPlume) {
-          stem.length *= 1.08
           stem.width *= 0.42
-          stem.plume = 3.2 + length * (0.15 + grain(id, 20) * 0.15)
+          stem.plume = Math.min((root - HORIZON) * height * 0.12, 1.6 + length * (0.17 + grain(id, 20) * 0.13))
           band.plumes.push(stem)
         }
         upperEdge = Math.min(upperEdge, stem.y - stem.length - stem.plume * 1.12)
@@ -112,15 +113,20 @@ export class WindMeadow {
     return upperEdge
   }
 
-  draw(ctx: CanvasRenderingContext2D, time: number, light: number): void {
+  draw(ctx: CanvasRenderingContext2D, time: number, elevation: number): void {
+    if (elevation <= 0.07) return
     const broadSin = Math.sin(time * 1.08), broadCos = Math.cos(time * 1.08)
     const gustSin = Math.sin(time * 1.84), gustCos = Math.cos(time * 1.84)
     for (let i = 0; i < this.bands.length; i++) {
       const band = this.bands[i]
       const depth = i / (this.bands.length - 1)
+      // The front of light reaches the horizon clumps first, then the foreground.
+      const delay = 0.07 + 0.34 * depth
+      const light = smooth((elevation - delay) / (0.96 - delay))
+      if (light === 0) continue
       for (let tone = 0; tone < BLADE_COLORS.length; tone++) {
         ctx.fillStyle = BLADE_COLORS[tone]
-        ctx.globalAlpha = tone === 0 ? 1 : (0.16 + light * 0.84) * (tone === 1 ? 0.61 : 0.76)
+        ctx.globalAlpha = light * (tone === 0 ? 1 : tone === 1 ? 0.68 : 0.83)
         ctx.beginPath()
         for (const stem of band.blades[tone]) {
           const wave = stem.waveSin * broadCos - stem.waveCos * broadSin
@@ -130,13 +136,13 @@ export class WindMeadow {
         }
         ctx.fill()
       }
-      ctx.globalAlpha = 0.24 + light * (0.74 - 0.10 * depth)
+      ctx.globalAlpha = light * (0.95 - 0.08 * depth)
       ctx.fillStyle = '#fff'
       ctx.beginPath()
       for (const stem of band.plumes) seedHead(ctx, stem, stem.bend)
       ctx.fill()
     }
-    this.chaff(ctx, time, light)
+    this.chaff(ctx, time, smooth((elevation - 0.35) / 0.62))
     ctx.globalAlpha = 1
   }
 
@@ -148,7 +154,7 @@ export class WindMeadow {
       const life = 6 + grain(i, 84) * 6
       const age = (time / life + grain(i, 22)) % 1
       const x = ((grain(i, 83) + time * (0.014 + grain(i, 60) * 0.026)) % 1) * width
-      const y = height * (0.55 + grain(i, 45) * 0.39 - age * 0.055) + Math.sin(time * 1.4 + i) * 6
+      const y = height * (HORIZON - 0.03 + grain(i, 45) * 0.29 - age * 0.055) + Math.sin(time * 1.4 + i) * 6
       ctx.globalAlpha = 0.46 * light * smooth(age * 8) * smooth((1 - age) * 7)
       ctx.fillRect(x, y, 1.1 + grain(i, 78) * 1.6, 1)
     }

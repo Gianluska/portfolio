@@ -53,9 +53,8 @@ export class FieldScene {
     this.height = h
     this.scale = scale
     this.palette.resize(w, h, scale)
-    const ctx = this.palette.context
     this.setTransform()
-    this.sky.resize(ctx, w, h)
+    this.sky.resize(w, h)
     const top = this.meadow.resize(w, h)
     this.dynamicTop = Math.max(0, Math.floor(top * this.canvas.height / h) - 2)
     this.skyPainted = false
@@ -71,7 +70,6 @@ export class FieldScene {
     const still = this.motion.matches
     const progress = still ? 1 : Math.min(1, this.clock / SUNRISE)
     const rise = smooth(progress)
-    const light = smooth((rise - 0.13) / 0.79)
     const ctx = this.palette.context
     // Once the sun stops, leave the already-quantized sky above the moving field untouched.
     const top = this.skyPainted ? this.dynamicTop : 0
@@ -81,8 +79,8 @@ export class FieldScene {
       ctx.rect(0, top * this.height / this.canvas.height, this.width, this.height)
       ctx.clip()
     }
-    this.sky.draw(ctx, rise, light)
-    this.meadow.draw(ctx, still ? SUNRISE : this.clock, light)
+    const elevation = this.sky.draw(ctx, rise)
+    this.meadow.draw(ctx, still ? SUNRISE : this.clock, elevation)
     if (top > 0) ctx.restore()
     this.palette.present(top)
     this.skyPainted = progress === 1
