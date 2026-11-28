@@ -23,11 +23,15 @@ A role é texto não interativo: clique, Enter e espaço não pausam nem reinici
 
 ## Amanhecer
 
-A câmera é frontal, fixa e nivelada. O horizonte reto fica a 39% da altura; o solo ocupa os 61% restantes. O primeiro quadro tem apenas o fundo grafite. Em 3,8 s, o sol acelera ao sair do horizonte e desacelera progressivamente até repousar a 15% da altura. Conforme sobe, a luz alcança primeiro a grama logo abaixo do disco, depois se abre para as laterais e avança em direção ao primeiro plano antes do reveal do hero.
+A câmera permanece frontal e nivelada. O plano do campo começa a 39% da altura, com três cristas de vale ao fundo. O primeiro quadro tem apenas o fundo grafite. Em 3,8 s, o sol acelera ao sair do horizonte e desacelera progressivamente até repousar a 15% da altura. Conforme sobe, a luz alcança primeiro a grama logo abaixo do disco, depois se abre para as laterais e avança em direção ao primeiro plano antes do reveal do hero.
 
-Duas camadas de nuvens deslizam a velocidades diferentes. Os filamentos mais próximos velam trechos do disco solar com pontos grafite, deixando seu contorno legível. O halo pulsa devagar, sem mover nem redimensionar o disco.
+Duas camadas de nuvens deslizam a velocidades diferentes. Os filamentos mais próximos velam trechos do disco solar com pontos grafite, deixando seu contorno legível. O halo pulsa devagar sem redimensionar o disco.
 
 Pequenos bandos atravessam o céu entre pausas, com asas fora de sincronia. As silhuetas alternam entre grafite e marfim conforme o fundo. Com movimento reduzido, o céu não tem aves.
+
+### Vale e paralaxe
+
+As três cristas têm grupos de árvores arredondadas e araucárias. As copas distantes são menores e mais apagadas, as intermediárias têm contraste moderado e as da crista próxima são as mais nítidas. A névoa atenua sua base para separar a mata da grama escura. A câmera acompanha o mouse com deslocamento horizontal discreto, sem rolar nem mover o texto. A crista arborizada se desloca menos da metade do que a grama na linha do horizonte. Ao sair da janela, a câmera volta ao centro. Toque não desloca a câmera.
 
 ### Campo e vento
 
@@ -35,10 +39,10 @@ Uma faixa densa de lâminas finas recorta o horizonte. O solo abaixo mantém a m
 
 ### Rasterização
 
-`DawnLandscape` mantém as duas texturas contínuas de nuvens, a névoa, o halo e a gradação do solo em cache. `WindMeadow` refaz geometria e fases no redimensionamento e rasteriza as silhuetas em pequenos lotes numa faixa transparente. A luz do amanhecer é aplicada à faixa inteira, sem acúmulo onde as folhas se sobrepõem. `CanvasPalette` quantiza o Canvas 2D CPU-backed em grafite e marfim, com limiares de blue noise e raster de aproximadamente 0,9 megapixel ou menos. Depois do amanhecer, só o céu e a faixa do horizonte são atualizados. O Canvas da cena não usa filtro CSS, WebGL ou loop extra.
+`DawnLandscape` mantém nuvens, névoa, halo e gradação do solo em cache. `ValleyBackdrop` rasteriza as três cristas e suas árvores apenas no redimensionamento e guarda margem para o deslocamento. `WindMeadow` gera também as lâminas fora das bordas que podem entrar no quadro e rasteriza as silhuetas em pequenos lotes numa faixa transparente. `CanvasPalette` quantiza o Canvas 2D CPU-backed em grafite e marfim, com limiares de blue noise e raster de aproximadamente 0,9 megapixel ou menos. Depois do amanhecer, só o céu e a faixa do horizonte são atualizados. O Canvas da cena não usa filtro CSS, WebGL ou loop extra.
 
 ## Movimento reduzido
 
-A logo permanece estática. A cena mostra o sol já alto e o campo em um quadro fixo. Ocultar a aba pausa a animação; desmontar cancela o frame e remove os listeners.
+A logo permanece estática. A cena mostra o sol já alto e o campo em um quadro fixo, sem paralaxe. Ocultar a aba pausa a animação; desmontar cancela o frame e remove os listeners.
 
 

@@ -1,4 +1,4 @@
-import { grain, HORIZON, smooth } from './DawnLandscape'
+import { cameraTravel, grain, HORIZON, smooth, SUN_DEPTH } from './SceneGeometry'
 
 interface Stem {
   x: number
@@ -7,6 +7,7 @@ interface Stem {
   width: number
   lean: number
   flex: number
+  depth: number
   gustSin: number
   gustCos: number
   rippleSin: number
@@ -14,9 +15,9 @@ interface Stem {
   arch: number
 }
 
-function blade(x: number, y: number, length: number, width: number, gustPhase: number, ripplePhase: number, id: number): Stem {
+function blade(x: number, y: number, length: number, width: number, gustPhase: number, ripplePhase: number, id: number, depth: number): Stem {
   return {
-    x, y, length, width,
+    x, y, length, width, depth,
     gustSin: Math.sin(gustPhase), gustCos: Math.cos(gustPhase),
     rippleSin: Math.sin(ripplePhase), rippleCos: Math.cos(ripplePhase),
     lean: (grain(id, 16) - 0.43) * 1.05,
@@ -63,8 +64,10 @@ export class WindMeadow {
     const count = Math.min(510, Math.max(32, Math.ceil(rasterWidth / 2.65)))
     const spacing = width / count
     const pixel = width / rasterWidth
+    const pad = cameraTravel(width) + scale * 0.06
+    const fringe = Math.ceil(pad / spacing)
     let top = edge
-    for (let i = 0; i < count; i++) {
+    for (let i = -fringe; i < count + fringe; i++) {
       const center = (i + 0.5 + (grain(i, 3) - 0.5) * 0.46) / count
       const stand = 0.5 + 0.5 * Math.sin(center * 31 + 0.8) * Math.cos(center * 11 - 0.5)
       const leaves = 5 + Math.floor(stand * 2.2)
@@ -83,7 +86,7 @@ export class WindMeadow {
         const gustPhase = center * 5.8 + depth * 0.29
         const ripplePhase = center * 17.2 + depth * 0.55 + vigor * 0.27
         const bladeWidth = pixel * (0.89 + grain(id, 19) * 0.34) + baseLength * 0.025
-        this.stems.push(blade(x, y, length, bladeWidth, gustPhase, ripplePhase, id))
+        this.stems.push(blade(x, y, length, bladeWidth, gustPhase, ripplePhase, id, 0.83))
         top = Math.min(top, y - length)
       }
     }
@@ -93,9 +96,11 @@ export class WindMeadow {
     const rows = 7
     const columns = Math.ceil(count * 0.24)
     const cellWidth = width / columns
+    const groundFringe = Math.ceil(pad / cellWidth)
+    const span = columns + 2 * groundFringe
     for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < columns; col++) {
-        const cell = row * columns + col
+      for (let col = -groundFringe; col < columns + groundFringe; col++) {
+        const cell = row * span + col
         const center = (col + 0.5 + (grain(cell, 31) - 0.5) * 0.74) / columns
         const depth = row + 0.16 + 0.68 * grain(cell, 37)
         for (let j = 0; j < 3; j++) {
@@ -107,7 +112,7 @@ export class WindMeadow {
           const vigor = grain(id, 14)
           const length = Math.min(reach * z, scale * (0.008 + z * 0.034) * (0.38 + vigor * 0.61))
           const bladeWidth = pixel * (0.87 + z * 0.62 + grain(id, 19) * 0.30) + length * 0.027
-          this.groundBlades.push(blade(x, y, length, bladeWidth, center * 5.8 + z * 1.21, center * 17.2 + z * 2, id))
+          this.groundBlades.push(blade(x, y, length, bladeWidth, center * 5.8 + z * 1.21, center * 17.2 + z * 2, id, 0.83 + z * 0.17))
         }
       }
     }
@@ -155,7 +160,7 @@ export class WindMeadow {
     ctx.putImageData(image, 0, 0)
   }
 
-  draw(target: CanvasRenderingContext2D, time: number, elevation: number): void {
+  draw(target: CanvasRenderingContext2D, time: number, elevation: number, camera: number): void {
     if (elevation <= 0.025) return
     const gustTime = time * 0.96, rippleTime = time * 1.58
     const gustSin = Math.sin(gustTime), gustCos = Math.cos(gustTime)
@@ -165,7 +170,7 @@ export class WindMeadow {
     const groundLight = smooth((elevation - 0.18) / 0.78)
     if (groundLight > 0) {
       ctx.fillStyle = '#fff'
-      this.paintBlades(this.groundBlades, gustSin, gustCos, rippleSin, rippleCos)
+      this.paintBlades(this.groundBlades, gustSin, gustCos, rippleSin, rippleCos, camera)
       ctx.globalCompositeOperation = 'destination-in'
       // The light starts below the sun, then reaches outward and toward the viewer.
       const spread = smooth((elevation - 0.21) / 0.70)
@@ -173,7 +178,7 @@ export class WindMeadow {
         const extent = 0.19 + 3.42 * spread
         const w = this.width * extent
         const h = this.groundReach * extent
-        ctx.drawImage(this.dawnLight, (this.width - w) * 0.5, this.groundEdge - h, w, h * 2)
+        ctx.drawImage(this.dawnLight, (this.width - w) * 0.5 - camera * SUN_DEPTH, this.groundEdge - h, w, h * 2)
       }
       ctx.globalAlpha = groundLight
       ctx.drawImage(this.groundFalloff, 0, this.groundEdge, this.width, this.groundReach)
@@ -181,13 +186,13 @@ export class WindMeadow {
       ctx.globalCompositeOperation = 'source-over'
     }
     ctx.fillStyle = '#000'
-    this.paintBlades(this.stems, gustSin, gustCos, rippleSin, rippleCos)
+    this.paintBlades(this.stems, gustSin, gustCos, rippleSin, rippleCos, camera)
     target.globalAlpha = smooth((elevation - 0.025) / 0.25)
     target.drawImage(this.strip, 0, this.bandTop, this.width, this.bandHeight)
     target.globalAlpha = 1
   }
 
-  private paintBlades(stems: readonly Stem[], gustSin: number, gustCos: number, rippleSin: number, rippleCos: number): void {
+  private paintBlades(stems: readonly Stem[], gustSin: number, gustCos: number, rippleSin: number, rippleCos: number, camera: number): void {
     const ctx = this.stripContext
     ctx.beginPath()
     for (let i = 0; i < stems.length; i++) {
@@ -197,7 +202,8 @@ export class WindMeadow {
         ctx.beginPath()
       }
       const stem = stems[i]
-      const { x, y, width, length } = stem
+      const { y, width, length } = stem
+      const x = stem.x - camera * stem.depth
       const crest = Math.max(0, stem.gustCos * gustCos + stem.gustSin * gustSin)
       const ripple = stem.rippleCos * rippleCos + stem.rippleSin * rippleSin
       const gust = crest * crest * (0.54 + 0.07 * ripple)

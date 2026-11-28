@@ -1,6 +1,6 @@
 # Portfolio — estado da implementação
 
-Escopo: abertura ASCII e amanhecer com horizonte plano, grama só na borda e hero sobre o solo. Direção em `DESIGN.md`.
+Escopo: abertura ASCII e amanhecer 1-bit com gramado, vale arborizado em camadas e hero sobre o solo. Direção em `DESIGN.md`.
 
 ## Sequência
 
@@ -9,7 +9,7 @@ Escopo: abertura ASCII e amanhecer com horizonte plano, grama só na borda e her
 3. Manter a logo completa por 0,25 s antes da transição.
 4. Apagar o loader e destruir seu Canvas temporário.
 5. Mostrar o campo escuro após a abertura. Fazer o sol subir pelo horizonte e iluminar o céu e o solo antes de revelar o hero.
-6. Manter o vento em rajadas que atravessam as touceiras. Não há scroll, barco ou movimento da câmera.
+6. Manter o vento em rajadas e usar a posição horizontal do mouse para revelar a profundidade da cena. Não há scroll ou barco.
 
 ## Arquivos
 
@@ -17,8 +17,9 @@ Escopo: abertura ASCII e amanhecer com horizonte plano, grama só na borda e her
 |---|---|
 | `src/App.tsx` | Loader, Canvas e hero tipográfico |
 | `src/director.ts` | Sequência da abertura e gatilhos da cena e do hero |
-| `src/components/FieldScene.ts` | Cronometragem, redimensionamento e pausa da cena |
-| `src/components/DawnLandscape.ts` | Horizonte fixo, sol, nuvens e avanço da luz |
+| `src/components/FieldScene.ts` | Relógio, movimento da câmera, redimensionamento e pausa |
+| `src/components/DawnLandscape.ts` | Céu, sol, composição do vale e avanço da luz |
+| `src/components/ValleyBackdrop.ts` | Três cristas de vale com mata, araucárias e árvores |
 | `src/components/WindMeadow.ts` | Silhuetas de grama e rajadas na borda do horizonte |
 | `src/components/CanvasPalette.ts` | Quantização 1-bit com orçamento fixo de pixels |
 | `src/lib/env.ts` | Movimento reduzido e opção de pular a intro |

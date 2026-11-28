@@ -1,9 +1,11 @@
 import { DawnLandscape } from './DawnLandscape'
 import { CanvasPalette } from './CanvasPalette'
 import { WindMeadow } from './WindMeadow'
+import { cameraTravel, PARALLAX_GAIN } from './SceneGeometry'
 
 const SUNRISE = 3.8
 const FRAME_TIME = 1000 / 60
+const CURSOR_CENTER_GAIN = 0.5 / PARALLAX_GAIN
 
 type FieldState = 'waiting' | 'sunrise' | 'daylight' | 'still'
 
@@ -30,11 +32,16 @@ export class FieldScene {
   private frameId = 0
   private previousFrame: number | null = null
   private nextPaint = 0
+  private camera = 0
+  private cameraTarget = 0
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly hero: Element, private readonly onHeroReady: () => void) {
     this.palette = new CanvasPalette(canvas)
     this.motion.addEventListener('change', this.motionChange)
     document.addEventListener('visibilitychange', this.visibilityChange)
+    window.addEventListener('pointermove', this.pointerMove, { passive: true })
+    window.addEventListener('blur', this.pointerLeave)
+    document.documentElement.addEventListener('pointerleave', this.pointerLeave)
   }
 
   start(immediate = false): void {
@@ -96,8 +103,9 @@ export class FieldScene {
       ctx.rect(0, 0, this.width, bottom * cssScale)
       ctx.clip()
     }
-    const elevation = this.sky.draw(ctx, rise, still ? 0 : this.clock)
-    this.meadow.draw(ctx, still ? SUNRISE : this.clock, elevation)
+    const camera = still ? 0 : this.camera
+    const elevation = this.sky.draw(ctx, rise, still ? 0 : this.clock, camera)
+    this.meadow.draw(ctx, still ? SUNRISE : this.clock, elevation, camera)
     if (this.sceneryPainted) ctx.restore()
     this.palette.present(bottom)
     this.sceneryPainted = progress === 1
@@ -118,7 +126,12 @@ export class FieldScene {
   private frame = (now: number): void => {
     this.frameId = 0
     if (this.destroyed || document.hidden || this.motion.matches) return
-    if (this.previousFrame !== null) this.clock += (now - this.previousFrame) / 1000
+    if (this.previousFrame !== null) {
+      const dt = (now - this.previousFrame) / 1000
+      this.clock += dt
+      const gap = this.cameraTarget - this.camera
+      this.camera = Math.abs(gap) < 0.03 ? this.cameraTarget : this.camera + gap * -Math.expm1(-dt / 0.17)
+    }
     this.previousFrame = now
     if (now >= this.nextPaint - 0.5) {
       this.nextPaint = this.nextPaint === 0 ? now + FRAME_TIME
@@ -141,15 +154,28 @@ export class FieldScene {
     this.nextPaint = 0
   }
 
+  private pointerMove = (event: PointerEvent): void => {
+    if (!this.started || this.motion.matches || event.pointerType !== 'mouse') return
+    const position = Math.max(-1, Math.min(1, (event.clientX / this.width) * 2 - 1))
+    // Keep small motions near center calmer than the sweep toward the edges.
+    const steer = position * (CURSOR_CENTER_GAIN + (1 - CURSOR_CENTER_GAIN) * position * position)
+    this.cameraTarget = steer * cameraTravel(this.width) * 0.5
+  }
+
+  private pointerLeave = (): void => { this.cameraTarget = 0 }
+
   private visibilityChange = (): void => {
-    if (document.hidden) this.stop()
-    else if (this.started && this.motion.matches) this.draw()
+    if (document.hidden) {
+      this.pointerLeave()
+      this.stop()
+    } else if (this.started && this.motion.matches) this.draw()
     else this.resume()
   }
 
   private motionChange = (): void => {
     if (!this.started) return
     this.stop()
+    this.camera = this.cameraTarget = 0
     this.clock = Math.max(SUNRISE, this.clock)
     this.draw()
     this.resume()
@@ -161,6 +187,9 @@ export class FieldScene {
     this.observer.disconnect()
     this.motion.removeEventListener('change', this.motionChange)
     document.removeEventListener('visibilitychange', this.visibilityChange)
+    window.removeEventListener('pointermove', this.pointerMove)
+    window.removeEventListener('blur', this.pointerLeave)
+    document.documentElement.removeEventListener('pointerleave', this.pointerLeave)
     this.setState('waiting')
   }
 }

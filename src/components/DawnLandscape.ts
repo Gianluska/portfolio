@@ -1,16 +1,7 @@
-export const HORIZON = 0.39
+import { cameraTravel, grain, HORIZON, smooth, SUN_DEPTH } from './SceneGeometry'
+import { ValleyBackdrop } from './ValleyBackdrop'
+
 const SUN_AT_REST = 0.15
-
-export const smooth = (x: number): number => {
-  const t = Math.min(1, Math.max(0, x))
-  return t * t * (3 - 2 * t)
-}
-
-export function grain(x: number, y: number): number {
-  let bits = Math.imul(x, 374761393) ^ Math.imul(y, 668265263)
-  bits = Math.imul(bits ^ (bits >>> 13), 1274126177)
-  return ((bits ^ (bits >>> 16)) >>> 0) / 4294967296
-}
 
 function noise(x: number, y: number, period: number): number {
   const ix = Math.floor(x), iy = Math.floor(y)
@@ -76,13 +67,19 @@ function bakeClouds(layer: CloudLayer, width: number, height: number, high: bool
   ctx.putImageData(pixels, 0, 0)
 }
 
-/** Cached sky textures; time shifts only the cloud samples and the strength of the halo. */
+function cloudOffset(layer: CloudLayer, time: number, camera: number, width: number): number {
+  const offset = camera * layer.view / width - time * layer.rate * layer.tile
+  return offset - Math.floor(offset / layer.tile) * layer.tile
+}
+
+/** Composes the sky, solar exposure and wooded valley at their respective depths. */
 export class DawnLandscape {
   private readonly haze = document.createElement('canvas')
   private readonly clouds: CloudLayer[] = [
     { texture: document.createElement('canvas'), speed: 0.0028, rate: 0, view: 1, tile: 1 },
     { texture: document.createElement('canvas'), speed: 0.0105, rate: 0, view: 1, tile: 1 },
   ]
+  private readonly valley = new ValleyBackdrop()
   private readonly glow = document.createElement('canvas')
   private readonly soil = document.createElement('canvas')
   private w = 1
@@ -134,15 +131,16 @@ export class DawnLandscape {
     this.sunRadius = Math.min(width * 0.105, height * 0.098)
     bakeClouds(this.clouds[0], width, height, false)
     bakeClouds(this.clouds[1], width, height, true)
+    this.valley.resize(width, height)
   }
 
-  draw(ctx: CanvasRenderingContext2D, rise: number, time: number): number {
+  draw(ctx: CanvasRenderingContext2D, rise: number, time: number, camera: number): number {
     const { w, h, sunRadius: radius } = this
     const horizon = Math.round(HORIZON * ctx.canvas.height) * h / ctx.canvas.height
     const start = horizon + radius + h * 0.059
     const end = h * SUN_AT_REST
     const y = start + (end - start) * rise
-    const x = w * 0.5
+    const x = w * 0.5 - camera * SUN_DEPTH
     // Zero until the upper rim reaches the horizon. The first glow leads it by a few pixels.
     const elevation = (horizon - y + radius) / (horizon - end + radius)
     const spill = smooth((elevation + 0.035) / 0.38)
@@ -152,22 +150,20 @@ export class DawnLandscape {
     if (spill === 0) return elevation
 
     const veil = this.clouds[1]
-    const veilPhase = time * veil.rate
-    const veilOffset = (Math.ceil(veilPhase) - veilPhase) * veil.tile
+    const veilOffset = cloudOffset(veil, time, camera * 0.38, w)
     if (skyLight > 0) {
       ctx.globalAlpha = skyLight
       ctx.drawImage(this.haze, 0, 0, w, horizon)
       ctx.globalCompositeOperation = 'lighter'
       const clouds = this.clouds[0]
-      const phase = time * clouds.rate
-      const offset = (Math.ceil(phase) - phase) * clouds.tile
+      const offset = cloudOffset(clouds, time, camera * 0.17, w)
       ctx.drawImage(clouds.texture, offset, 0, clouds.view, clouds.texture.height, 0, 0, w, horizon)
       ctx.globalAlpha = skyLight * 0.32
       ctx.drawImage(veil.texture, veilOffset, 0, veil.view, veil.texture.height, 0, 0, w, horizon)
     }
     const haloX = Math.min(w * (0.16 + 0.32 * spill), radius * (2 + 2.2 * spill))
     const haloY = Math.min(h * 0.31, radius * (1.4 + 2 * spill))
-    // Only the dither around the disc breathes; the solar silhouette stays perfectly still.
+    // The dither around the disc breathes without changing the size of the sun.
     const breath = 0.033 * Math.sin(time * 0.66) + 0.009 * Math.sin(time * 1.07)
     ctx.globalAlpha = spill * (0.74 + breath)
     ctx.globalCompositeOperation = 'screen'
@@ -190,7 +186,8 @@ export class DawnLandscape {
         ctx.restore()
       }
     }
-    if (time > 0 && skyLight > 0.6) this.drawBirds(ctx, time, skyLight)
+    if (time > 0 && skyLight > 0.6) this.drawBirds(ctx, time, skyLight, camera)
+    this.valley.draw(ctx, horizon, camera, smooth((elevation + 0.015) / 0.68))
 
     // The flat ground occludes the disc and halo, then catches light from the rising sun.
     ctx.fillStyle = '#000'
@@ -204,7 +201,7 @@ export class DawnLandscape {
     return elevation
   }
 
-  private drawBirds(ctx: CanvasRenderingContext2D, time: number, light: number): void {
+  private drawBirds(ctx: CanvasRenderingContext2D, time: number, light: number, camera: number): void {
     // Small groups cross from alternating sides, with quiet intervals between flights.
     const cycle = (time + 10) / 49
     const pass = Math.floor(cycle)
@@ -212,12 +209,13 @@ export class DawnLandscape {
     if (elapsed >= 35) return
     const direction = pass % 2 === 0 ? 1 : -1
     const size = Math.min(4.8, Math.max(3.1, this.w * 0.004))
+    const margin = 10 + cameraTravel(this.w) * 0.46
     ctx.beginPath()
     for (let i = 0; i < 4; i++) {
       const progress = (elapsed - i * 1.12) / 31
       if (progress < 0 || progress > 1) continue
       const span = size * (1 - i * 0.105)
-      const x = this.w * 0.5 + direction * ((this.w + 20) * progress - this.w * 0.5 - 10)
+      const x = this.w * 0.5 + direction * (this.w + margin * 2) * (progress - 0.5) - camera * 0.46
       const y = this.h * (0.263 + i * 0.010 + 0.012 * Math.sin(progress * 5 + pass * 1.2 + i * 0.71))
         + span * 0.15 * Math.sin(time * 3.7 + i)
       const wing = span * (-0.29 + 0.54 * Math.sin(time * (9 + i * 0.44) + i * 1.9))
