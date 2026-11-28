@@ -2,7 +2,7 @@
 
 ## Escopo vigente
 
-Uma única tela, sem rolagem. A abertura `lvsk` termina sobre o mesmo grafite da cena. O sol nasce no horizonte plano, acende a paisagem e revela o hero com nome e três roles. A grama se curva em rajadas, sem responder ao ponteiro.
+A abertura `lvsk` termina sobre o mesmo grafite da cena. O sol nasce no horizonte plano, acende a paisagem e revela o hero com nome e três roles. A grama se curva em rajadas, sem responder ao ponteiro. A rolagem alterna entre o campo e o espaço.
 
 ## Elementos preservados
 
@@ -31,7 +31,7 @@ Pequenos bandos atravessam o céu entre pausas, com asas fora de sincronia. As s
 
 ### Vale e paralaxe
 
-As três cristas têm grupos de árvores arredondadas e araucárias. As copas distantes são menores e mais apagadas, as intermediárias têm contraste moderado e as da crista próxima são as mais nítidas. A névoa atenua sua base para separar a mata da grama escura. A câmera acompanha o mouse com deslocamento horizontal discreto, sem rolar nem mover o texto. A crista arborizada se desloca menos da metade do que a grama na linha do horizonte. Ao sair da janela, a câmera volta ao centro. Toque não desloca a câmera.
+As três cristas têm grupos de árvores arredondadas e araucárias. As copas distantes são menores e mais apagadas, as intermediárias têm contraste moderado e as da crista próxima são as mais nítidas. A névoa atenua sua base para separar a mata da grama escura. No campo, a câmera acompanha o mouse com deslocamento horizontal discreto, sem mover o texto. A crista arborizada se desloca menos da metade do que a grama na linha do horizonte. Ao sair da janela, a câmera volta ao centro. Toque não desloca a câmera horizontalmente.
 
 ### Campo e vento
 
@@ -39,10 +39,20 @@ Uma faixa densa de lâminas finas recorta o horizonte. O solo abaixo mantém a m
 
 ### Rasterização
 
-`DawnLandscape` mantém nuvens, névoa, halo e gradação do solo em cache. `ValleyBackdrop` rasteriza as três cristas e suas árvores apenas no redimensionamento e guarda margem para o deslocamento. `WindMeadow` gera também as lâminas fora das bordas que podem entrar no quadro e rasteriza as silhuetas em pequenos lotes numa faixa transparente. `CanvasPalette` quantiza o Canvas 2D CPU-backed em grafite e marfim, com limiares de blue noise e raster de aproximadamente 0,9 megapixel ou menos. Depois do amanhecer, só o céu e a faixa do horizonte são atualizados. O Canvas da cena não usa filtro CSS, WebGL ou loop extra.
+`DawnLandscape` mantém nuvens, névoa, halo e gradação do solo em cache. `ValleyBackdrop` rasteriza as três cristas e suas árvores apenas no redimensionamento e guarda margem para o deslocamento. `WindMeadow` gera também as lâminas fora das bordas que podem entrar no quadro e rasteriza as silhuetas em pequenos lotes numa faixa transparente. `CanvasPalette` quantiza o Canvas 2D CPU-backed em grafite e marfim, com limiares de blue noise e raster de aproximadamente 0,9 megapixel ou menos. No campo iluminado, só o céu e a faixa do horizonte são atualizados. Durante o voo, a composição ocupa o quadro inteiro. O Canvas da cena não usa filtro CSS, WebGL ou loop extra.
+
+## Subida ao espaço
+
+A rolagem nativa fornece apenas o gatilho: cruzar 65% do percurso para baixo inicia a preparação; voltar a 35% cancela a preparação ou inicia a descida. Nos primeiros 1,8 s, o texto do campo se desfaz em faixas descendentes e uma onda de luz se expande ao redor do sol sem alterar o disco. A câmera permanece parada antes da subida de 3,5 s; a descida dura 2,4 s. Se o usuário cruzar o limiar oposto durante o voo, a câmera parte da altitude atual. Os dois botões oferecem o mesmo percurso por toque ou teclado.
+
+O disco solar preserva seu centro e raio durante todo o voo. Depois do campo, passam os cúmulos próximos, com copas iluminadas e bases sombreadas, e os filamentos de cirros em outra velocidade. A névoa da estratosfera se afina até marcar a curvatura da atmosfera, enquanto o halo se contrai e as estrelas aparecem.
+
+A câmera começa a frear antes do destino, passa ligeiramente do ponto de repouso e assenta uma vez, sem deslocar o disco solar. O título do espaço entra durante a frenagem; se o scroll inverter no meio do voo, a câmera conserva o impulso ao mudar de direção.
+
+Em órbita, cada estrela pulsa em seu próprio ritmo, sem mudar de posição. Faixas translúcidas correm em velocidades diferentes ao longo da estratosfera. O movimento horizontal do mouse gira a Terra em até 2° por lado em torno do eixo entre o observador e o centro do planeta. O contorno e o brilho da borda ficam fixos; só a superfície e as faixas deslizam por baixo deles. O sol, as estrelas e o texto não se movem. Ao sair da janela, a Terra volta suavemente ao centro. A órbita usa o mesmo Canvas de dois tons, com rasterização a 30 quadros por segundo.
 
 ## Movimento reduzido
 
-A logo permanece estática. A cena mostra o sol já alto e o campo em um quadro fixo, sem paralaxe. Ocultar a aba pausa a animação; desmontar cancela o frame e remove os listeners.
+A logo permanece estática. A cena mostra o sol já alto e alterna diretamente entre campo e espaço, sem preparação, voo nem paralaxe. Ocultar a aba pausa a animação; desmontar cancela o frame e remove os listeners.
 
 

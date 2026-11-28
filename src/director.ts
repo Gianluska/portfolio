@@ -3,6 +3,7 @@ import { createTextEffect, effectNames, type TextEffect } from 'tte.js'
 import { env, wait } from './lib/env'
 import { FieldScene } from './components/FieldScene'
 import { AsciiHero } from './components/AsciiHero'
+import { SceneScroll } from './components/SceneScroll'
 
 type Phase = 'boot' | 'animating' | 'reveal' | 'idle'
 
@@ -11,9 +12,11 @@ interface DirectorRefs {
   loaderLogo: HTMLElement
   field: HTMLCanvasElement
   hero: HTMLElement
+  meadow: HTMLElement
+  space: HTMLElement
 }
 
-/** Runs the ASCII intro and starts the sunrise and portfolio copy. */
+/** Runs the ASCII intro and connects page navigation to the scene. */
 export class Director {
   private refs: DirectorRefs
   private destroyed = false
@@ -21,11 +24,23 @@ export class Director {
   private intro: TextEffect | null = null
   private field: FieldScene
   private hero: AsciiHero
+  private navigation: SceneScroll
 
   constructor(refs: DirectorRefs) {
     this.refs = refs
     this.hero = new AsciiHero(refs.hero)
-    this.field = new FieldScene(refs.field, refs.hero.firstElementChild!, () => { void this.hero.start() })
+    this.field = new FieldScene(
+      refs.field,
+      refs.hero.firstElementChild!,
+      () => { void this.hero.start() },
+      (altitude, settled, launch) => this.navigation.paint(altitude, settled, launch),
+    )
+    this.navigation = new SceneScroll(
+      refs.meadow,
+      refs.space,
+      (inSpace) => this.field.setDestination(inSpace),
+      (visible) => this.hero.setActive(visible),
+    )
   }
 
   private setPhase(phase: Phase): void {
@@ -87,6 +102,7 @@ export class Director {
     this.destroyed = true
     this.transition?.kill()
     this.intro?.destroy()
+    this.navigation.destroy()
     this.field.destroy()
     this.hero.destroy()
   }

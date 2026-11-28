@@ -53,9 +53,11 @@
   .loader canvas { filter: url(#intro-palette); }
   .intro-ink { flood-color: rgb(var(--scene-ink-rgb)); }
 
-  .hero {
+  .hero, .space-view h2, .scene-button {
     text-shadow: 0 1px rgb(var(--scene-rgb)), 0 0 3px rgb(var(--scene-rgb));
   }
+
+  .scene-button { -webkit-tap-highlight-color: rgb(var(--scene-ink-rgb) / 0.16); }
 }
 
 @theme {

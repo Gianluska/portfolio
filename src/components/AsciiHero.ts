@@ -32,6 +32,7 @@ export class AsciiHero {
   private index = 0
   private epoch = 0
   private started = false
+  private active = true
   private destroyed = false
   private busy = false
 
@@ -74,6 +75,17 @@ export class AsciiHero {
     if (this.destroyed) return
     this.el.hidden = false
     if (!this.motion.matches) await this.play(true)
+  }
+
+  setActive(active: boolean): void {
+    this.active = active
+    if (active) {
+      this.schedule()
+    } else {
+      this.stop()
+      this.nicknameHovered = this.nicknameFocused = false
+      this.updateNickname(true)
+    }
   }
 
   /** Fills `line` with a shimmering dither block that tracks its size; returns its disposer. */
@@ -171,7 +183,7 @@ export class AsciiHero {
   }
 
   private async play(initial = false): Promise<void> {
-    if (this.destroyed || this.motion.matches || document.hidden) return
+    if (!this.active || this.destroyed || this.motion.matches || document.hidden) return
     const epoch = ++this.epoch
     this.busy = true
     try {
@@ -205,7 +217,7 @@ export class AsciiHero {
   private schedule(): void {
     window.clearTimeout(this.timer)
     this.timer = 0
-    if (!this.started || this.destroyed || this.busy || this.motion.matches || document.hidden) return
+    if (!this.active || !this.started || this.destroyed || this.busy || this.motion.matches || document.hidden) return
     this.timer = window.setTimeout(() => {
       this.timer = 0
       void this.play()
@@ -216,7 +228,7 @@ export class AsciiHero {
     const open = this.nicknameHovered || this.nicknameFocused
     this.nicknameOpen = open
     this.name.classList.toggle('is-nickname-open', open)
-    if (this.motion.matches || document.hidden || this.destroyed) {
+    if (!this.active || this.motion.matches || document.hidden || this.destroyed) {
       this.clearNickname()
       return
     }
