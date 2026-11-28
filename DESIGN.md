@@ -29,13 +29,13 @@ A role é texto não interativo: clique, Enter e espaço não pausam nem reinici
 
 O loader e o fundo final ficam em verde-sálvia pastel (`#e9eee0`). A gota, o mar e a cachoeira usam dois tons inspirados em *Return of the Obra Dinn*: oliva escuro (`#333317`) e branco-gelo (`#e3ffff`). Um único Canvas 2D decorativo cobre toda a viewport. As faixas de luz se comprimem ao fundo, sem céu nem horizonte. Atores permanecem em ASCII, sem uma imagem de fundo ou WebGL.
 
-`ascii-palette` fica restrito ao loader. `river-dither` compara a luminosidade da imagem composta — incluindo navio, brisas, névoa e cachoeira — com uma matriz fixa de blue noise e escolhe uma das duas tintas. O limiar não se move com a câmera. O hero e o indicador são desenhados fora do filtro, com tons claros para manter a leitura.
+`ascii-palette` fica restrito ao loader. No canvas da cena, `RiverPalette` compara a luminosidade da imagem composta — incluindo navio, brisas, névoa e cachoeira — com uma matriz fixa de blue noise e escolhe uma das duas tintas. O limiar não se move com a câmera. Hero e indicador preservam a resolução nativa da tela, com tons claros para manter a leitura.
 
 ### Rasterização da água
 
-As coberturas antialias dos glifos são pré-renderizadas em cada tamanho projetado, compartilhando máscaras para dimensões iguais. A água inteira é rasterizada em um buffer RGBA reutilizado, alinhado aos pixels do dispositivo, e enviada ao Canvas em uma única imagem por quadro. Isso substitui milhares de chamadas de desenho de glifos; não há leitura do Canvas visível durante a animação.
+As coberturas antialias dos glifos são pré-renderizadas em cada tamanho projetado, compartilhando máscaras para dimensões iguais. A água é rasterizada em um buffer RGBA reutilizado, com no máximo uma amostra por pixel CSS e cerca de 0,9 megapixel por quadro.
 
-A luz contínua do mar é amostrada na mesma grade da simulação, interpolada pelo Canvas e combinada com os glifos antes de desenhar os atores. A malha e o buffer de luz são reutilizados; o filtro final não exige leitura de pixels nem um loop de animação próprio.
+A luz contínua do mar é amostrada na mesma grade da simulação, interpolada pelo Canvas e combinada com os glifos antes de desenhar os atores. A quantização lê uma vez o quadro já composto no Canvas 2D em CPU, converte seu buffer no próprio lugar usando limiares pré-calculados e o devolve ao mesmo Canvas. Não há leitura da GPU, filtro CSS na cena nem segundo loop de animação.
 
 ### Sequência do rio
 
@@ -85,7 +85,7 @@ A logo inicial permanece na fonte oficial. O cabeçalho e a água estática apar
 
 ## Implementação
 
-React, TypeScript, Vite e GSAP. Geist Mono local. O catálogo de tte.js fornece os efeitos da abertura em um Canvas temporário, destruído ao terminar ou desmontar o componente. `AsciiRiver` controla o Canvas 2D: amostragem inversa do plano inclinado, fases espaciais e filtros por profundidade pré-calculados, atlas dos caracteres do mar, soma dos campos de vento e desenho limitado a 30 fps.
+React, TypeScript, Vite e GSAP. Geist Mono local. O catálogo de tte.js fornece os efeitos da abertura em um Canvas temporário, destruído ao terminar ou desmontar o componente. `AsciiRiver` controla o Canvas 2D: amostragem inversa do plano inclinado, fases espaciais e filtros por profundidade pré-calculados, atlas dos caracteres do mar, soma dos campos de vento e desenho limitado a 60 fps.
 
 `AsciiAtmosphere` compartilha o tempo desde a revelação com `AsciiBirdFlocks`, `AsciiBreezes` e `AsciiBoat`. Os pássaros reutilizam três slots de coortes; as brisas reutilizam buffers de posição e opacidade com capacidade para dez listras e expõem dez campos de pressão; o barco reutiliza um anel de 48 pontos de espuma e expõe posição, rumo e velocidade para que `AsciiRiver` aplique a esteira. O barco é desenhado entre as brisas e os pássaros. Não há alocações de arrays por frame, timers, listeners ou loops adicionais. A aba oculta pausa o relógio; movimento reduzido limpa os atores e mantém só a água estática. Desmontar cancela o frame e remove os listeners do controlador. As variantes FIGlet permanecem no cabeçalho. Sem Three.js / React Three Fiber e sem novas seções ou informações pessoais.
 
@@ -107,7 +107,7 @@ A scroll cue sits at the bottom center while the sea is active. It is a miniatur
 
 The sea and waterfall share one ground plane and a fixed drop edge. Camera zoom moves from 1 to 0.58 and ground tilt from 0.55 to 0.10. The lip rises from below the viewport and passes above it as the camera descends. Only the static reduced-motion composition shows the impact line near 90% of the viewport. Water fills the width, without cliffs, islands, colored lights, or an inserted image.
 
-The falling water uses thin, low-opacity ASCII filaments rather than fixed vertical columns. Material points cross the brink and accelerate toward the impact, with irregular highlights, small commas and colons, and short thread strokes. The lip stays stationary; there is no separate folded band or periodic deformation. Whitewater at the impact remains a softly blended, advected density field with rounded billows, fine grain, sparse bubble contours, rising mist, and ballistic droplets with short trails. Broken, low-contrast ripples spread beneath the impact. Seed buffers, glyph masks, and the existing 30 fps clock remain shared.
+The falling water uses thin, low-opacity ASCII filaments rather than fixed vertical columns. Material points cross the brink and accelerate toward the impact, with irregular highlights, small commas and colons, and short thread strokes. The lip stays stationary; there is no separate folded band or periodic deformation. Whitewater at the impact remains a softly blended, advected density field with rounded billows, fine grain, sparse bubble contours, rising mist, and ballistic droplets with short trails. Broken, low-contrast ripples spread beneath the impact. Seed buffers, glyph masks, and the river's frame clock remain shared.
 
 The river and fall use one continuous material trajectory: constant projected entry velocity upstream, followed by a quadratic downward displacement. Transported texture is keyed to emission time, so highlights travel with the water rather than pulsing across the whole edge. Material sample phases and counts do not change during camera travel. Opacity compensates for overlapping samples near the slow brink, and short fading trails preserve the falling filaments.
 

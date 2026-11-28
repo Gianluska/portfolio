@@ -62,8 +62,7 @@
 }
 
 @layer components {
-  /* Quantize the finished scene, including actors and fog, without touching the loader. */
-  .river { filter: brightness(1.25) url(#river-dither); }
+  .river { image-rendering: pixelated; }
   .loader canvas { filter: grayscale(1) url(#ascii-palette); }
 
   .river:not([data-state=waiting]) ~ .ui,

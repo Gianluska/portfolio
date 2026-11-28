@@ -2,12 +2,13 @@ import { AsciiAtmosphere } from './AsciiAtmosphere'
 import { DEPTH_CENTER, sceneScale, SEA_TILT, seaX, seaZ } from './AsciiPerspective'
 import { AsciiSceneCamera } from './AsciiSceneCamera'
 import { AsciiWaterfall, WATER_GLYPHS } from './AsciiWaterfall'
+import { RiverPalette } from './RiverPalette'
 
 const TAU = Math.PI * 2
 const DROP_TIME = 0.95
 const REVEAL_TIME = 2.8
 const HERO_START = Math.max(0, DROP_TIME + REVEAL_TIME - 3)
-const FRAME_TIME = 1000 / 30
+const FRAME_TIME = 1000 / 60
 // Sea palette: troughs fade out, slopes read as dashes, crests as tildes, sun glints sparkle.
 const GLYPHS = WATER_GLYPHS
 const DOT = 1, DASH = 2, TILDE = 3, PLUS = 4, STAR = 5
@@ -79,6 +80,7 @@ type RiverState = 'waiting' | 'falling' | 'ripple' | 'flowing' | 'still'
 /** A small falling drop opens a quiet, full-viewport ASCII water surface. */
 export class AsciiRiver {
   private readonly canvas: HTMLCanvasElement
+  private readonly palette: RiverPalette
   private readonly ctx: CanvasRenderingContext2D
   private readonly atlas = document.createElement('canvas')
   private readonly actorsCanvas = document.createElement('canvas')
@@ -88,8 +90,7 @@ export class AsciiRiver {
   private readonly lightContext = this.lightCanvas.getContext('2d')!
   private lightPixels!: ImageData
   private lightWords!: Uint32Array
-  // Water is the first layer over opaque black, so it is composited straight into
-  // final grey pixels and put onto the visible canvas with no intermediate copy.
+  // Water is the first layer over opaque black; glyph masks blend into a reusable grayscale buffer.
   private waterPixels!: ImageData
   private waterWords!: Uint32Array
   private readonly glyphMasks: Uint8Array[] = []
@@ -163,9 +164,8 @@ export class AsciiRiver {
     private readonly onScrollCopy: (progress: number) => void, private readonly landing: HTMLElement,
   ) {
     this.canvas = canvas
-    const ctx = canvas.getContext('2d', { alpha: false })
-    if (!ctx) throw new Error('The ASCII river requires a 2D canvas context')
-    this.ctx = ctx
+    this.palette = new RiverPalette(canvas)
+    this.ctx = this.palette.context
     this.observer = new ResizeObserver(this.resize)
     document.addEventListener('visibilitychange', this.visibility)
     this.motion.addEventListener('change', this.motionChange)
@@ -214,11 +214,10 @@ export class AsciiRiver {
     this.scrollEnd = Math.max(1, this.landing.offsetTop)
     this.scrollProgress = clamp(window.scrollY / this.scrollEnd)
     this.updateCamera()
-    this.dpr = Math.min(1.5, window.devicePixelRatio || 1)
+    this.dpr = RiverPalette.scale(this.width, this.height)
     this.cellWidth = this.width < 640 ? 7 : 8
     this.cellHeight = this.width < 640 ? 10 : 12
-    this.canvas.width = Math.round(this.width * this.dpr)
-    this.canvas.height = Math.round(this.height * this.dpr)
+    this.palette.resize(this.width, this.height, this.dpr)
     this.actorsCanvas.width = this.canvas.width
     this.actorsCanvas.height = this.canvas.height
     this.waterPixels = this.ctx.createImageData(this.canvas.width, this.canvas.height)
@@ -499,7 +498,7 @@ export class AsciiRiver {
     impacts.length = 0
   }
 
-  private pushHull(): void {
+  private pushHull(delta: number): void {
     const boat = this.atmosphere.boat
     const wake = boat.wake
     if (wake < 0.05) {
@@ -517,7 +516,8 @@ export class AsciiRiver {
     const length = Math.hypot(dx, dy)
     if (length < 0.5 || length > 200) return
     const depth = sceneScale(y, this.height) / DEPTH_CENTER
-    const strength = RIPPLE_PUSH * BOAT_PUSH * (0.25 + wake * 0.75) * depth
+    // Preserve the wake's pressure per second when presentation cadence changes.
+    const strength = RIPPLE_PUSH * BOAT_PUSH * (0.25 + wake * 0.75) * depth * clamp(delta * 30, 0, 1.5)
     const steps = Math.ceil(length / this.cellWidth)
     for (let s = 1; s <= steps; s++) {
       const t = s / steps
@@ -780,7 +780,7 @@ export class AsciiRiver {
         this.width, this.height, !this.motion.matches,
         this.scrollProgress > 0.03 ? Number.NaN : this.pointerX, this.pointerY,
       )
-      if (this.scrollProgress === 0) this.pushHull()
+      if (this.scrollProgress === 0) this.pushHull(age - this.waterAge)
       this.pushShots()
       // Opaque black under the water replaces a separate background fill.
       this.waterWords.fill(GREY[0])
@@ -817,6 +817,7 @@ export class AsciiRiver {
       }
     }
     ctx.globalAlpha = 1
+    this.palette.present()
   }
 
   private frame = (now: number): void => {
@@ -837,9 +838,12 @@ export class AsciiRiver {
       } else this.rippleClock = 0
     }
     this.last = now
-    if (now - this.painted >= FRAME_TIME - 0.5) {
+    const sincePaint = now - this.painted
+    if (sincePaint >= FRAME_TIME - 0.5) {
       this.draw()
-      this.painted = now
+      // Preserve the cadence on high-refresh displays; skip missed slots rather than replay them.
+      this.painted = this.painted === 0 ? now
+        : this.painted + Math.floor((sincePaint + 0.5) / FRAME_TIME) * FRAME_TIME
     }
     this.raf = requestAnimationFrame(this.frame)
   }
@@ -880,7 +884,7 @@ export class AsciiRiver {
     if (!this.started || this.destroyed) return
     const box = this.canvas.getBoundingClientRect()
     if (Math.abs(box.width - this.width) < 1 && Math.abs(box.height - this.height) < 1
-      && Math.min(1.5, window.devicePixelRatio || 1) === this.dpr) return
+      && RiverPalette.scale(Math.max(1, box.width), Math.max(1, box.height)) === this.dpr) return
     this.build()
     this.draw()
   }
