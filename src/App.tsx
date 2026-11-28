@@ -27,9 +27,7 @@ export default function App() {
   return (
     <div ref={root}>
 
-      <div className="loader group/loader fixed inset-0 z-1 grid place-items-center bg-scene [&[hidden]]:hidden
-        after:pointer-events-none after:fixed after:-inset-1/2 after:z-10
-        after:bg-loader-grain after:opacity-[0.075] motion-safe:after:animate-grain" aria-hidden="true">
+      <div className="loader group/loader fixed inset-0 z-1 grid place-items-center bg-scene [&[hidden]]:hidden" aria-hidden="true">
         <pre className="loader__logo invisible m-0 font-mono text-[clamp(9px,1.5vw,24px)]/[1.1] font-normal whitespace-pre text-scene-ink
           [font-kerning:none] [font-variant-ligatures:none] select-none group-[.is-on]/loader:visible">{glyphs.official.join('\n')}</pre>
       </div>

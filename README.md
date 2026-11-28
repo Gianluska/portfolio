@@ -5,7 +5,7 @@ Single-screen portfolio with an ASCII intro and a moonlit sea. No scrolling or c
 ## Current experience
 
 - On each page load, one of 37 tte.js effects is randomly selected to reveal the official ASCII logo. The animation lasts between 1 and 2.75 s, followed by a final 0.25 s pause: a cycle of at most 3 s, with no looping. The intro remains monochrome.
-- The scene uses a two-color, olive-and-ice palette inspired by *Return of the Obra Dinn*. The camera faces a level horizon at 72% of the viewport. A centered moon, stippled cloud banks, a side-on ship and broken horizontal reflections share one axis.
+- The intro, drop, and sea share a charcoal (`#2d3038`) and ivory (`#ece7cd`) palette inspired by *Return of the Obra Dinn*. The opening effects retain translucent ivory shades; the scene is dithered to two colors. The camera faces a level horizon at 72% of the viewport. A centered moon, stippled cloud banks, a side-on ship and broken horizontal reflections share one axis.
 - After the intro, an ASCII drop reaches the water in 0.95 s. Its impact wave reveals the sea over 2.8 s; the night sky fades in independently. The horizon remains fixed.
 - The hero is centered below the moon at `36svh`. [ascii-reveal](https://github.com/quanhoangindex/ascii-reveal) 0.3.0 provides the dither reveal and shimmer. The roles cycle between `Creative Technologist`, `Frontend Specialist`, and `Product Engineer`, with 3.2 s reading pauses. Hover or keyboard focus on the title reveals the nickname.
 - Two swells and six wind waves shape the surface. Shallow horizontal streaks form the moon's reflection; distant waves compress toward the horizon.
@@ -18,7 +18,7 @@ Single-screen portfolio with an ASCII intro and a moonlit sea. No scrolling or c
 
 React 19 + TypeScript + Vite, GSAP for the loader fade, and [tte.js](https://github.com/flaviocopes/tte-js) for the opening effect (MIT, pinned to `9b120c2f65d48f996a027ef061712bb87ad467bb`). `MoonlitBackdrop` caches the procedural sky on resize. `AsciiPerspective` projects the water below the horizon; spatial phases and depth filters are cached. `RiverPalette` quantizes the composed CPU-backed Canvas 2D frame using cached threshold rows. The scene targets 60 fps at approximately 0.9 megapixels per frame, without WebGL, a CSS scene filter, or per-frame React updates.
 
-Tailwind CSS 4 is compiled by the Vite plugin. Layout and state styles live in utilities alongside the React markup and DOM controllers. `src/tailwind.css` defines local fonts, palette tokens, custom variants, and the multi-property animation utilities. The stylesheet loads from `index.html` so the sage backdrop is available before React mounts. Preflight is disabled to preserve native element defaults; the `ascii-reveal` package still supplies its own skeleton styles.
+Tailwind CSS 4 is compiled by the Vite plugin. Layout and state styles live in utilities alongside the React markup and DOM controllers. `src/tailwind.css` defines the local fonts and shared palette tokens. The stylesheet loads from `index.html` so the charcoal backdrop is available before React mounts. Preflight is disabled to preserve native element defaults; the `ascii-reveal` package still supplies its own skeleton styles.
 
 Hero: local [Redaction 35](https://fonts.google.com/specimen/Redaction+35), Bold 700 for the name and Regular 400 for the roles. The artwork uses local Geist Mono. Both fonts use SIL OFL 1.1. The role box follows the actual width of the longest phrase.
 

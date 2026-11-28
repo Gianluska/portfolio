@@ -10,10 +10,10 @@ const THRESHOLDS = Uint8Array.from(atob(
   + 'iFwyTr78WdJ2NGOkRcdT3zbJdSbDkXPQDfewfw5vIK4LweAStX8YbZYHrEPhWySmx3Ya6Ju43TyegCpu8zPWsf5Z0YYTsu5C'
   + 'mDfRVihIi2b3VdCRSZ9iED15I/BtOYtkIrNvlMLsBLkZOLcI4iTMheOixEu45AnT9kfhFkCBWtaY5oRdr3xNqihXC5UmeKNU',
 ), (c) => Math.ceil(c.charCodeAt(0) / 1.25))
-const COLORS = new Uint32Array(new Uint8Array([51, 51, 23, 255, 227, 255, 255, 255]).buffer)
 
 /** Quantize the composed grayscale frame in-place, before it reaches the CSS compositor. */
 export class RiverPalette {
+  private readonly colors: Uint32Array
   private thresholds = new Uint8Array(0)
   private rows = new Uint32Array(0)
   readonly context: CanvasRenderingContext2D
@@ -23,6 +23,11 @@ export class RiverPalette {
     const context = output.getContext('2d', { alpha: false, willReadFrequently: true })
     if (!context) throw new Error('The ASCII river requires a 2D canvas context')
     this.context = context
+    const style = getComputedStyle(output)
+    const rgb = (name: string) => style.getPropertyValue(name).trim().split(/\s+/).map(Number)
+    this.colors = new Uint32Array(new Uint8Array([
+      ...rgb('--scene-rgb'), 255, ...rgb('--scene-ink-rgb'), 255,
+    ]).buffer)
   }
 
   static scale(width: number, height: number): number {
@@ -49,10 +54,11 @@ export class RiverPalette {
     const image = this.context.getImageData(0, 0, width, height)
     const bytes = image.data, words = new Uint32Array(bytes.buffer)
     const thresholds = this.thresholds
+    const colors = this.colors
     for (let y = 0, i = 0; y < height; y++) {
       const end = i + width
       for (let rank = this.rows[y]; i < end; i++, rank++) {
-        words[i] = COLORS[+(bytes[i * 4] >= thresholds[rank])]
+        words[i] = colors[+(bytes[i * 4] >= thresholds[rank])]
       }
     }
     this.context.putImageData(image, 0, 0)

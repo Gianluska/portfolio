@@ -8,11 +8,11 @@ Uma única tela, sem rolagem, indicador ou cachoeira. A abertura `lvsk` e a gota
 
 - A logo da abertura é a ASCII oficial Shadow.
 - Um de 37 efeitos do tte.js é sorteado a cada carregamento. A animação dura de 1 a 2,75 s, com uma pausa final de 0,25 s, sem repetição.
-- A abertura mantém o fundo verde-sálvia e a tinta verde-folha.
+- A abertura mantém o mesmo fundo grafite (`#2d3038`) da gota e da cena. A logo estática usa marfim (`#ece7cd`); `intro-palette` tinge só o Canvas temporário da logo, inclusive nos efeitos com cores próprias, preservando sua transparência.
 
 ## Hero
 
-O hero centralizado começa a `36svh`, entre a lua e a linha d'água. O título em Redaction 35 Bold 700 (`#e3ffff`) varia com largura e altura para caber em retrato e paisagem. A role em Redaction 35 Regular 400 fica abaixo, centralizada. Nuvens mais escuras atrás do texto criam contraste sem caixas ou bordas. Hover ou foco visível abre um slot inline para `"lvsk"` com o mesmo peso e linha de base, em tamanho `0.9em` e cor `#d1ebe4`; o nome acessível permanece estável. Com movimento reduzido, a troca de apelido é instantânea.
+O hero centralizado começa a `36svh`, entre a lua e a linha d'água. O título em Redaction 35 Bold 700 usa o mesmo marfim da cena (`#ece7cd`) e varia com largura e altura para caber em retrato e paisagem. A role em Redaction 35 Regular 400 fica abaixo, centralizada. Nuvens mais escuras atrás do texto criam contraste sem caixas ou bordas. Hover ou foco visível abre um slot inline para `"lvsk"` com o mesmo peso e linha de base, em tamanho `0.9em` e marfim atenuado; o nome acessível permanece estável. Com movimento reduzido, a troca de apelido é instantânea.
 
 A família [Redaction 35](https://fonts.google.com/specimen/Redaction+35) unifica o hero; Geist Mono permanece nos glifos. Ambas são locais e usam SIL OFL 1.1. Licenças: `public/fonts/redaction-35-OFL.txt` e `public/fonts/geist-OFL.txt`.
 
@@ -25,7 +25,7 @@ A role é texto não interativo: clique, Enter e espaço não pausam nem reinici
 
 A câmera olha na horizontal. O horizonte reto fica a 72% da viewport e separa o céu iluminado do mar escuro. A lua central fica a 19% da altura; o raio se ajusta às duas dimensões da tela. Nuvens em faixas e névoa no horizonte usam um campo procedural em escala de cinza, recalculado só no redimensionamento. Não há imagem de fundo embutida.
 
-`RiverPalette` converte a composição em duas tintas, oliva (`#333317`) e branco-gelo (`#e3ffff`), com a matriz fixa de blue noise. O reflexo central se abre em listras horizontais quebradas conforme se aproxima do primeiro plano. O hero fica fora do canvas. O filtro `ascii-palette` é exclusivo do loader verde-sálvia (`#e9eee0`).
+`RiverPalette` lê os mesmos tokens de cor usados pelo loader e converte a composição em duas tintas, grafite (`#2d3038`) e marfim (`#ece7cd`), com a matriz fixa de blue noise. O reflexo central se abre em listras horizontais quebradas conforme se aproxima do primeiro plano. O hero fica fora do Canvas, e o mar não usa filtro CSS.
 
 ### Rasterização da água
 
