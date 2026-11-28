@@ -2,46 +2,42 @@
 
 ## Escopo vigente
 
-Preservar a abertura da logo `lvsk`, o cabeçalho e a gota aprovada. Depois do impacto, um mar calmo ocupa toda a tela em perspectiva oblíqua. Um hero tipográfico central apresenta o nome solicitado e as três roles, sem CTA ou texto adicional. Navio, brisas, pássaros e partículas preservam a leitura de distância e a paleta monocromática. Sem ilhas, canal, margens continentais, céu ou sol.
+Uma única tela, sem rolagem, indicador ou cachoeira. A abertura `lvsk` e a gota dão lugar a um mar noturno visto de frente, com câmera nivelada e fixa. O hero mostra o nome e as três roles entre a lua e o navio, sem CTA ou texto extra.
 
 ## Elementos preservados
 
-- A logo final é a ASCII oficial Shadow. As trocas de fontes FIGlet permanecem apenas nas interações do cabeçalho.
-- Um dos 37 efeitos do tte.js é sorteado a cada carregamento. A animação dura entre 1 e 2,75 s, seguida de uma pausa final de 0,25 s: ciclo de no máximo 3 s. Uma única execução; novos sorteios podem repetir um efeito.
-- A abertura usa a mesma escala de sálvia e verde-folha da cena, inclusive nos efeitos com paletas próprias.
-- Logo no topo esquerdo, com escala visual de 0,9 e deslocamento de -4 px no eixo vertical. A área de interação e a posição de Projects / Contact no topo direito permanecem intactas.
-- Entrada do cabeçalho e interações existentes de hover/foco, sem redesenho.
+- A logo da abertura é a ASCII oficial Shadow.
+- Um de 37 efeitos do tte.js é sorteado a cada carregamento. A animação dura de 1 a 2,75 s, com uma pausa final de 0,25 s, sem repetição.
+- A abertura mantém o fundo verde-sálvia e a tinta verde-folha.
 
 ## Hero
 
-O hero fica centralizado horizontalmente e ancorado ao topo da tela, a `clamp(56px, 12svh, 144px)` da borda superior, com o mesmo recuo lateral `--pad` e texto centralizado. O cabeçalho não exibe mais a logo `lvsk`. O título apresenta `Gianlucca Claudino` em Redaction 35 Bold 700, branco-gelo (`#e3ffff`), de 40 a 96 px, entrelinha de 1,05 e tracking de −0,01 em. Não há linha `aka`. No hover com ponteiro preciso, o texto completo fica `Gianlucca "lvsk" Claudino`: o apelido entre aspas herda a mesma família, peso, tracking e linha de base do nome, com tamanho de 0,9 em (10% menor). A cor do apelido é `#d1ebe4`, mais suave que a do título. Sem sublinhado. Um slot inline de grid abre espaço em 400 ms com `--out`; a alteração de layout fica limitada ao título. Opacidade, deslocamento de 3 px e escala de 0,96 acompanham a abertura e se assentam no alinhamento natural. O mesmo skeleton ASCII revela o apelido em 400 ms; sair reverte a animação a partir do ponto atual, sem reiniciar a textura. O shimmer roda só durante a transição. Foco visível de teclado também revela o apelido; o nome acessível é estável. Hover é restrito a `(hover: hover) and (pointer: fine)`, sem hover preso após toque. Movimento reduzido mantém a troca instantânea, sem textura ou movimento. A grafia original é preservada; em telas estreitas, o nome pode quebrar entre as palavras sem cortar o texto. As roles usam Redaction 35 Regular 400, de 24 a 32 px, entrelinha de 1,35 e alinhamento à esquerda. O intervalo entre título e descrição varia de 8 a 12 px; a role conserva 6 px de padding vertical e altura mínima de 44 px. A box do reveal tem a largura intrínseca da maior das três frases: cópias invisíveis das opções de `ROLES` compartilham uma célula de grid com a linha visível. O medidor é `aria-hidden` e removido ao desmontar. As fontes são locais e pré-carregadas; o controlador aguarda os pesos efetivos antes de medir as linhas do reveal.
+O hero centralizado começa a `36svh`, entre a lua e a linha d'água. O título em Redaction 35 Bold 700 (`#e3ffff`) varia com largura e altura para caber em retrato e paisagem. A role em Redaction 35 Regular 400 fica abaixo, centralizada. Nuvens mais escuras atrás do texto criam contraste sem caixas ou bordas. Hover ou foco visível abre um slot inline para `"lvsk"` com o mesmo peso e linha de base, em tamanho `0.9em` e cor `#d1ebe4`; o nome acessível permanece estável. Com movimento reduzido, a troca de apelido é instantânea.
 
-A família [Redaction 35](https://fonts.google.com/specimen/Redaction+35) unifica o hero: Bold no título, Regular nas roles. Geist Mono permanece no ASCII e no cabeçalho. Neotheric DEMO e sua licença pessoal foram removidas. Redaction 35 e [Geist](https://github.com/vercel/geist-font) usam SIL OFL 1.1, permitem uso comercial, self-host e distribuição junto do projeto e têm licenças em `public/fonts/redaction-35-OFL.txt` e `public/fonts/geist-OFL.txt`. Nenhuma fonte depende de CDN em runtime.
+A família [Redaction 35](https://fonts.google.com/specimen/Redaction+35) unifica o hero; Geist Mono permanece nos glifos. Ambas são locais e usam SIL OFL 1.1. Licenças: `public/fonts/redaction-35-OFL.txt` e `public/fonts/geist-OFL.txt`.
 
 O pacote MIT `ascii-reveal` 0.3.0 fornece o `AsciiSkeleton` original via `asciiSkeletonHTML`, `animateSkeleton` e `SKELETON_CSS`, com variante `dither`. Seus blocos têm limite de 96 colunas: antes de renderizar a entrada e a role, o controlador mede o avanço real de `M` em Geist Mono e aumenta o tamanho das células apenas quando necessário para cobrir toda a largura, com uma coluna de folga para arredondamento. As linhas da textura acompanham a altura real. Um `ResizeObserver` existe somente enquanto esse skeleton está ativo; ao terminar ou cancelar, ele é desconectado e o tamanho temporário é removido. Cada transição de entrada ou ciclo dura 900 ms e usa duas varreduras lineares: por 450 ms, o placeholder cresce da esquerda para a direita; nos 450 ms seguintes, recua na mesma direção e revela o texto. A entrada é escalonada por WAAPI: nome em 0 ms e role em 50 ms. Nas trocas seguintes, apenas a role anima, com pausa de leitura de 3,2 s. A interação do apelido tem animações e limpeza independentes, sem interferir no ciclo ou na entrada. O hero começa 3 s antes da revelação completa do mar: aos 0,75 s do relógio do rio, ainda durante a queda da gota. O gatilho usa esse mesmo relógio e dispara uma única vez; pular a abertura ou ativar movimento reduzido mantém a entrada imediata.
-
-Na descida pela cachoeira, o hero sai pelo mesmo skeleton, acompanhando o scroll em vez de usar tempo: nos primeiros 30% do percurso da câmera, o dither cobre cada linha da esquerda para a direita enquanto o texto é recortado logo atrás da frente; em seguida, o bloco escorre de cima para baixo, uma linha de glifos por vez, como se a cópia caísse pela borda da cachoeira. A role começa 15% depois do nome. Voltar ao mar percorre o mesmo caminho ao contrário e retoma o ciclo das roles. O efeito pausa o ciclo enquanto dura; ao sair por completo, o hero fica oculto e inerte e os skeletons são desmontados. Com movimento reduzido, mantém-se o esmaecimento simples.
 
 A role é texto não interativo: clique, Enter e espaço não pausam nem reiniciam o ciclo automático. Não há semântica de botão, foco de teclado, cursor de ação ou tooltip. Leitores de tela recebem uma lista estável das três roles. Ocultar a aba cancela a fase pendente, e movimento reduzido mantém o texto estático. Os canvases temporários de shimmer são removidos ao fim da transição. Desmontar cancela animações e timeouts, resolve a espera pendente, remove estilos e listeners.
 
 
 ## Fundo
 
-O loader e o fundo final ficam em verde-sálvia pastel (`#e9eee0`). A gota, o mar e a cachoeira usam dois tons inspirados em *Return of the Obra Dinn*: oliva escuro (`#333317`) e branco-gelo (`#e3ffff`). Um único Canvas 2D decorativo cobre toda a viewport. As faixas de luz se comprimem ao fundo, sem céu nem horizonte. Atores permanecem em ASCII, sem uma imagem de fundo ou WebGL.
+A câmera olha na horizontal. O horizonte reto fica a 72% da viewport e separa o céu iluminado do mar escuro. A lua central fica a 19% da altura; o raio se ajusta às duas dimensões da tela. Nuvens em faixas e névoa no horizonte usam um campo procedural em escala de cinza, recalculado só no redimensionamento. Não há imagem de fundo embutida.
 
-`ascii-palette` fica restrito ao loader. No canvas da cena, `RiverPalette` compara a luminosidade da imagem composta — incluindo navio, brisas, névoa e cachoeira — com uma matriz fixa de blue noise e escolhe uma das duas tintas. O limiar não se move com a câmera. Hero e indicador preservam a resolução nativa da tela, com tons claros para manter a leitura.
+`RiverPalette` converte a composição em duas tintas, oliva (`#333317`) e branco-gelo (`#e3ffff`), com a matriz fixa de blue noise. O reflexo central se abre em listras horizontais quebradas conforme se aproxima do primeiro plano. O hero fica fora do canvas. O filtro `ascii-palette` é exclusivo do loader verde-sálvia (`#e9eee0`).
 
 ### Rasterização da água
 
-As coberturas antialias dos glifos são pré-renderizadas em cada tamanho projetado, compartilhando máscaras para dimensões iguais. A água é rasterizada em um buffer RGBA reutilizado, com no máximo uma amostra por pixel CSS e cerca de 0,9 megapixel por quadro.
+As coberturas antialias dos glifos são pré-renderizadas a cada tamanho projetado. Só a região abaixo do horizonte usa a grade de ondas e o buffer de água. O raster combinado usa no máximo uma amostra por pixel CSS e cerca de 0,9 megapixel por quadro.
 
 A luz contínua do mar é amostrada na mesma grade da simulação, interpolada pelo Canvas e combinada com os glifos antes de desenhar os atores. A quantização lê uma vez o quadro já composto no Canvas 2D em CPU, converte seu buffer no próprio lugar usando limiares pré-calculados e o devolve ao mesmo Canvas. Não há leitura da GPU, filtro CSS na cena nem segundo loop de animação.
 
 ### Sequência do rio
 
-1. Somente após o loader desaparecer: uma gota pequena, centralizada no eixo horizontal, cai por 0,95 s até o centro da tela.
-2. O impacto solta o respingo e gera uma onda radial na própria superfície. Uma crista de elevação e uma depressão posterior se propagam em velocidade constante durante 2,8 s, até a onda ultrapassar os cantos da tela. As derivadas desse perfil alteram as normais e os reflexos da água; a altura desloca seus caracteres, e a crista recebe um realce mais claro. Somente a superfície alcançada pela onda é revelada, com borda suavizada de 24 px. Não há contornos ou anéis sobrepostos. A onda sai da viewport e deixa o mar inteiro visível.
-3. Quando a onda alcança o centro da borda inferior, um navio ASCII começa a entrar por ela, sem esperar a revelação dos cantos. Só após a revelação completa começam as passagens discretas de brisa e os pequenos pássaros. O ponteiro guia o barco, cujo casco perturba a superfície (ver "Navio e esteira"); não há outros controles.
+1. Ao sair o loader, a gota cai no eixo central por 0,95 s até o mar.
+2. O impacto gera uma onda no plano da água, com uma crista e uma depressão posterior. A frente radial revela o mar ao longo de 2,8 s. O céu entra por esmaecimento no mesmo relógio, sem mover a câmera.
+3. O navio aparece de perfil onde a onda cruza o horizonte no centro da tela; brisas e pássaros seguem a revelação.
 
 ### Água e vento
 
@@ -51,7 +47,7 @@ Dois swells longos (5 e 3,6 unidades) e seis ondas de vento (2 a 0,74), com dire
 
 ### Navio e esteira
 
-Um navio antigo a vela visto em perspectiva oblíqua, com casco, convés, popa, gurupés, três mastros verticais, cordame e velas quadradas. O rumo gira a base do casco no plano comprimido da água; mastros e velas permanecem erguidos, em vez de girar como um adesivo plano. O tamanho acompanha a profundidade. Ele começa a entrar assim que a shock wave alcança o centro da borda inferior, ainda durante a revelação, com fade de 0,8 s. O contato fica fixado na primeira passagem, inclusive durante redimensionamentos. O ponteiro continua guiando o navio com aceleração, frenagem e leme suaves; as margens consideram a altura dos mastros. As velas enfunam fora de fase e a bandeira segue o vento e a popa com amortecimento, sem viradas abruptas. A espuma nasce na linha d'água, atrás do casco, nunca na ponta dos mastros. Com movimento reduzido, o barco é omitido.
+O veleiro começa de perfil no eixo do reflexo, com a linha d'água junto ao horizonte. Contra a névoa clara, casco, mastros e velas são uma silhueta escura; costuras ASCII ficam mais visíveis quando o navio se aproxima. O rumo gira o casco no plano comprimido, sem inclinar os mastros. O ponteiro sobre a água guia o navio, com aceleração, frenagem e leme suaves. Ele não cruza o horizonte.
 
 A orientação da bandeira interpola os ângulos do vento e da popa, em vez de somar vetores opostos que podem se cancelar e provocar uma virada brusca. A direção é suavizada no espaço da tela pelo arco mais curto, com amortecimento exponencial de resposta 4 s⁻¹ (cerca de 0,75 s para percorrer 95% da transição). Acelerar, frear ou retomar durante a volta mantém a continuidade; o tremular dos segmentos permanece independente.
 
@@ -59,7 +55,7 @@ A esteira vem do casco, não do ponteiro. Uma equação de onda 2D amortecida ro
 
 ### Leitura de superfície
 
-`AsciiPerspective` define a escala de profundidade contínua de 0,3 no alto a 1,1 embaixo e a compressão do plano de 0,55. A água usa a projeção inversa para amostrar os mesmos swells e ondas de vento no plano, sem deformar um bitmap. Fases espaciais, distâncias da onda de impacto e filtros por linha são pré-calculados; frequências que não cabem nas células distantes são atenuadas antes do desenho. A shock wave é circular no plano da água e projetada obliquamente na tela. A altura normalizada escolhe `~`, `-` ou `.`, preservando a altura visual baixa de 0,35, o contraste suave e o filtro de luz de 125 ms. Glifos distantes são menores e mais tênues. A opacidade permanece contínua, sem recorte aleatório.
+`AsciiPerspective` comprime o plano da água por `0.28` e varia a escala de `0.32` no horizonte a `0.96` no primeiro plano. Fases espaciais, distâncias da onda de impacto e filtros por linha são pré-calculados para a câmera fixa. A altura normalizada escolhe `~`, `-` ou `.`, e a luz favorece a direção da lua.
 
 ### Pássaros
 
@@ -77,19 +73,15 @@ Após a revelação completa, insetos pequenos de quatro asas e corpo `:` pairam
 
 A poeira usa pontos e apóstrofos isolados, sem grão sobre a tela: até 32 partículas no desktop e 12 em 390 × 844 px, fonte de 9 px e opacidade entre 0,14 e 0,32 antes dos fades. Deriva para a direita e sobe lentamente em ciclos de 18–30 s; desaparece antes de reiniciar o percurso.
 
-A névoa concentra-se ao fundo e se dissipa gradualmente em direção ao primeiro plano. A opacidade de todas as camadas de névoa é multiplicada por 0,30, preservando movimento, textura e profundidade. O véu atmosférico contínuo tem opacidade de até 0,054 e reduz o contraste da água distante sem desenhar horizonte. Sobre ele passam até três bancos largos e baixos no desktop e dois no mobile, com bordas suaves, pequenas ondulações e textura ASCII `.:-`. Os bancos têm espalhamento espesso e opacidade modulada lentamente em torno de 0,06, reforçada à distância; a compressão vertical preserva o plano do mar. O mesmo véu é composto uma única vez sobre água, brisas e navio: o barco recebe a névoa nos bancos e à distância, enquanto o primeiro plano permanece mais limpo. Insetos, poeira, pássaros e hero ficam à frente da névoa. Sua entrada suave de 2 s começa 2 s antes do fim da revelação da água, sem antecipar insetos, poeira ou brisas e sem alterar a física das ondas.
+A névoa móvel é recortada ao mar. Um véu contínuo perde opacidade em direção ao primeiro plano; até três bancos com textura ASCII `.:-` passam sobre a água e as brisas. O navio, as partículas e os pássaros são desenhados depois para manter a silhueta legível.
 
 ## Movimento reduzido
 
-A logo inicial permanece na fonte oficial. O cabeçalho e a água estática aparecem sem coreografia de entrada, queda ou onda. Brisas, pássaros, insetos, poeira e névoa são omitidos. A preferência também é respeitada quando muda durante a sessão; os controles mantêm foco visível.
+A logo inicial permanece estática. Céu, mar, reflexo e navio central aparecem sem gota, ondas animadas, brisas, pássaros, insetos, poeira ou névoa móvel. A preferência também é respeitada quando muda durante a sessão.
 
 ## Implementação
 
-React, TypeScript, Vite e GSAP. Geist Mono local. O catálogo de tte.js fornece os efeitos da abertura em um Canvas temporário, destruído ao terminar ou desmontar o componente. `AsciiRiver` controla o Canvas 2D: amostragem inversa do plano inclinado, fases espaciais e filtros por profundidade pré-calculados, atlas dos caracteres do mar, soma dos campos de vento e desenho limitado a 60 fps.
-
-`AsciiAtmosphere` compartilha o tempo desde a revelação com `AsciiBirdFlocks`, `AsciiBreezes` e `AsciiBoat`. Os pássaros reutilizam três slots de coortes; as brisas reutilizam buffers de posição e opacidade com capacidade para dez listras e expõem dez campos de pressão; o barco reutiliza um anel de 48 pontos de espuma e expõe posição, rumo e velocidade para que `AsciiRiver` aplique a esteira. O barco é desenhado entre as brisas e os pássaros. Não há alocações de arrays por frame, timers, listeners ou loops adicionais. A aba oculta pausa o relógio; movimento reduzido limpa os atores e mantém só a água estática. Desmontar cancela o frame e remove os listeners do controlador. As variantes FIGlet permanecem no cabeçalho. Sem Three.js / React Three Fiber e sem novas seções ou informações pessoais.
-
-`AsciiRiverAir` reutiliza buffers fixos para insetos, poeira e caracteres de névoa e dois atlas pequenos fora do DOM: um gradiente de distância de 4 × 256 px e uma textura de bancos de 256 × 96 px. Gradientes são gerados apenas no construtor; o desenho usa até quatro cópias de imagem por quadro, sem blur ou noise por pixel. Compartilha o relógio e a pausa do controlador existente, sem novos listeners, timers, loops ou dependências. A névoa é desenhada depois das brisas e do navio; as partículas e os pássaros ficam por cima. Não há segundo passe de névoa ou buffers novos. Movimento reduzido omite a névoa junto dos demais atores atmosféricos.
+React, TypeScript, Vite e GSAP. O Canvas temporário do tte.js é desmontado no fim da abertura. `AsciiRiver` controla a grade de ondas e o relógio de até 60 fps. `MoonlitBackdrop` guarda o céu gerado no redimensionamento e reusa as sementes dos reflexos. `AsciiAtmosphere` sincroniza navio, brisas, bandos e partículas com o mesmo relógio; os atores reutilizam seus buffers. `AsciiRiverAir` usa dois atlas pequenos para os bancos e a névoa de distância. A aba oculta pausa o relógio, e desmontar cancela o frame e remove listeners.
 
 As camadas atmosféricas usam `sceneScale`: bandos e espaçamentos diminuem ao fundo, assim como a velocidade aparente e o raio de susto do navio. As brisas distantes ficam mais curtas, finas e translúcidas; os campos de pressão acompanham o desenho. A névoa se achata sobre a água e insetos e poeira variam escala, opacidade e deriva com a distância. Sem novos loops ou listeners.
 
@@ -97,28 +89,4 @@ As camadas atmosféricas usam `sceneScale`: bandos e espaçamentos diminuem ao f
 
 [GPU Gems, capítulo 1](https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models) fundamenta ondas, normais e filtragem. [Matthias Volk](https://relint.de/waves.html) fundamenta a leitura de reflexos na água. [Obsessed Waves](https://kgaw.io/projects/obsessed-waves/) foi inspecionado como referência visual de ASCII e profundidade, sem copiar sua implementação ou seus objetos.
 
-## Descent through the waterfall
-
-Once the indicator finishes spilling, the camera makes a four-second sine-eased move over the first `220svh`. As the camera nears the waterfall angle, its vertical descent starts before the pitch finishes. The brink moves above the viewport and the same water continues past the bottom of the frame. Filaments thin into spray, and their contrast fades with camera depth. At 3.15 seconds a fade to sage begins, overlapping the descent. The page ends on one empty sage viewport. Returning reverses the camera and fade.
-
-The page holds at the top from the intro through the indicator's entrance and spill. After the indicator finishes entering, the dive needs a charge of 390 px of wheel or 182 px of touch travel. The gesture affects only the indicator until the spill finishes; reversing it drains the charge. When input stops, the charge holds for 0.6 s, then drains with gathering speed, taking about 2.5 s to empty from full, so several strokes add up. On the final screen, an upward pull reveals up to 96 px of waterfall as it builds the same charge.
-
-A scroll cue sits at the bottom center while the sea is active. It is a miniature waterfall drawn in the scene's own glyphs, not a mouse icon: the word `scroll` in uppercase 11 px Geist Mono over a 9 × 8 grid of 14 px glyphs on a 10 px line. The top row is sea (`~ - .`) sliding toward the brink from both sides; the middle rows are the fall; the last row is a pool (`_`). A soft radial sage veil behind it, with no box or border, plus a backdrop-colored glyph halo keep it legible over the water. It first appears 3.4 s after the reveal, and 0.5 s after a return. The grid steps at 30 fps and only runs while the cue is visible. Idle, a lone trickle leaves the lip about every 0.45 s, accelerates with gravity as `:`, `¦` and `|` with a lengthening trail, and bursts into `*`, `o` and `'` on the pool. Charge widens the stream into a curtain up to the full grid, raises its rate and speed, turns the pool into moving `~`, opens the label's tracking, and leans the word over the edge, each letter dropping 0.9 px more than the previous. Drop heads gain a lichen and fern fringe in proportion to the charge. A full charge spills: the sea row empties, the remaining water falls out row by row from the bottom up, and the letters drop in a 45 ms cascade with the same fringe. Only then does the camera dive. The indicator is hidden with reduced motion.
-
-The sea and waterfall share one ground plane and a fixed drop edge. Camera zoom moves from 1 to 0.58 and ground tilt from 0.55 to 0.10. The lip rises from below the viewport and passes above it as the camera descends. Only the static reduced-motion composition shows the impact line near 90% of the viewport. Water fills the width, without cliffs, islands, colored lights, or an inserted image.
-
-The falling water uses thin, low-opacity ASCII filaments rather than fixed vertical columns. Material points cross the brink and accelerate toward the impact, with irregular highlights, small commas and colons, and short thread strokes. The lip stays stationary; there is no separate folded band or periodic deformation. Whitewater at the impact remains a softly blended, advected density field with rounded billows, fine grain, sparse bubble contours, rising mist, and ballistic droplets with short trails. Broken, low-contrast ripples spread beneath the impact. Seed buffers, glyph masks, and the river's frame clock remain shared.
-
-The river and fall use one continuous material trajectory: constant projected entry velocity upstream, followed by a quadratic downward displacement. Transported texture is keyed to emission time, so highlights travel with the water rather than pulsing across the whole edge. Material sample phases and counts do not change during camera travel. Opacity compensates for overlapping samples near the slow brink, and short fading trails preserve the falling filaments.
-
-The fall is densest at the brink and dissipates as it descends, like a tall free-falling waterfall. After the first fifth of the drop, filaments lose up to 60% of their opacity, scatter sideways by up to 34 px at full scale, and give way to loose dots and mist glyphs. Their streak trails fade out by the lower half. Impact foam is softened into a diffuse mist base, dimmer than the water at the crest; pooled ripples are unchanged.
-
-Visual references: [Adam Rhodes — clear water crossing a waterfall edge](https://uppbeat.io/stock-video/asset/close-up-of-water-flowing-over-waterfall-edge-168394), inspected as footage and stills, and [Seth Dunlap — Nature in Motion at Niagara Falls](https://www.filmsupply.com/shoots/nature-in-motion-at-niagara-falls/24899), inspected via its crest close-up. These guide continuous flow, irregular travelling highlights, and the absence of repeating transverse folds; no reference media is bundled with the site.
-
-Waterfall particles follow their own trajectories without pointer input. The ship's pointer steering at sea is unchanged.
-
-
-`AsciiSceneCamera` owns the projection, depth and fall light. `AsciiWaterfall` plots into the reusable water pixel buffer and glyph masks. The stream's ballistic path extends below the shot at a fixed sampling cadence; no pool enters the moving shot. Spatial phases update only while the water plane is visible. `SceneNavigation` drives the shared timeline, and `AsciiRiver` reads scroll position and stops rendering once the final backdrop covers the viewport.
-
-Reduced motion restores native scrolling, switches between static sea and waterfall compositions at the midpoint, and skips the animated descent. Home returns to the sea.
 

@@ -1,5 +1,4 @@
-import { sceneScale, SEA_TILT } from './AsciiPerspective'
-import type { AsciiSceneCamera } from './AsciiSceneCamera'
+import { HORIZON, sceneScale, SEA_TILT } from './AsciiPerspective'
 
 const INSECTS = 8
 const DUST = 32
@@ -138,7 +137,7 @@ export class AsciiRiverAir {
     const bankDensity = 2 + fade((width - 560) / 240)
     const columns = MIST_COLUMNS
     for (let bank = 0; bank < Math.ceil(bankDensity); bank++) {
-      const laneY = 0.18 + bank * 0.21
+      const laneY = HORIZON + bank * 0.075
       const depth = sceneScale(laneY * height, height)
       const radiusX = Math.min(820, width * 0.95) * (1.1 - depth * 0.3)
       const bankFade = Math.min(1, bankDensity - bank)
@@ -147,7 +146,7 @@ export class AsciiRiverAir {
       const progress = (seed(bank, 10) + fogTime * (7 + bank * 1.5) * depth / 1940) % 1
       const centreX = -radiusX + progress * travel
       const centreY = height * laneY + Math.sin(fogTime * 0.12 * depth + bank) * 12 * depth * SEA_TILT
-      const radiusY = height * (0.14 + bank * 0.02) * (0.65 + depth * 0.35) * SEA_TILT
+      const radiusY = height * (0.16 + bank * 0.02) * SEA_TILT
       const veil = this.banks[this.bankCount++]
       veil.x = centreX
       veil.y = centreY
@@ -177,17 +176,13 @@ export class AsciiRiverAir {
     }
   }
 
-  /** Depth haze and drifting banks veil the water, wind and ship beneath airborne actors. */
-  drawMist(ctx: CanvasRenderingContext2D, camera: AsciiSceneCamera): void {
+  /** Depth haze and drifting banks veil the water and wind beneath the ship. */
+  drawMist(ctx: CanvasRenderingContext2D): void {
     if (this.fogAlpha <= 0) return
     ctx.save()
     ctx.globalAlpha = this.fogAlpha * FOG_OPACITY
-    // Unproject the screen-wide veil so camera retreat cannot expose its rectangular edges.
-    // Local banks below still inherit the actor projection.
-    const zoom = camera.zoom, pitch = zoom * camera.tilt / SEA_TILT
-    const left = this.fogWidth * (zoom - 1) / (2 * zoom)
-    const top = this.fogHeight / 2 - camera.centerY / pitch
-    ctx.drawImage(this.depthVeil, left, top, this.fogWidth / zoom, this.fogHeight / pitch)
+    const horizon = this.fogHeight * HORIZON
+    ctx.drawImage(this.depthVeil, 0, horizon, this.fogWidth, this.fogHeight - horizon)
     ctx.fillStyle = '#ffffff'
     ctx.font = '400 12px "Geist Mono", monospace'
     ctx.textAlign = 'center'

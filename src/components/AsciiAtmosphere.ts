@@ -1,8 +1,8 @@
 import { AsciiBirdFlocks } from './AsciiBirdFlocks'
 import { AsciiBoat } from './AsciiBoat'
 import { AsciiBreezes } from './AsciiBreezes'
-import { AsciiRiverAir } from './AsciiRiverAir';
-import type { AsciiSceneCamera } from './AsciiSceneCamera'
+import { AsciiRiverAir } from './AsciiRiverAir'
+import { HORIZON } from './AsciiPerspective'
 
 /** Decorations share the water's clock; no additional animation loop or DOM. */
 export class AsciiAtmosphere {
@@ -12,7 +12,7 @@ export class AsciiAtmosphere {
   readonly boat = new AsciiBoat()
   readonly breezes = this.wind.fields
 
-  /** Fog leads full reveal by 2 s; other air/wind/birds follow it, ship starts at bottom contact. */
+  /** The ship appears once the reveal reaches the horizon; other actors follow. */
   update(
     time: number, boatTime: number, width: number, height: number, enabled: boolean,
     pointerX = Number.NaN, pointerY = Number.NaN,
@@ -28,10 +28,16 @@ export class AsciiAtmosphere {
     )
   }
 
-  draw(ctx: CanvasRenderingContext2D, camera: AsciiSceneCamera): void {
+  draw(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+    const horizon = height * HORIZON
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(0, horizon, width, height - horizon)
+    ctx.clip()
     this.wind.draw(ctx)
+    this.air.drawMist(ctx)
+    ctx.restore()
     this.boat.draw(ctx)
-    this.air.drawMist(ctx, camera)
     this.air.drawMotes(ctx)
     this.birds.draw(ctx)
   }

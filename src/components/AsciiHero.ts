@@ -6,12 +6,6 @@ const LOADING = 900
 const ENTRANCE_STAGGER = 50
 // ascii-reveal 0.3.0 caps block textures at 96 glyph columns.
 const SKELETON_COLUMNS = 96
-// Scroll exit (fraction of the descent): the dither covers each line, then drains row by row.
-const EXIT_END = 0.3
-const EXIT_STAGGER = 0.15
-const EXIT_COVER = 0.5
-
-const clamp = (value: number): number => Math.max(0, Math.min(1, value))
 
 /** Original dither skeletons shimmer briefly before the actual copy replaces them. */
 export class AsciiHero {
@@ -40,8 +34,6 @@ export class AsciiHero {
   private started = false
   private destroyed = false
   private busy = false
-  private exitProgress = 0
-  private readonly exitStops: (() => void)[] = []
 
   constructor(private readonly el: HTMLElement) {
     const canvas = document.createElement('canvas')
@@ -81,58 +73,7 @@ export class AsciiHero {
     ])
     if (this.destroyed) return
     this.el.hidden = false
-    if (this.exitProgress > 0 || this.motion.matches) this.applyExit()
-    else await this.play(true)
-  }
-
-  /** Follows the descent: 0 at the sea, 1 once the camera has left the hero behind. */
-  setExit(scrollProgress: number): void {
-    const progress = clamp(scrollProgress / EXIT_END)
-    if (progress === this.exitProgress) return
-    this.exitProgress = progress
-    this.applyExit()
-  }
-
-  private applyExit(): void {
-    if (!this.started || this.destroyed || this.el.hidden) return
-    const progress = this.exitProgress
-    const reduced = this.motion.matches
-    this.el.inert = progress >= 1
-    this.el.style.opacity = reduced && progress > 0 ? String(1 - progress) : ''
-    this.el.style.visibility = !reduced && progress >= 1 ? 'hidden' : ''
-    if (reduced || progress === 0 || progress >= 1) {
-      this.clearExit()
-      if (progress === 0) this.schedule()
-      return
-    }
-    const lines = this.el.querySelectorAll<HTMLElement>('.hero__line')
-    if (!this.exitStops.length) {
-      this.stop()
-      lines.forEach((line, i) => {
-        const dispose = this.mountSkeleton(line, 41 + i * 10)
-        this.exitStops.push(() => {
-          dispose()
-          line.querySelector<HTMLElement>('.hero__skeleton')!.style.removeProperty('clip-path')
-          line.querySelector<HTMLElement>('.hero__text')!.style.removeProperty('clip-path')
-        })
-      })
-    }
-    lines.forEach((line, i) => {
-      const overlay = line.querySelector<HTMLElement>('.hero__skeleton')!
-      const local = clamp((progress - i * EXIT_STAGGER) / (1 - EXIT_STAGGER))
-      const cover = clamp(local / EXIT_COVER)
-      const drain = clamp((local - EXIT_COVER) / (1 - EXIT_COVER))
-      // Whole glyph rows fall away from the top, like the copy pouring over the brink.
-      const rows = Number(overlay.dataset.rows) || 1
-      const drained = Math.round(drain * drain * rows) / rows
-      overlay.style.clipPath = `inset(${drained * 100}% ${(1 - cover) * 100}% 0 0)`
-      line.querySelector<HTMLElement>('.hero__text')!.style.clipPath = `inset(0 0 0 ${cover * 100}%)`
-    })
-  }
-
-  private clearExit(): void {
-    for (const stop of this.exitStops) stop()
-    this.exitStops.length = 0
+    if (!this.motion.matches) await this.play(true)
   }
 
   /** Fills `line` with a shimmering dither block that tracks its size; returns its disposer. */
@@ -158,7 +99,6 @@ export class AsciiHero {
         Math.ceil(width * baseFontSize / ((SKELETON_COLUMNS - 1) * advance)))
       const rows = Math.max(1, Math.ceil(height / fontSize))
       overlay.style.fontSize = `${fontSize}px`
-      overlay.dataset.rows = String(rows)
       overlay.innerHTML = asciiSkeletonHTML({ variant: 'dither', rows, seed, css: false })
       stopShimmer = animateSkeleton(overlay.firstElementChild as HTMLElement)
     }
@@ -173,7 +113,6 @@ export class AsciiHero {
       stopShimmer?.()
       overlay.replaceChildren()
       overlay.style.removeProperty('font-size')
-      delete overlay.dataset.rows
       overlay.hidden = true
       line.classList.remove('is-loading')
     }
@@ -232,7 +171,7 @@ export class AsciiHero {
   }
 
   private async play(initial = false): Promise<void> {
-    if (this.destroyed || this.motion.matches || document.hidden || this.exitProgress > 0) return
+    if (this.destroyed || this.motion.matches || document.hidden) return
     const epoch = ++this.epoch
     this.busy = true
     try {
@@ -266,8 +205,7 @@ export class AsciiHero {
   private schedule(): void {
     window.clearTimeout(this.timer)
     this.timer = 0
-    if (!this.started || this.destroyed || this.busy || this.motion.matches || document.hidden
-      || this.exitProgress > 0) return
+    if (!this.started || this.destroyed || this.busy || this.motion.matches || document.hidden) return
     this.timer = window.setTimeout(() => {
       this.timer = 0
       void this.play()
@@ -369,10 +307,8 @@ export class AsciiHero {
 
   private motionChange = (): void => {
     this.stop()
-    this.clearExit()
     this.clearNickname()
     this.updateNickname(true)
-    this.applyExit()
     this.schedule()
   }
 
@@ -390,11 +326,7 @@ export class AsciiHero {
   destroy(): void {
     this.destroyed = true
     this.stop()
-    this.clearExit()
     this.clearNickname()
-    this.el.style.removeProperty('opacity')
-    this.el.style.removeProperty('visibility')
-    this.el.inert = false
     this.name.removeEventListener('pointerenter', this.nicknameEnter)
     this.name.removeEventListener('pointerleave', this.nicknameLeave)
     this.name.removeEventListener('focus', this.nicknameFocus)

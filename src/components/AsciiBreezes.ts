@@ -1,4 +1,4 @@
-import { sceneScale, SEA_TILT } from './AsciiPerspective'
+import { HORIZON, sceneScale, SEA_TILT } from './AsciiPerspective'
 
 export type BreezeField = {
   x: number
@@ -62,7 +62,7 @@ export class AsciiBreezes {
     if (envelope === 0) return
 
     const size = 0.9 + cohortSeed(birth, 3) * 0.2
-    const laneY = 0.18 + cohortSeed(birth, 5) * 0.7
+    const laneY = HORIZON + (1 - HORIZON) * (0.1 + cohortSeed(birth, 5) * 0.8)
     const depth = sceneScale(laneY * height, height)
     const length = Math.max(36, Math.min(560 * size, width * 0.8)) * depth
     const direction = cohortSeed(birth, 4) < 0.5 ? -1 : 1

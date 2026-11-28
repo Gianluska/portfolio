@@ -1,8 +1,7 @@
 import { AsciiBroadside } from './AsciiBroadside'
-import { DEPTH_FAR, DEPTH_RANGE, sceneScale, SEA_TILT } from './AsciiPerspective'
+import { HORIZON, sceneScale, seaDepth, SEA_TILT } from './AsciiPerspective'
 
 // An upright, full-rigged ship above a turning, foreshortened waterline.
-const BOAT_ENTER = 0
 const FADE_IN = 0.8
 const MAX_SPEED = 230
 const THRUST = 380
@@ -16,7 +15,6 @@ const ARRIVE = 90
 const SLOW_RADIUS = 210
 // Reference-plane bounds include the bowsprit and the masthead's fluttering pennant.
 const EDGE = 88
-const MAST_CLEARANCE = 124
 const WATER_EDGE = 38
 // Foam: two arms spread from the transom while the ship is under way.
 const FOAM_POINTS = 48
@@ -57,7 +55,7 @@ const clamp = (value: number, min = 0, max = 1): number => Math.max(min, Math.mi
 export class AsciiBoat {
   x = 0
   y = 0
-  heading = -Math.PI / 2
+  heading = 0
   speed = 0
   active = false
   private vx = 0
@@ -68,7 +66,7 @@ export class AsciiBoat {
   private time = 0
   private born = 0
   private spawned = false
-  private inside = false
+  private rigLight = 0
   private steered = false
   private lastTime = Number.NaN
   private travelled = 0
@@ -101,40 +99,38 @@ export class AsciiBoat {
     return this.active ? clamp(this.speed / MAX_SPEED) : 0
   }
 
-  /** Seconds since the reveal wave reached the bottom; pointer is NaN when absent. */
+  /** Seconds since the reveal reached the horizon; reduced motion holds the idle pose. */
   update(
     time: number, width: number, height: number, enabled: boolean,
     pointerX = Number.NaN, pointerY = Number.NaN,
   ): void {
-    if (!enabled || time < BOAT_ENTER || width <= 0 || height <= 0) {
+    if (time < 0) {
       this.active = false
       this.spawned = false
       this.lastTime = time
       return
     }
-    // A backwards seek sails the boat in again.
-    if (time < this.lastTime) this.spawned = false
-    const dt = time > this.lastTime ? Math.min(0.05, time - this.lastTime) : 0
+    if (time < this.lastTime || !enabled) this.spawned = false
+    const dt = enabled && time > this.lastTime ? Math.min(0.05, time - this.lastTime) : 0
     this.lastTime = time
     this.time = time
-    // Shrink only on genuinely narrow canvases; normal phone sizes retain the full rig.
-    const fit = Math.min(1, Math.max(0.1, (width - 16) / (EDGE * 2.2)))
-    if (!this.spawned) this.spawn(time, width, height)
+    const fit = Math.min(1.7, width / 380, height / 300)
+    const top = height * HORIZON + 2 * fit
+    if (!this.spawned) this.spawn(time)
+    if (!this.steered) {
+      this.x = width / 2
+      this.y = top
+    }
     this.scale = sceneScale(this.y, height) * fit
     this.active = true
     const fade = clamp((time - this.born) / FADE_IN)
-    this.alpha = fade * fade * (3 - 2 * fade)
+    this.alpha = enabled ? fade * fade * (3 - 2 * fade) : 1
 
-    // Before anyone steers, the boat motors to a resting spot below the centre.
-    // Once the pointer has been seen, losing it lets the boat coast to a stop.
     let targetX = Number.NaN, targetY = Number.NaN
-    if (Number.isFinite(pointerX) && Number.isFinite(pointerY)) {
+    if (enabled && Number.isFinite(pointerX) && Number.isFinite(pointerY)) {
       targetX = pointerX
       targetY = pointerY
       this.steered = true
-    } else if (!this.steered) {
-      targetX = width / 2
-      targetY = height * 0.64
     }
 
     let desiredSpeed = 0, desiredTurn = 0
@@ -177,17 +173,12 @@ export class AsciiBoat {
       this.pennantAngle + wrapAngle(target - this.pennantAngle) * -Math.expm1(-PENNANT_RESPONSE * dt),
     )
 
-    // Solve y >= mastHeight * sceneScale(y): even a northbound masthead stays visible.
-    const top = (MAST_CLEARANCE * fit * DEPTH_FAR + 8)
-      / Math.max(0.1, 1 - MAST_CLEARANCE * fit * DEPTH_RANGE / height)
     const edge = EDGE * this.scale
-    const bottom = WATER_EDGE * this.scale
-    if (!this.inside && this.y < height - bottom) this.inside = true
-    if (this.inside) {
-      this.x = clamp(this.x, edge, Math.max(edge, width - edge))
-      this.y = clamp(this.y, Math.min(top, height / 2), Math.max(top, height - bottom))
-      this.scale = sceneScale(this.y, height) * fit
-    }
+    const bottom = Math.max(top, height - WATER_EDGE * this.scale)
+    this.x = clamp(this.x, edge, Math.max(edge, width - edge))
+    this.y = clamp(this.y, top, bottom)
+    this.scale = sceneScale(this.y, height) * fit
+    this.rigLight = clamp((seaDepth(this.y, height) - 0.06) / 0.4)
 
     this.travelled += this.speed * dt
     if (this.travelled >= FOAM_GAP) {
@@ -207,19 +198,16 @@ export class AsciiBoat {
     this.broadside.update(time, height, { x: this.x, y: this.y, heading: this.heading, scale: this.scale })
   }
 
-  private spawn(time: number, width: number, height: number): void {
+  private spawn(time: number): void {
     this.spawned = true
-    this.inside = false
     this.steered = false
     this.born = time
-    this.x = width / 2
-    this.y = height + 40
-    this.heading = -Math.PI / 2
+    this.heading = 0
     this.turn = 0
     this.pennantAngle = WIND
     this.vx = 0
-    this.vy = -MAX_SPEED * 0.6
-    this.speed = MAX_SPEED * 0.6
+    this.vy = 0
+    this.speed = 0
     this.travelled = 0
     this.foamBirth.fill(-Infinity)
     this.broadside.reset()
@@ -268,8 +256,15 @@ export class AsciiBoat {
     const x = mast.along * this.projectionX - mast.across * this.projectionY
     const deckY = (mast.along * this.projectionY + mast.across * this.projectionX) * SEA_TILT
     ctx.font = '400 9px "Geist Mono", monospace'
+    ctx.strokeStyle = '#000'
+    ctx.lineWidth = 3.5
+    ctx.globalAlpha = this.alpha
+    ctx.beginPath()
+    ctx.moveTo(x, deckY - 16)
+    ctx.lineTo(x, deckY - mast.height - 3)
+    ctx.stroke()
     ctx.fillStyle = INK
-    ctx.globalAlpha = opacity * 0.86
+    ctx.globalAlpha = opacity * 0.86 * this.rigLight
     this.stroke(ctx, x, deckY - 16, x, deckY - mast.height, '|')
     ctx.fillText('+', x, deckY - mast.height)
 
@@ -280,9 +275,9 @@ export class AsciiBoat {
       const top = deckY - mast.height + (tier === 0 ? 12 : 42)
       const belly = BILLOW * (0.55 + 0.25 * Math.sin(this.time * 0.9)
         + 0.2 * Math.sin(this.time * 1.6 + index * 0.9 + tier))
-      // Only backing is polygonal; every visible seam, hem and spar is an ASCII glyph.
-      ctx.fillStyle = '#000000'
-      ctx.globalAlpha = opacity * 0.95
+      // A solid sail reads against bright horizon haze; seams emerge in the foreground.
+      ctx.fillStyle = '#000'
+      ctx.globalAlpha = this.alpha
       ctx.beginPath()
       ctx.moveTo(x - half, top - 3)
       ctx.lineTo(x + half, top - 3)
@@ -290,6 +285,7 @@ export class AsciiBoat {
       ctx.quadraticCurveTo(x, top + 25 + belly, x - half, top + 12)
       ctx.closePath()
       ctx.fill()
+      if (this.rigLight === 0) continue
       ctx.fillStyle = INK
       ctx.font = '400 8px "Geist Mono", monospace'
       for (let row = 0; row < SAIL.length; row++) {
@@ -300,7 +296,7 @@ export class AsciiBoat {
           const across = (col - 3) / 3
           const bow = Math.max(0, 1 - across * across)
           const edge = row === 0 || row === 3 || col === 0 || col === 6 || col === 3
-          ctx.globalAlpha = opacity * (edge ? 0.91 : 0.35)
+          ctx.globalAlpha = opacity * this.rigLight * (edge ? 0.91 : 0.35)
           ctx.fillText(
             glyph, x + across * half,
             top + row * 6 + (row === 0 ? 0 : belly * bow * row / 3),
@@ -373,8 +369,15 @@ export class AsciiBoat {
     ctx.fill()
 
     // Forestays, shrouds and the long bowsprit are character strokes, not Canvas lines.
-    ctx.fillStyle = INK
-    ctx.globalAlpha = opacity * 0.45
+    ctx.fillStyle = this.rigLight > 0.5 ? INK : '#000'
+    ctx.globalAlpha = opacity * 0.64
+    ctx.strokeStyle = ctx.fillStyle
+    ctx.lineWidth = 2.7
+    ctx.beginPath()
+    this.maskPoint(ctx, 36, 0, 16, true)
+    this.maskPoint(ctx, 82, 0, 27)
+    this.maskPoint(ctx, MASTS[2].along, MASTS[2].across, MASTS[2].height - 24)
+    ctx.stroke()
     for (let index = 0; index < MASTS.length; index++) {
       const mast = MASTS[index]
       this.groundStroke(ctx, mast.along, mast.across, mast.height - 3, -49, 0, 20, '.')
@@ -382,8 +385,8 @@ export class AsciiBoat {
       this.groundStroke(ctx, mast.along, mast.across, mast.height - 28, mast.along - 12, -15, 15, ':')
       this.groundStroke(ctx, mast.along, mast.across, mast.height - 28, mast.along - 12, 15, 15, ':')
     }
+    ctx.fillStyle = INK
     ctx.globalAlpha = opacity * 0.92
-    this.groundStroke(ctx, 36, 0, 16, 82, 0, 27)
     this.groundStroke(ctx, -53, -12, 22, -38, -17, 15)
     this.groundStroke(ctx, -38, -17, 15, 36, -14, 15)
     this.groundStroke(ctx, 36, -14, 15, 57, 0, 18)
@@ -476,6 +479,7 @@ export class AsciiBoat {
     const flowX = Math.cos(this.pennantAngle)
     const flowY = Math.sin(this.pennantAngle) * SEA_TILT
     ctx.font = '600 9px "Geist Mono", monospace'
+    ctx.fillStyle = this.rigLight > 0.5 ? INK : '#000'
     for (let step = 1; step <= PENNANT; step++) {
       const wave = Math.sin(this.time * 7 - step * 1.1) * step * 0.45
       const x = flagX + flowX * step * PENNANT_STEP - flowY * wave
@@ -486,6 +490,7 @@ export class AsciiBoat {
       if (step < PENNANT - 1) ctx.fillText('~', x, y + width)
     }
 
+    ctx.fillStyle = INK
     // Lapping foam is projected around the waterline, never around the tall sails.
     if (calm > 0.4) {
       const lap = (this.time / LAP_PERIOD) % 1
